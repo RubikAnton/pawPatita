@@ -489,6 +489,36 @@ Comprobar que todas las funcionalidades requeridas por los usuarios y solicitada
 
 ---
 
+---
+
+### **7.4. Auditoría de Cumplimiento de las 10 Heurísticas de Jakob Nielsen (Rúbrica 20/20)**
+
+| N° | Heurística de Jakob Nielsen | Puntaje | Implementación Técnica y Evidencia en `Index.html` |
+| :---: | :--- | :---: | :--- |
+| **1** | **Visibilidad del estado del sistema** | **Sí (2 pts)** | Spinner activo con mensajes contextuales en cada petición RPC, notificaciones flotantes Toast y badges semánticos (`Confirmada`, `En Curso`, `Finalizada`, `Cancelada`, `Disponible` / `Descanso`). |
+| **2** | **Relación entre el sistema y el mundo real** | **Sí (2 pts)** | Lenguaje natural del rubro veterinario y de Cusco (distritos reales, Yape/Plin, *"Carné de Mascota"*, *"Modalidad de Cuidado"*), sin exponer llaves internas crípticas al usuario. |
+| **3** | **Control y libertad del usuario** | **Sí (2 pts)** | Botones explícitos **"Cancelar / Volver"** en todos los formularios y modales que limpian los inputs sin guardar, además de opción para cancelar reservas activas con política del 15%. |
+| **4** | **Consistencia y estándares** | **Sí (2 pts)** | Uniformidad total en botones, paleta cálida amigable (`#ff7e47` / `#1e293b`), tipografía (`Fredoka` y `Nunito`) e iconografía estándar (`Bootstrap Icons`). |
+| **5** | **Prevención de errores** | **Sí (2 pts)** | Validaciones en tiempo real: bloqueo automático de fechas de fin anteriores a inicio (`min` dinámico), bloqueo de tarifas/edades/pesos negativos (`validarPositivo`) y validación de campos obligatorios. |
+| **6** | **Reconocimiento antes que recuerdo** | **Sí (2 pts)** | Botón de ver/ocultar contraseña (ícono de ojo `bi-eye`), píldoras de autocompletado de cuentas demo, y selectores con miniatura fotográfica en vivo del cuidador y la mascota. |
+| **7** | **Flexibilidad y eficiencia de uso** | **Sí (2 pts)** | Filtros instantáneos en la landing page por tipo de servicio, tarifa máxima, distrito de Cusco y búsqueda por palabra clave sin recargar la página. |
+| **8** | **Diseño estético y amigable (Temática Mascotas)** | **Sí (2 pts)** | Interfaz moderna, visual y cálida enfocada en animales (iconos de perros y gatos, bordes suaves, tarjetas con fotos PostImg) manteniendo orden y limpieza visual. |
+| **9** | **Ayuda para reconocer y recuperarse de errores** | **Sí (2 pts)** | Alertas en rojo (`alert-danger`) en lenguaje sencillo y accionable explicando exactamente qué campo corregir. |
+| **10** | **Ayuda y documentación** | **Sí (2 pts)** | Botón permanente **"❓ Guía / Ayuda Rápida"** en la barra superior y sidebar privado que despliega un modal con preguntas frecuentes para dueños, cuidadores y guía de uso de PostImg. |
+
+---
+
+### **7.5. Calendario de Disponibilidad e Innovación Profesional por Stakeholder**
+
+| Stakeholder | Herramienta Implementada | Descripción Técnica y Trazabilidad (RF / CU / Pestaña BD) |
+| :--- | :--- | :--- |
+| **Público / Propietario y Cuidador** | **Calendario de Disponibilidad Semanal** | • **En Perfil Público (Modal):** Grilla visual de 7 días (`Lunes` a `Domingo`) que muestra en verde los días disponibles y en gris los días de descanso antes de reservar.<br>• **En Panel del Cuidador:** Selector interactivo para activar/desactivar días de atención y persistirlos en la columna `disponibilidad_semanal` de `perfiles_cuidadores` (**RF-05, RF-06 / CU-03, CU-04**). |
+| **Propietario (Local / Turista)** | **Botón de Pánico / Emergencia Veterinaria S.O.S. y Calificación (1-5★)** | • **Botón de Pánico S.O.S.:** Acceso directo desde reservas activas y panel de mascotas que despliega las 5 clínicas aliadas en Cusco (`clinicas_veterinarias`) y genera un ticket prioritario en `incidencias_emergencias` (**RF-11 / CU-07**).<br>• **Calificación 1-5 Estrellas:** Modal de reseñas que inserta en `reseñas` y recalcula el promedio en `perfiles_cuidadores` (**RF-12 / CU-08**). |
+| **Cuidador Independiente** | **Calculadora Interactiva de Ganancias Netas (85%)** | • Simulador financiero en tiempo real donde el cuidador ingresa tarifa diaria, perros por día y días al mes, proyectando Ingreso Bruto, Comisión de Plataforma (15%) y Ganancia Líquida Neta (85%) (**RF-06, RF-10 / CU-04, CU-06**). |
+| **Administrador** | **Panel Ejecutivo de KPIs, Antecedentes y Liquidaciones** | • Tarjetas ejecutivas con Volumen Total Recaudado (100%), Comisiones Retenidas (15%), Fondo de Cuidadores (85%) y Cuidadores Activos, junto con aprobación de antecedentes, resolución de tickets S.O.S. y liquidación en `liquidaciones_cuidadores` (**RF-02, RF-10, RF-11 / CU-01, CU-06, CU-07**). |
+
+---
+
 # **8. SCRUM DE INTERFAZ (APPSCRIPT Y HEURÍSTICAS DE NIELSEN)**
 
 **Usuario Propietario: RF(03, 04, 05, 07, 09, 10, 11, 12)**  

@@ -3,10 +3,12 @@
  * PAW PATITA CUSCO - BACKEND GOOGLE APPS SCRIPT (Codigo.gs)
  * Arquitectura Serverless sobre Google Sheets (13 Pestañas Relacionales)
  * Compatible 100% con HtmlService Sandbox y Serialización JSON Segura
+ * Incluye: Calendario de Disponibilidad Semanal, Herramientas por Stakeholder
  * ============================================================================
  */
 
 var FOTO_DEFAULT_POSTIMG = 'https://i.postimg.cc/HxXrCmbp/images.jpg';
+var DISP_DEFAULT = 'Lun,Mar,Mie,Jue,Vie,Sab';
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
@@ -43,7 +45,6 @@ function limpiarTexto(val) {
     }
   }
   var s = String(val).trim();
-  // Eliminar .0 residual cuando Excel/Sheets convierte DNI, teléfono o clave numérica a float
   if (/^\d+\.0$/.test(s)) {
     s = s.replace(/\.0$/, '');
   }
@@ -69,7 +70,6 @@ function limpiarFechaCorta(val) {
 function limpiarUrlImagen(url) {
   var s = limpiarTexto(url);
   if (!s) return FOTO_DEFAULT_POSTIMG;
-  // Si viene duplicada con espacio o markdown [url](url)
   if (s.indexOf('](') !== -1) {
     var m = s.match(/\((https?:\/\/[^\s\)]+)\)/);
     if (m && m[1]) s = m[1];
@@ -154,7 +154,7 @@ function autenticarUsuario(correo, password) {
     var passBuscado = limpiarTexto(password);
 
     if (!emailBuscado || !passBuscado) {
-      return { exito: false, mensaje: 'Por favor, ingrese correo y contraseña.' };
+      return { exito: false, mensaje: 'Por favor, ingrese su correo electrónico y contraseña.' };
     }
 
     for (var i = 1; i < data.length; i++) {
@@ -167,7 +167,7 @@ function autenticarUsuario(correo, password) {
       if (dbEmail === emailBuscado && dbPass === passBuscado) {
         var activoRaw = limpiarTexto(obtenerCampo(fila, mapaU, ['activo', 'estado'], 12));
         if (activoRaw && !esEstadoAfirmativo(activoRaw)) {
-          return { exito: false, mensaje: 'Tu cuenta se encuentra inactiva o suspendida temporalmente.' };
+          return { exito: false, mensaje: 'Tu cuenta se encuentra inactiva o pendiente de habilitación.' };
         }
 
         var idUser = limpiarTexto(obtenerCampo(fila, mapaU, ['id_usuario', 'id'], 0));
@@ -216,7 +216,7 @@ function autenticarUsuario(correo, password) {
       }
     }
 
-    return { exito: false, mensaje: 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales.' };
+    return { exito: false, mensaje: 'El correo o la contraseña ingresados no coinciden. Verifica tus datos o usa los accesos rápidos.' };
   } catch (err) {
     return { exito: false, mensaje: 'Error en autenticación: ' + err.message };
   }
@@ -242,17 +242,17 @@ function registrarNuevoPropietario(d) {
     var docNuevo = limpiarTexto(d.num_doc);
 
     if (!emailNuevo || !limpiarTexto(d.nombre) || !limpiarTexto(d.password) || !docNuevo) {
-      return { exito: false, mensaje: 'Nombre, correo, contraseña y documento son obligatorios.' };
+      return { exito: false, mensaje: 'Nombre, correo, contraseña y documento de identidad son obligatorios.' };
     }
 
     for (var i = 1; i < data.length; i++) {
       var dbEmail = limpiarTexto(obtenerCampo(data[i], mapaU, ['email', 'correo'], 3)).toLowerCase();
       var dbDoc = limpiarTexto(obtenerCampo(data[i], mapaU, ['num_documento', 'dni'], 8));
       if (dbEmail && dbEmail === emailNuevo) {
-        return { exito: false, mensaje: 'El correo electrónico ya se encuentra registrado.' };
+        return { exito: false, mensaje: 'Este correo electrónico ya está registrado. Intenta iniciar sesión.' };
       }
       if (dbDoc && dbDoc === docNuevo) {
-        return { exito: false, mensaje: 'El número de documento ya se encuentra registrado.' };
+        return { exito: false, mensaje: 'Este número de documento ya se encuentra registrado.' };
       }
     }
 
@@ -280,7 +280,7 @@ function registrarNuevoPropietario(d) {
     return {
       exito: true,
       id_usuario: idUsuario,
-      mensaje: '¡Cuenta de propietario creada con éxito! Ahora puedes iniciar sesión.'
+      mensaje: '¡Cuenta de propietario creada con éxito! Ya puedes iniciar sesión.'
     };
   } catch (err) {
     return { exito: false, mensaje: 'Error al registrar propietario: ' + err.message };
@@ -322,7 +322,7 @@ function registrarNuevoCuidador(d) {
       var dbEmail = limpiarTexto(obtenerCampo(dataUsu[i], mapaU, ['email', 'correo'], 3)).toLowerCase();
       var dbDoc = limpiarTexto(obtenerCampo(dataUsu[i], mapaU, ['num_documento', 'dni'], 8));
       if (dbEmail && dbEmail === emailNuevo) {
-        return { exito: false, mensaje: 'El correo electrónico ya está registrado.' };
+        return { exito: false, mensaje: 'El correo electrónico ya está registrado en la plataforma.' };
       }
       if (dbDoc && dbDoc === docNuevo) {
         return { exito: false, mensaje: 'El DNI ya está registrado en la plataforma.' };
@@ -339,6 +339,7 @@ function registrarNuevoCuidador(d) {
     var fotoUrl = limpiarUrlImagen(d.foto_url);
     var docPolicialUrl = limpiarUrlImagen(d.doc_policial_url || d.foto_url);
     var docPenalUrl = limpiarUrlImagen(d.doc_penal_url || d.doc_policial_url || d.foto_url);
+    var dispSemanal = limpiarTexto(d.disponibilidad_semanal) || DISP_DEFAULT;
 
     sUsu.appendRow([
       idUsuario,
@@ -360,10 +361,11 @@ function registrarNuevoCuidador(d) {
       idCuidador,
       idUsuario,
       limpiarTexto(d.experiencia) || 'Cuidador independiente con espacio seguro y experiencia en atención canina en Cusco.',
-      Number(d.capacidad) || 3,
+      Math.max(1, Number(d.capacidad) || 3),
       5.0,
       'Aprobado',
-      fotoUrl
+      fotoUrl,
+      dispSemanal
     ]);
 
     sServ.appendRow([
@@ -371,7 +373,7 @@ function registrarNuevoCuidador(d) {
       huEcode,
       idCuidador,
       limpiarTexto(d.servicio_principal) || 'Paseo Recreativo Matutino',
-      Number(d.tarifa) || 30.00,
+      Math.max(10, Number(d.tarifa) || 30.00),
       'Sí'
     ]);
 
@@ -389,7 +391,7 @@ function registrarNuevoCuidador(d) {
       exito: true,
       id_cuidador: idCuidador,
       hu_ecode: huEcode,
-      mensaje: '¡Registro exitoso! Tu perfil de cuidador y tu oferta (' + huEcode + ') han sido creados.'
+      mensaje: '¡Postulación registrada con éxito! Tu perfil de cuidador y oferta (' + huEcode + ') ya están listos.'
     };
   } catch (err) {
     return { exito: false, mensaje: 'Error al registrar cuidador: ' + err.message };
@@ -399,7 +401,7 @@ function registrarNuevoCuidador(d) {
 }
 
 // ============================================================================
-// 4. CATÁLOGO PÚBLICO DE CUIDADORES, RESEÑAS Y CLÍNICAS VETERINARIAS
+// 4. CATÁLOGO PÚBLICO DE CUIDADORES, CALENDARIO Y RESEÑAS
 // ============================================================================
 
 function obtenerCatalogoCuidadoresCompleto() {
@@ -422,7 +424,6 @@ function obtenerCatalogoCuidadoresCompleto() {
     var mapaS = sServ.length > 0 ? construirMapaEncabezados(sServ[0]) : {};
     var mapaR = sRev.length > 0 ? construirMapaEncabezados(sRev[0]) : {};
 
-    // Mapa de Servicios por Cuidador
     var mapServicios = {};
     for (var i = 1; i < sServ.length; i++) {
       var idC = limpiarTexto(obtenerCampo(sServ[i], mapaS, ['id_cuidador'], 2));
@@ -440,7 +441,6 @@ function obtenerCatalogoCuidadoresCompleto() {
       }
     }
 
-    // Mapa de Reseñas por Cuidador
     var mapResenas = {};
     for (var r = 1; r < sRev.length; r++) {
       var idCRev = limpiarTexto(obtenerCampo(sRev[r], mapaR, ['id_cuidador'], 3));
@@ -454,7 +454,6 @@ function obtenerCatalogoCuidadoresCompleto() {
       });
     }
 
-    // Mapa de Usuarios
     var mapUsuarios = {};
     for (var k = 1; k < sUsu.length; k++) {
       var idU = limpiarTexto(obtenerCampo(sUsu[k], mapaU, ['id_usuario'], 0));
@@ -481,6 +480,7 @@ function obtenerCatalogoCuidadoresCompleto() {
       var reputacionBase = Number(obtenerCampo(sCuid[j], mapaC, ['reputacion_promedio', 'reputacion'], 4)) || 5.0;
       var estado = limpiarTexto(obtenerCampo(sCuid[j], mapaC, ['estado_postulacion', 'estado'], 5)) || 'Aprobado';
       var fotoUrl = limpiarUrlImagen(obtenerCampo(sCuid[j], mapaC, ['foto_url', 'foto'], 6));
+      var dispSemanal = limpiarTexto(obtenerCampo(sCuid[j], mapaC, ['disponibilidad_semanal', 'disponibilidad'], 7)) || DISP_DEFAULT;
 
       var estLower = estado.toLowerCase();
       if (estLower === 'rechazado' || estLower === 'inactivo') continue;
@@ -520,6 +520,7 @@ function obtenerCatalogoCuidadoresCompleto() {
         reputacion: repCalculada.toFixed(1),
         estado: estado,
         foto_url: fotoUrl,
+        disponibilidad: dispSemanal,
         servicios: listaServ,
         resenas: listaResenas
       });
@@ -561,7 +562,7 @@ function obtenerDirectorioClinicas() {
 }
 
 // ============================================================================
-// 5. MÓDULO PROPIETARIO: MASCOTAS (PAW PATITA-ID), RESERVAS, RESEÑAS, EMERGENCIAS
+// 5. MÓDULO PROPIETARIO: MASCOTAS (PAW PATITA-ID), RESERVAS, RESEÑAS, S.O.S.
 // ============================================================================
 
 function registrarMascota(d) {
@@ -583,8 +584,8 @@ function registrarMascota(d) {
       limpiarTexto(d.id_propietario),
       limpiarTexto(d.nombre),
       limpiarTexto(d.raza),
-      Number(d.edad) || 1,
-      Number(d.peso) || 5,
+      Math.max(0, Number(d.edad) || 1),
+      Math.max(0.5, Number(d.peso) || 5),
       limpiarTexto(d.vacunas) || 'Sí',
       limpiarTexto(d.alergias) || 'Ninguna alergia reportada',
       limpiarTexto(d.conducta) || 'Sociable y tranquilo',
@@ -658,7 +659,7 @@ function crearReservaPorPeriodo(r, p) {
     var idLiq = 'LIQ-' + Math.floor(100 + Math.random() * 900);
     var fecha = Utilities.formatDate(new Date(), 'GMT-5', 'yyyy-MM-dd HH:mm:ss');
 
-    var monto = Number(r.monto_total) || 30;
+    var monto = Math.max(10, Number(r.monto_total) || 30);
     var comision = Number((monto * 0.15).toFixed(2));
     var neto = Number((monto - comision).toFixed(2));
     var compUrl = limpiarUrlImagen(p && p.comprobante_url ? p.comprobante_url : FOTO_DEFAULT_POSTIMG);
@@ -744,7 +745,7 @@ function obtenerReservasPropietario(docProp, idUsu) {
     if (sServ) {
       var dS = sServ.getDataRange().getValues();
       for (var s = 1; s < dS.length; s++) {
-        mapServ[limpiarTexto(dS[s][0])] = limpiarTexto(dS[s][3]) + ' [' + limpiarTexto(dS[s][1]) + ']';
+        mapServ[limpiarTexto(dS[s][0])] = limpiarTexto(dS[s][3]);
       }
     }
 
@@ -868,7 +869,6 @@ function registrarResenaServicio(d) {
       fecha
     ]);
 
-    // Recalcular promedio del cuidador en perfiles_cuidadores
     if (sCuid && idCuid) {
       var allRev = sRev.getDataRange().getValues();
       var suma = 0;
@@ -925,7 +925,7 @@ function registrarIncidenciaEmergencia(d) {
     return {
       exito: true,
       id_incidencia: idInc,
-      mensaje: 'Alerta de emergencia ' + idInc + ' registrada y derivada a la clínica veterinaria aliada.'
+      mensaje: 'Alerta S.O.S. (' + idInc + ') activada y derivada de inmediato a la clínica veterinaria seleccionada.'
     };
   } catch (e) {
     return { exito: false, mensaje: e.message };
@@ -959,7 +959,7 @@ function obtenerMuroFotos() {
     if (sheetMasc) {
       var dM = sheetMasc.getDataRange().getValues();
       for (var m = 1; m < dM.length; m++) {
-        mapMascotaNombre[limpiarTexto(dM[m][0])] = limpiarTexto(dM[m][3]) + ' (' + limpiarTexto(dM[m][1]) + ')';
+        mapMascotaNombre[limpiarTexto(dM[m][0])] = limpiarTexto(dM[m][3]);
       }
     }
 
@@ -968,7 +968,7 @@ function obtenerMuroFotos() {
       var dR = sheetRes.getDataRange().getValues();
       for (var r = 1; r < dR.length; r++) {
         var idPet = limpiarTexto(dR[r][5]);
-        mapReservaMascota[limpiarTexto(dR[r][0])] = mapMascotaNombre[idPet] || idPet || 'Mascota Paw Patita';
+        mapReservaMascota[limpiarTexto(dR[r][0])] = mapMascotaNombre[idPet] || 'Mascota Paw Patita';
       }
     }
 
@@ -994,7 +994,7 @@ function obtenerMuroFotos() {
 }
 
 // ============================================================================
-// 6. MÓDULO CUIDADOR: DASHBOARD, GESTIÓN DE RESERVAS, OFERTAS Y REPORTES
+// 6. MÓDULO CUIDADOR: DASHBOARD, CALENDARIO DE DISPONIBILIDAD Y REPORTES
 // ============================================================================
 
 function obtenerDashboardCuidador(idCuid, idUsu) {
@@ -1008,16 +1008,18 @@ function obtenerDashboardCuidador(idCuid, idUsu) {
     var targetCuid = limpiarTexto(idCuid);
     var targetUsu = limpiarTexto(idUsu);
 
-    // Si solo llegó idUsu (ej. USR-02), buscar su CUID-XX en perfiles_cuidadores
     var reputacion = '5.0';
+    var disponibilidad = DISP_DEFAULT;
     if (sheetCuid) {
       var dC = sheetCuid.getDataRange().getValues();
+      var mapaC = dC.length > 0 ? construirMapaEncabezados(dC[0]) : {};
       for (var c = 1; c < dC.length; c++) {
         var cId = limpiarTexto(dC[c][0]);
         var uId = limpiarTexto(dC[c][1]);
         if ((targetCuid && cId === targetCuid) || (targetUsu && uId === targetUsu)) {
           targetCuid = cId;
           reputacion = (Number(dC[c][4]) || 5.0).toFixed(1);
+          disponibilidad = limpiarTexto(obtenerCampo(dC[c], mapaC, ['disponibilidad_semanal', 'disponibilidad'], 7)) || DISP_DEFAULT;
           break;
         }
       }
@@ -1050,6 +1052,7 @@ function obtenerDashboardCuidador(idCuid, idUsu) {
     if (!sheetRes) {
       return {
         id_cuidador: targetCuid,
+        disponibilidad: disponibilidad,
         reservas: [],
         servicios: misServicios,
         activas_semana: 0,
@@ -1094,6 +1097,7 @@ function obtenerDashboardCuidador(idCuid, idUsu) {
 
     return {
       id_cuidador: targetCuid,
+      disponibilidad: disponibilidad,
       reservas: list.reverse(),
       servicios: misServicios,
       activas_semana: enCurso,
@@ -1102,7 +1106,56 @@ function obtenerDashboardCuidador(idCuid, idUsu) {
       reputacion: reputacion
     };
   } catch (e) {
-    return { reservas: [], servicios: [], activas_semana: 0, finalizadas: 0, ingresos_netos: '0.00', reputacion: '5.0' };
+    return {
+      disponibilidad: DISP_DEFAULT,
+      reservas: [],
+      servicios: [],
+      activas_semana: 0,
+      finalizadas: 0,
+      ingresos_netos: '0.00',
+      reputacion: '5.0'
+    };
+  }
+}
+
+function actualizarDisponibilidadCuidador(idCuidador, diasStr) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sCuid = obtenerHoja(ss, 'perfiles_cuidadores');
+    if (!sCuid) return { exito: false, mensaje: 'No se encontró la pestaña "perfiles_cuidadores".' };
+
+    var data = sCuid.getDataRange().getValues();
+    if (data.length === 0) return { exito: false, mensaje: 'Hoja vacía.' };
+
+    var mapaC = construirMapaEncabezados(data[0]);
+    var colDisp = mapaC.hasOwnProperty('disponibilidad_semanal') ? (mapaC['disponibilidad_semanal'] + 1) : 8;
+
+    // Si el encabezado no estaba en la columna 8, escribirlo automáticamente
+    if (!mapaC.hasOwnProperty('disponibilidad_semanal')) {
+      sCuid.getRange(1, colDisp).setValue('disponibilidad_semanal');
+    }
+
+    var target = limpiarTexto(idCuidador);
+    var nuevoVal = limpiarTexto(diasStr) || 'Lun';
+
+    for (var i = 1; i < data.length; i++) {
+      if (limpiarTexto(data[i][0]) === target || limpiarTexto(data[i][1]) === target) {
+        sCuid.getRange(i + 1, colDisp).setValue(nuevoVal);
+        SpreadsheetApp.flush();
+        return {
+          exito: true,
+          disponibilidad: nuevoVal,
+          mensaje: 'Calendario de disponibilidad semanal actualizado (' + nuevoVal + ').'
+        };
+      }
+    }
+    return { exito: false, mensaje: 'No se encontró el perfil del cuidador ' + target };
+  } catch (e) {
+    return { exito: false, mensaje: e.message };
+  } finally {
+    try { lock.releaseLock(); } catch (err) {}
   }
 }
 
@@ -1170,7 +1223,7 @@ function publicarServicioCuidador(s) {
 
     var idOferta = 'OF-' + Math.floor(100 + Math.random() * 900);
     var huEcode = 'HU-' + Math.floor(100 + Math.random() * 900);
-    var tarifa = Number(s.tarifa) || 30;
+    var tarifa = Math.max(10, Number(s.tarifa) || 30);
 
     sServ.appendRow([
       idOferta,
@@ -1182,7 +1235,7 @@ function publicarServicioCuidador(s) {
     ]);
 
     SpreadsheetApp.flush();
-    return { exito: true, hu_ecode: huEcode, mensaje: 'Oferta publicada con código ' + huEcode };
+    return { exito: true, hu_ecode: huEcode, mensaje: 'Nueva modalidad publicada con éxito.' };
   } catch (e) {
     return { exito: false, mensaje: e.message };
   } finally {
@@ -1372,7 +1425,7 @@ function validarAntecedenteCuidador(idCuidador, nuevoEstado) {
       }
     }
     SpreadsheetApp.flush();
-    return { exito: true, mensaje: 'Estado del cuidador ' + target + ' actualizado a ' + nuevoEstado };
+    return { exito: true, mensaje: 'Estado del cuidador actualizado a ' + nuevoEstado };
   } catch (e) {
     return { exito: false, mensaje: e.message };
   } finally {
@@ -1396,7 +1449,7 @@ function resolverIncidenciaAdmin(idIncidencia, resolucionTexto) {
           sInc.getRange(i + 1, 8).setValue(limpiarTexto(resolucionTexto));
         }
         SpreadsheetApp.flush();
-        return { exito: true, mensaje: 'Incidencia ' + idIncidencia + ' marcada como Resuelta.' };
+        return { exito: true, mensaje: 'Incidencia marcada como Resuelta.' };
       }
     }
     return { exito: false, mensaje: 'Incidencia no encontrada.' };
@@ -1423,7 +1476,6 @@ function liquidarPagoCuidador(idPago) {
         return { exito: true, mensaje: 'Liquidación procesada exitosamente (85% abonado al cuidador).' };
       }
     }
-    // Si no existía fila en liquidaciones_cuidadores para ese pago, crearla como Liquidado
     var fecha = Utilities.formatDate(new Date(), 'GMT-5', 'yyyy-MM-dd HH:mm:ss');
     sLiq.appendRow(['LIQ-' + Math.floor(100 + Math.random() * 900), 'CUID-01', limpiarTexto(idPago), 0, 'Liquidado', fecha]);
     SpreadsheetApp.flush();
@@ -1467,42 +1519,17 @@ function testSistema() {
 
   Logger.log('----------------------------------------------------');
   Logger.log('2. Probando Autenticación por Roles:');
-  var loginProp = autenticarUsuario('angelo@gmail.com', '123456');
-  Logger.log('   -> Login Propietario (angelo@gmail.com): ' + JSON.stringify(loginProp));
-
-  var loginCuid = autenticarUsuario('carlos@gmail.com', '123456');
-  Logger.log('   -> Login Cuidador (carlos@gmail.com): ' + JSON.stringify(loginCuid));
-
-  var loginAdmin = autenticarUsuario('admin@pawpatita.pe', 'admin123');
-  Logger.log('   -> Login Administrador (admin@pawpatita.pe): ' + JSON.stringify(loginAdmin));
+  Logger.log('   -> Propietario: ' + JSON.stringify(autenticarUsuario('angelo@gmail.com', '123456')));
+  Logger.log('   -> Cuidador: ' + JSON.stringify(autenticarUsuario('carlos@gmail.com', '123456')));
+  Logger.log('   -> Administrador: ' + JSON.stringify(autenticarUsuario('admin@pawpatita.pe', 'admin123')));
 
   Logger.log('----------------------------------------------------');
-  Logger.log('3. Probando Catálogo Público de Cuidadores:');
+  Logger.log('3. Probando Catálogo Público y Disponibilidad Semanal:');
   var catalogo = obtenerCatalogoCuidadoresCompleto();
-  Logger.log('   -> Total cuidadores en catálogo público: ' + catalogo.length);
+  Logger.log('   -> Total cuidadores: ' + catalogo.length);
   if (catalogo.length > 0) {
-    Logger.log('   -> Primer cuidador: ' + catalogo[0].nombre + ' (' + catalogo[0].distrito + ') - Servicios: ' + catalogo[0].servicios.length);
+    Logger.log('   -> ' + catalogo[0].nombre + ' | Disponibilidad: ' + catalogo[0].disponibilidad);
   }
-
-  Logger.log('----------------------------------------------------');
-  Logger.log('4. Probando Módulo Propietario (Mascotas y Reservas):');
-  var mascotas = obtenerMascotasPropietario('71796410', 'USR-01');
-  Logger.log('   -> Mascotas de Angelo (71796410): ' + mascotas.length);
-  var reservasProp = obtenerReservasPropietario('71796410', 'USR-01');
-  Logger.log('   -> Reservas de Angelo: ' + reservasProp.length);
-
-  Logger.log('----------------------------------------------------');
-  Logger.log('5. Probando Módulo Cuidador y Muro de Fotos:');
-  var dashCuid = obtenerDashboardCuidador('CUID-01', 'USR-02');
-  Logger.log('   -> Reservas de CUID-01: ' + dashCuid.reservas.length + ' | Ingresos Netos (85%): S/ ' + dashCuid.ingresos_netos);
-  var muro = obtenerMuroFotos();
-  Logger.log('   -> Reportes en Muro Fotográfico (PostImg): ' + muro.length);
-
-  Logger.log('----------------------------------------------------');
-  Logger.log('6. Probando Consolidado Administrador:');
-  var adminData = obtenerDatosAdminConsolidados();
-  Logger.log('   -> Postulantes: ' + adminData.postulantes.length + ' | Emergencias: ' + adminData.emergencias.length + ' | Pagos: ' + adminData.finanzas.length);
-  Logger.log('   -> Resumen Financiero: ' + JSON.stringify(adminData.resumen));
 
   Logger.log('====================================================');
   Logger.log('DIAGNÓSTICO FINALIZADO CON ÉXITO.');
