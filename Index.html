@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paw Patita Cusco | Cuidado Canino Seguro y Responsable</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --paw-orange: #ff7e47;
+      --paw-orange-dark: #e65c24;
+      --paw-sidebar: #1e293b;
+      --paw-sidebar-dark: #0f172a;
+      --paw-light: #fffdfa;
+      --paw-peach: #fff3eb;
+    }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--paw-light);
+      color: #334155;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4, h5, .brand-font {
+      font-family: 'Fredoka', cursive;
+    }
+    .btn-paw {
+      background: linear-gradient(135deg, #ff7e47 0%, #ff5722 100%);
+      color: #ffffff;
+      font-weight: 700;
+      border-radius: 30px;
+      border: none;
+      box-shadow: 0 4px 12px rgba(255, 126, 71, 0.3);
+      transition: all 0.2s ease;
+    }
+    .btn-paw:hover {
+      background: linear-gradient(135deg, #ff6b2b 0%, #e64a19 100%);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .btn-paw-outline {
+      border: 2px solid var(--paw-orange);
+      color: var(--paw-orange-dark);
+      font-weight: 700;
+      border-radius: 30px;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    .btn-paw-outline:hover {
+      background: var(--paw-orange);
+      color: #ffffff;
+    }
+    .card-paw {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #fde2ce;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-paw-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(255, 126, 71, 0.12);
+    }
+    .cuid-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      background-color: #f1f5f9;
+    }
+    .pet-img {
+      width: 100%;
+      height: 165px;
+      object-fit: cover;
+      border-radius: 14px;
+      background-color: #f1f5f9;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, #fff0e5 0%, #ffe4e6 100%);
+      border: 1px solid #fed7aa;
+      border-radius: 26px;
+    }
+    .app-layout {
+      display: none;
+      min-height: 100vh;
+    }
+    .app-sidebar {
+      width: 270px;
+      background: var(--paw-sidebar);
+      color: #ffffff;
+      flex-shrink: 0;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-link {
+      color: #cbd5e1;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      transition: all 0.2s ease;
+    }
+    .sidebar-link i {
+      font-size: 1.2rem;
+      margin-right: 12px;
+    }
+    .sidebar-link:hover, .sidebar-link.active {
+      color: #ffffff;
+      background: var(--paw-orange);
+      box-shadow: 0 4px 10px rgba(255, 126, 71, 0.3);
+    }
+    .app-content {
+      flex-grow: 1;
+      padding: 28px 32px;
+      background: #f8fafc;
+      overflow-y: auto;
+    }
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .toast-container-paw {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9990;
+    }
+    .cred-pill {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .cred-pill:hover {
+      background-color: #fed7aa !important;
+    }
+    @media (max-width: 768px) {
+      .app-layout {
+        flex-direction: column;
+      }
+      .app-sidebar {
+        width: 100%;
+        padding: 16px;
+      }
+      .app-content {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEURÍSTICA 1 NIELSEN: VISIBILIDAD DEL ESTADO DEL SISTEMA (LOADER CON TIMEOUT SEGURO) -->
+  <div id="loader" class="loading-overlay">
+    <div class="fs-1 mb-2">🐾</div>
+    <div class="spinner-border text-warning mb-2" style="width: 2.8rem; height: 2.8rem;" role="status"></div>
+    <span class="brand-font fw-bold text-dark fs-5" id="loader-text">Sincronizando con Paw Patita Cusco...</span>
+    <small class="text-muted mt-1">Conectando de forma segura con Google Sheets</small>
+  </div>
+
+  <!-- NOTIFICACIONES FLOTANTES (TOAST) -->
+  <div class="toast-container-paw" id="toast-box"></div>
+
+  <!-- ==========================================================================
+       VISTA 1: LANDING PAGE PÚBLICA (CATÁLOGO, FILTROS Y PERFIL MODAL)
+       ========================================================================== -->
+  <div id="contenedor-publico">
+    <nav class="navbar navbar-expand-lg bg-white sticky-top px-3 py-2 border-bottom shadow-sm">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="javascript:void(0)" onclick="window.scrollTo(0,0)">
+          <span class="fs-2 me-2">🐕</span>
+          <div>
+            <span class="brand-font fw-bold fs-3 text-dark d-block" style="line-height: 1.1;">Paw Patita</span>
+            <small class="text-warning-emphasis fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">CUSCO • CUIDADO CANINO VERIFICADO</small>
+          </div>
+        </a>
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+          <button class="btn btn-outline-danger rounded-pill fw-bold btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalDirectorioVet">
+            <i class="bi bi-hospital me-1"></i> S.O.S. Veterinarias
+          </button>
+          <button class="btn btn-outline-dark rounded-pill fw-bold btn-sm px-3" onclick="abrirLogin()">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-paw btn-sm px-3 dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="bi bi-person-plus-fill me-1"></i> Registrarse
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2">
+              <li>
+                <a class="dropdown-item py-2 rounded-3 fw-semibold" href="javascript:void(0)" onclick="abrirModalRegistro('Propietario')">
+                  <i class="bi bi-heart-fill text-danger me-2"></i>Soy Dueño (Local / Turista)
+                </a>
+              </li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li>
+                <a class="dropdown-item py-2 rounded-3 fw-semibold" href="javascript:void(0)" onclick="abrirModalRegistro('Cuidador')">
+                  <i class="bi bi-award-fill text-warning me-2"></i>Postular como Cuidador
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      <!-- HERO SECTION TEMÁTICA -->
+      <div class="hero-banner p-4 p-md-5 mb-4 shadow-sm">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-8 text-center text-lg-start">
+            <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fw-bold mb-2">
+              <i class="bi bi-shield-check me-1"></i>Cuidadores con Antecedentes Verificados en Cusco
+            </span>
+            <h1 class="display-5 fw-bold text-dark mb-3">El Hogar Temporal que tu Perro Merece en Cusco</h1>
+            <p class="text-secondary fs-5 mb-4">
+              Explora cuidadores locales evaluados en Wanchaq, San Sebastián, Cusco Centro, San Jerónimo y Santiago. Reserva por periodo de fechas y recibe fotos en vivo mediante <strong>PostImg</strong>.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-start">
+              <button class="btn btn-paw btn-lg px-4" onclick="document.getElementById('seccion-catalogo').scrollIntoView({behavior:'smooth'})">
+                <i class="bi bi-search-heart me-2"></i>Explorar Catálogo
+              </button>
+              <button class="btn btn-paw-outline btn-lg px-4" onclick="abrirModalRegistro('Cuidador')">
+                <i class="bi bi-briefcase me-2"></i>Trabaja como Cuidador
+              </button>
+            </div>
+          </div>
+          <div class="col-lg-4 text-center">
+            <div class="card card-paw p-3 border-0 shadow">
+              <img src="https://i.postimg.cc/HxXrCmbp/images.jpg" class="rounded-4 w-100" style="height: 210px; object-fit: cover;" alt="Mascota Feliz en Cusco">
+              <div class="d-flex justify-content-around pt-3 text-center">
+                <div>
+                  <h5 class="fw-bold text-dark m-0">100%</h5>
+                  <small class="text-muted">Verificados</small>
+                </div>
+                <div class="border-start ps-3">
+                  <h5 class="fw-bold text-success m-0">Fotos Live</h5>
+                  <small class="text-muted">Vía PostImg</small>
+                </div>
+                <div class="border-start ps-3">
+                  <h5 class="fw-bold text-warning-emphasis m-0">★ 4.9</h5>
+                  <small class="text-muted">Calificación</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARRA DE FILTROS DINÁMICOS EN VIVO (SERVICIO Y DISTRITO CUSCO) -->
+      <div id="seccion-catalogo" class="card card-paw p-3 p-md-4 mb-4">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="bi bi-stars text-warning me-1"></i>Modalidad de Servicio (HU E-Code)
+            </label>
+            <select id="filtro-servicio" class="form-select" onchange="aplicarFiltros()">
+              <option value="TODOS">Todas las modalidades</option>
+              <option value="Paseo">Paseo Recreativo / Ecológico</option>
+              <option value="Hospedaje">Hospedaje Temporal Nocturno</option>
+              <option value="Guardería">Guardería Diurna Especializada</option>
+              <option value="Domicilio">Cuidado a Domicilio Turístico</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="bi bi-geo-alt-fill text-danger me-1"></i>Distrito en Cusco
+            </label>
+            <select id="filtro-distrito" class="form-select" onchange="aplicarFiltros()">
+              <option value="TODOS">Todos los distritos de Cusco</option>
+              <option value="Cusco">Cusco Centro</option>
+              <option value="Wanchaq">Wanchaq</option>
+              <option value="San Sebastián">San Sebastián</option>
+              <option value="San Jerónimo">San Jerónimo</option>
+              <option value="Santiago">Santiago</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="bi bi-search me-1"></i>Buscar Cuidador
+            </label>
+            <input type="text" id="filtro-texto" class="form-control" placeholder="Nombre o bio..." oninput="aplicarFiltros()">
+          </div>
+          <div class="col-md-2 d-flex gap-1">
+            <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltrosCatalogo()" title="Restablecer filtros">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTADO DE TARJETAS DE CUIDADORES -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold m-0"><i class="bi bi-patch-check-fill text-warning me-2"></i>Catálogo Público de Cuidadores</h4>
+        <span class="badge bg-light text-dark border px-3 py-2" id="contador-cuidadores">Cargando...</span>
+      </div>
+      <div id="catalogo-cuidadores" class="row g-4 mb-5">
+        <div class="col-12 text-center text-muted py-5">Cargando cuidadores verificados...</div>
+      </div>
+    </main>
+
+    <footer class="bg-white border-top py-4 mt-4">
+      <div class="container d-flex flex-wrap justify-content-between align-items-center small text-muted">
+        <div><strong>Paw Patita Cusco</strong> • Ingeniería de Requisitos y Arquitectura de Software (2026)</div>
+        <div>Soporte de Imágenes <strong>PostImg</strong> • Comisión transparente del 15%</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ==========================================================================
+       VISTA 2: DASHBOARD PRIVADO CON SIDEBAR LATERAL IZQUIERDO POR ROL
+       ========================================================================== -->
+  <div id="contenedor-privado" class="app-layout">
+    <aside class="app-sidebar">
+      <div class="d-flex align-items-center mb-4 pb-3 border-bottom border-secondary">
+        <span class="fs-2 me-2">🐾</span>
+        <div>
+          <span class="brand-font fw-bold fs-4 text-white d-block" style="line-height: 1.1;">Paw Patita</span>
+          <span id="sidebar-rol-tag" class="badge bg-warning text-dark small mt-1">ROL</span>
+        </div>
+      </div>
+
+      <div class="mb-4 text-center p-3 rounded-4" style="background: var(--paw-sidebar-dark);">
+        <i class="bi bi-person-bounding-box fs-2 text-warning mb-1 d-block"></i>
+        <div id="sidebar-user-name" class="fw-bold text-white">Usuario</div>
+        <small id="sidebar-user-id" class="text-secondary d-block" style="font-size: 0.78rem;"></small>
+        <small id="sidebar-user-distrito" class="badge bg-secondary mt-1" style="font-size: 0.7rem;"></small>
+      </div>
+
+      <nav class="flex-grow-1" id="sidebar-nav-links"></nav>
+
+      <div class="pt-3 border-top border-secondary d-grid gap-2">
+        <button class="btn btn-outline-warning btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#modalDirectorioVet">
+          <i class="bi bi-hospital me-1"></i> Clínicas S.O.S.
+        </button>
+        <button class="btn btn-outline-light btn-sm rounded-pill" onclick="volverAlCatalogoPublico()">
+          <i class="bi bi-globe me-1"></i> Ver Catálogo Público
+        </button>
+        <button class="btn btn-danger btn-sm rounded-pill" onclick="cerrarSesion()">
+          <i class="bi bi-box-arrow-left me-1"></i> Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <main class="app-content">
+      <!-- ====================================================================
+           SECCIONES DEL ROL: PROPIETARIO
+           ==================================================================== -->
+      <!-- 1. Propietario: Mis Mascotas (PAW PATITA-ID) -->
+      <div id="sec-prop-mascotas" class="seccion-dashboard">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+          <div>
+            <h3 class="fw-bold text-dark m-0">Mis Mascotas (Ficha PAW PATITA-ID)</h3>
+            <small class="text-muted">Gestiona la historia clínica, vacunas, conducta y fotografía PostImg de tus perros.</small>
+          </div>
+          <button class="btn btn-paw px-4" data-bs-toggle="modal" data-bs-target="#modalNuevaMascota">
+            <i class="bi bi-plus-circle me-2"></i>Registrar Mascota
+          </button>
+        </div>
+        <div id="grid-mis-mascotas" class="row g-3"></div>
+      </div>
+
+      <!-- 2. Propietario: Contratar y Reservar por Periodo -->
+      <div id="sec-prop-reservar" class="seccion-dashboard d-none">
+        <h3 class="fw-bold text-dark mb-1">Contratar Servicio por Periodo de Fechas</h3>
+        <p class="text-muted small mb-4">Selecciona la oferta (HU E-Code), indica las fechas de inicio y fin, y revisa el desglose transparente antes de confirmar.</p>
+
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="card card-paw p-4">
+              <div id="msg-res-pago" class="alert d-none py-2 small"></div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">1. Cuidador y Oferta (HU E-Code)</label>
+                  <select id="res-combo-servicios" class="form-select" onchange="calcularMontoPeriodo()"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">2. Mascota (PAW PATITA-ID)</label>
+                  <select id="res-combo-pets" class="form-select"></select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">3. Fecha de Inicio</label>
+                  <input type="date" id="res-f-ini" class="form-control" onchange="calcularMontoPeriodo()">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">4. Fecha de Fin</label>
+                  <input type="date" id="res-f-fin" class="form-control" onchange="calcularMontoPeriodo()">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold">5. Método de Pago</label>
+                  <select id="res-pago-metodo" class="form-select">
+                    <option value="Yape">Yape (QR / Celular)</option>
+                    <option value="Plin">Plin Interbancario</option>
+                    <option value="Transferencia">Transferencia Bancaria</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold">6. N° Operación</label>
+                  <input type="text" id="res-pago-op" class="form-control" placeholder="Ej. OP-984120">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold">7. Comprobante</label>
+                  <select id="res-pago-comp" class="form-select">
+                    <option value="Boleta">Boleta Electrónica</option>
+                    <option value="Factura">Factura Electrónica</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <div class="alert alert-warning py-2 px-3 small mb-0">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    <strong>Política de Cancelación:</strong> En caso de cancelación posterior a la confirmación, se retiene el 15% por gastos operativos de plataforma y se reembolsa el 85% restante.
+                  </div>
+                </div>
+                <div class="col-12">
+                  <button class="btn btn-paw w-100 py-2 fs-6" onclick="enviarReservaPeriodo()">
+                    <i class="bi bi-check2-circle me-2"></i>Confirmar Reserva y Registrar Pago
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="card card-paw p-4 bg-white">
+              <h5 class="fw-bold mb-3"><i class="bi bi-calculator text-warning me-2"></i>Resumen de Liquidación</h5>
+              <div class="d-flex justify-content-between py-2 border-bottom small">
+                <span class="text-muted">Duración estimada:</span>
+                <strong id="res-dias-calculados">1 día(s)</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom small">
+                <span class="text-muted">Tarifa diaria:</span>
+                <strong id="res-tarifa-unitaria">S/ 30.00</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom small">
+                <span class="text-muted">Comisión Paw Patita (15%):</span>
+                <strong class="text-primary" id="res-comision-label">S/ 4.50</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom small">
+                <span class="text-muted">Ingreso Neto Cuidador (85%):</span>
+                <strong class="text-secondary" id="res-neto-label">S/ 25.50</strong>
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-3 mt-2">
+                <span class="fw-bold">TOTAL A PAGAR:</span>
+                <span class="fs-3 fw-bold text-success" id="res-total-periodo-label">S/ 30.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Propietario: Mis Reservas, Reseñas e Incidencias -->
+      <div id="sec-prop-mis-reservas" class="seccion-dashboard d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h3 class="fw-bold text-dark m-0">Mis Reservas Contratadas</h3>
+            <small class="text-muted">Califica el servicio recibido, reporta emergencias o gestiona tus reservas activas.</small>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="cargarReservasPropietario()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+          </button>
+        </div>
+        <div class="card card-paw p-3">
+          <div class="table-responsive">
+            <table class="table align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Código</th>
+                  <th>Cuidador / Servicio</th>
+                  <th>Mascota</th>
+                  <th>Periodo</th>
+                  <th>Total (15% Com.)</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-prop-reservas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Propietario: Muro de Fotos de Bienestar (PostImg) -->
+      <div id="sec-prop-muro" class="seccion-dashboard d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h3 class="fw-bold text-dark m-0">Muro Fotográfico de Seguimiento en Vivo</h3>
+            <small class="text-muted">Reportes en tiempo real enviados por los cuidadores con fotografías alojadas en PostImg.</small>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="cargarMuro()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refrescar Muro
+          </button>
+        </div>
+        <div id="contenedor-fotos-muro" class="row g-4"></div>
+      </div>
+
+      <!-- ====================================================================
+           SECCIONES DEL ROL: CUIDADOR INDEPENDIENTE
+           ==================================================================== -->
+      <div id="sec-cuid-dash" class="seccion-dashboard d-none">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+          <div>
+            <h3 class="fw-bold text-dark m-0">Panel Operativo del Cuidador</h3>
+            <small class="text-muted">Gestiona tus reservas asignadas, publica nuevas ofertas HU E-Code y envía fotos de bienestar vía PostImg.</small>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-paw btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalNuevaOferta">
+              <i class="bi bi-tag-fill me-1"></i>Nueva Oferta (HU E-Code)
+            </button>
+            <button class="btn btn-outline-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalSubirReporte">
+              <i class="bi bi-camera-fill me-1"></i>Enviar Foto (PostImg)
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs del Cuidador -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3 border-start border-4 border-primary">
+              <small class="text-muted fw-bold">RESERVAS ACTIVAS</small>
+              <h3 class="fw-bold text-primary m-0" id="dash-activas">0</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3 border-start border-4 border-info">
+              <small class="text-muted fw-bold">FINALIZADAS</small>
+              <h3 class="fw-bold text-info m-0" id="dash-finalizadas">0</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3 border-start border-4 border-success">
+              <small class="text-muted fw-bold">INGRESO NETO (85%)</small>
+              <h3 class="fw-bold text-success m-0" id="dash-ingresos">S/ 0.00</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3 border-start border-4 border-warning">
+              <small class="text-muted fw-bold">REPUTACIÓN PÚBLICA</small>
+              <h3 class="fw-bold text-warning-emphasis m-0" id="dash-reputacion">★ 5.0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Reservas del Cuidador -->
+        <div class="card card-paw p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-calendar-check text-warning me-2"></i>Reservas Asignadas</h5>
+          <div class="table-responsive">
+            <table class="table align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>ID Reserva</th>
+                  <th>Mascota</th>
+                  <th>Periodo</th>
+                  <th>Bruto / Neto (85%)</th>
+                  <th>Estado</th>
+                  <th>Acciones Operativas</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-cuid-reservas"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Mis Ofertas Publicadas (HU E-Code) -->
+        <div class="card card-paw p-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-tags text-primary me-2"></i>Mis Ofertas Publicadas (HU E-Code)</h5>
+          <div id="lista-cuid-servicios" class="row g-3"></div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           SECCIONES DEL ROL: ADMINISTRADOR
+           ==================================================================== -->
+      <div id="sec-admin-dash" class="seccion-dashboard d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h3 class="fw-bold text-dark m-0">Centro de Control Administrativo y Auditoría</h3>
+            <small class="text-muted">Validación de antecedentes policiales/penales, gestión de emergencias veterinarias y liquidación de comisiones (15%).</small>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="cargarAdminConsolidado()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Sincronizar Todo
+          </button>
+        </div>
+
+        <!-- KPIs Financieros del Administrador -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3">
+              <small class="text-muted fw-bold">VOLUMEN BRUTO (100%)</small>
+              <h3 class="fw-bold text-dark m-0" id="admin-kpi-bruto">S/ 0.00</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3">
+              <small class="text-muted fw-bold">COMISIÓN PAW PATITA (15%)</small>
+              <h3 class="fw-bold text-success m-0" id="admin-kpi-comision">S/ 0.00</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3">
+              <small class="text-muted fw-bold">NETO CUIDADORES (85%)</small>
+              <h3 class="fw-bold text-primary m-0" id="admin-kpi-neto">S/ 0.00</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card card-paw p-3">
+              <small class="text-muted fw-bold">CUIDADORES EN RED</small>
+              <h3 class="fw-bold text-warning-emphasis m-0" id="admin-kpi-cuidadores">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. Validación de Antecedentes -->
+        <div class="card card-paw p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-shield-fill-check text-primary me-2"></i>Validación de Postulantes y Antecedentes</h5>
+          <div class="table-responsive">
+            <table class="table align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>ID Cuidador</th>
+                  <th>Nombre / Distrito</th>
+                  <th>Certificados (Policial / Penal)</th>
+                  <th>Estado Actual</th>
+                  <th>Decisión Admin</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-admin-postulantes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. Incidencias y Emergencias Veterinarias -->
+        <div class="card card-paw p-4 mb-4 border-danger">
+          <h5 class="fw-bold text-danger mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Incidencias y Emergencias Veterinarias</h5>
+          <div class="table-responsive">
+            <table class="table align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Ticket</th>
+                  <th>Reserva</th>
+                  <th>Tipo y Descripción</th>
+                  <th>Clínica Derivada</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-admin-emergencias"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. Control Financiero y Liquidaciones -->
+        <div class="card card-paw p-4">
+          <h5 class="fw-bold text-success mb-3"><i class="bi bi-cash-coin me-2"></i>Auditoría de Pagos, Comisiones (15%) y Liquidaciones (85%)</h5>
+          <div class="table-responsive">
+            <table class="table align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>ID Pago</th>
+                  <th>Reserva / Método</th>
+                  <th>Monto Bruto</th>
+                  <th>Comisión (15%)</th>
+                  <th>Neto Cuidador (85%)</th>
+                  <th>Liquidación</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-admin-finanzas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       MODALES DEL SISTEMA
+       ========================================================================== -->
+
+  <!-- MODAL 1: PERFIL PÚBLICO DEL CUIDADOR -->
+  <div class="modal fade" id="modalPerfilPublico" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold"><i class="bi bi-person-badge me-2"></i>Perfil Público del Cuidador Verificado</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="contenido-perfil-publico"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: INICIAR SESIÓN (CON BOTÓN VER/OCULTAR CONTRASEÑA Y ACCESO RÁPIDO) -->
+  <div class="modal fade" id="modalLogin" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold">🐾 Iniciar Sesión en Paw Patita</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="login-error" class="alert alert-danger d-none small py-2"></div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Correo Electrónico</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+              <input type="email" id="txtCorreo" class="form-control" placeholder="usuario@gmail.com">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+              <input type="password" id="txtPassword" class="form-control" placeholder="••••••" onkeydown="if(event.key==='Enter') login()">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('txtPassword', 'iconPassLogin')" title="Ver / Ocultar contraseña">
+                <i class="bi bi-eye" id="iconPassLogin"></i>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-paw w-100 py-2 mb-3" onclick="login()">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar a mi Cuenta
+          </button>
+
+          <!-- Heurística 6 Nielsen: Reconocimiento antes que recuerdo (Autocompletar credenciales de prueba) -->
+          <div class="small bg-light p-3 rounded-3 border">
+            <div class="fw-bold text-secondary mb-2"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Acceso Rápido de Evaluación (Clic para autocompletar):</div>
+            <div class="d-flex flex-column gap-1">
+              <div class="p-1 px-2 rounded bg-white border cred-pill d-flex justify-content-between" onclick="autocompletarLogin('angelo@gmail.com', '123456')">
+                <span>🐶 <strong>Propietario:</strong> <code>angelo@gmail.com</code></span>
+                <span class="text-muted">Clave: <code>123456</code></span>
+              </div>
+              <div class="p-1 px-2 rounded bg-white border cred-pill d-flex justify-content-between" onclick="autocompletarLogin('carlos@gmail.com', '123456')">
+                <span>💼 <strong>Cuidador:</strong> <code>carlos@gmail.com</code></span>
+                <span class="text-muted">Clave: <code>123456</code></span>
+              </div>
+              <div class="p-1 px-2 rounded bg-white border cred-pill d-flex justify-content-between" onclick="autocompletarLogin('admin@pawpatita.pe', 'admin123')">
+                <span>🛡️ <strong>Administrador:</strong> <code>admin@pawpatita.pe</code></span>
+                <span class="text-muted">Clave: <code>admin123</code></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: REGISTRO DE PROPIETARIO O CUIDADOR (CON SOPORTE POSTIMG) -->
+  <div class="modal fade" id="modalRegistro" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold" id="reg-titulo">Registro de Usuario</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="reg-error" class="alert alert-danger d-none small py-2"></div>
+          <input type="hidden" id="reg-tipo">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold m-0">Nombres *</label>
+              <input type="text" id="reg-nombre" class="form-control" placeholder="Ej. Juan Carlos">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold m-0">Apellidos *</label>
+              <input type="text" id="reg-apellido" class="form-control" placeholder="Ej. Quispe Mamani">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold m-0">Correo Electrónico *</label>
+              <input type="email" id="reg-email" class="form-control" placeholder="nombre@correo.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold m-0">Contraseña *</label>
+              <div class="input-group">
+                <input type="password" id="reg-pass" class="form-control" placeholder="Mínimo 6 caracteres">
+                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('reg-pass', 'iconPassReg')">
+                  <i class="bi bi-eye" id="iconPassReg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold m-0">DNI / Pasaporte *</label>
+              <input type="text" id="reg-dni" class="form-control" placeholder="8 dígitos" maxlength="12">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold m-0">Teléfono / WhatsApp *</label>
+              <input type="text" id="reg-tel" class="form-control" placeholder="984000000">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold m-0">Distrito en Cusco *</label>
+              <select id="reg-distrito" class="form-select">
+                <option value="Cusco">Cusco Centro</option>
+                <option value="Wanchaq">Wanchaq</option>
+                <option value="San Sebastián">San Sebastián</option>
+                <option value="San Jerónimo">San Jerónimo</option>
+                <option value="Santiago">Santiago</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold m-0">Dirección Exacta en Cusco</label>
+              <input type="text" id="reg-dir" class="form-control" placeholder="Av. / Calle / Urbanización">
+            </div>
+
+            <!-- Campos exclusivos para postulación de Cuidador -->
+            <div id="campos-extra-cuidador" class="col-12 d-none">
+              <div class="p-3 bg-light rounded-4 border mt-1">
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-award text-warning me-1"></i>Perfil Profesional, Foto PostImg y Oferta Inicial (HU E-Code)</h6>
+                <div class="row g-2">
+                  <div class="col-md-8">
+                    <label class="form-label small fw-bold m-0">Enlace Directo de Foto de Perfil (PostImg)</label>
+                    <input type="url" id="reg-foto" class="form-control" placeholder="https://i.postimg.cc/HxXrCmbp/images.jpg" value="https://i.postimg.cc/HxXrCmbp/images.jpg">
+                    <small class="text-muted" style="font-size: 0.72rem;">Sube tu foto en postimages.org y pega el "Enlace directo" terminado en .jpg o .png</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold m-0">Capacidad Máx. Perros</label>
+                    <input type="number" id="reg-cuid-cap" class="form-control" value="3" min="1" max="10">
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label small fw-bold m-0">Modalidad de Servicio Principal</label>
+                    <select id="reg-cuid-serv" class="form-select">
+                      <option value="Paseo Recreativo Matutino">Paseo Recreativo Matutino</option>
+                      <option value="Hospedaje Temporal Nocturno">Hospedaje Temporal Nocturno</option>
+                      <option value="Guardería Diurna Especializada">Guardería Diurna Especializada</option>
+                      <option value="Cuidado a Domicilio Turístico">Cuidado a Domicilio Turístico</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold m-0">Tarifa Diaria (S/)</label>
+                    <input type="number" id="reg-cuid-tarifa" class="form-control" value="35" min="10">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold m-0">URL Antecedentes Policiales (PostImg / Drive)</label>
+                    <input type="url" id="reg-doc-pol" class="form-control" placeholder="https://i.postimg.cc/..." value="https://i.postimg.cc/HxXrCmbp/images.jpg">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold m-0">URL Antecedentes Penales (PostImg / Drive)</label>
+                    <input type="url" id="reg-doc-pen" class="form-control" placeholder="https://i.postimg.cc/..." value="https://i.postimg.cc/HxXrCmbp/images.jpg">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-bold m-0">Biografía y Experiencia con Mascotas</label>
+                    <textarea id="reg-cuid-exp" class="form-control" rows="2" placeholder="Describe tu experiencia, tipo de espacio físico y cuidados que ofreces..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 mt-3">
+              <button class="btn btn-paw w-100 py-2" onclick="guardarRegistroNuevo()">
+                <i class="bi bi-check-circle-fill me-1"></i> Completar Registro en Paw Patita
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: REGISTRAR NUEVA MASCOTA (PAW PATITA-ID + POSTIMG) -->
+  <div class="modal fade" id="modalNuevaMascota" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold">🐶 Crear Ficha Canina (PAW PATITA-ID)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small fw-bold m-0">Nombre de la Mascota *</label>
+              <input type="text" id="p-nom" class="form-control" placeholder="Ej. Max">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold m-0">Raza *</label>
+              <input type="text" id="p-raza" class="form-control" placeholder="Ej. Cocker / Mestizo">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold m-0">Edad (años)</label>
+              <input type="number" id="p-edad" class="form-control" value="2" min="0" max="25">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold m-0">Peso (kg)</label>
+              <input type="number" id="p-peso" class="form-control" value="8" step="0.5" min="1">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold m-0">Vacunas al día</label>
+              <select id="p-vac" class="form-select">
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold m-0">Alergias o Restricciones Alimentarias</label>
+              <input type="text" id="p-alergias" class="form-control" placeholder="Ej. Ninguna / Alergia al pollo">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold m-0">Conducta y Observaciones</label>
+              <input type="text" id="p-conducta" class="form-control" placeholder="Ej. Sociable, juguetón y tranquilo">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold m-0">URL Directa de Foto en PostImg</label>
+              <input type="url" id="p-foto-url" class="form-control" placeholder="https://i.postimg.cc/HxXrCmbp/images.jpg" value="https://i.postimg.cc/HxXrCmbp/images.jpg">
+              <small class="text-muted" style="font-size: 0.72rem;">Compatible con enlaces directos de PostImg (https://i.postimg.cc/...)</small>
+            </div>
+            <div class="col-12 mt-3">
+              <button class="btn btn-paw w-100 py-2" onclick="guardarMascotaPropietario()">
+                <i class="bi bi-save me-1"></i> Generar PAW PATITA-ID
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: ENVIAR REPORTE CON FOTO EN VIVO (CUIDADOR -> POSTIMG) -->
+  <div class="modal fade" id="modalSubirReporte" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold"><i class="bi bi-camera-fill me-2"></i>Publicar Reporte Fotográfico (PostImg)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-2">
+            <label class="form-label small fw-bold m-0">Reserva Activa</label>
+            <select id="rep-id-reserva" class="form-select"></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold m-0">Tipo de Actividad / Evento</label>
+            <select id="rep-tipo-evento" class="form-select">
+              <option value="Paseo Matutino">Paseo Matutino</option>
+              <option value="Alimentación e Hidratación">Alimentación e Hidratación</option>
+              <option value="Juegos y Socialización">Juegos y Socialización</option>
+              <option value="Descanso Nocturno">Descanso Nocturno</option>
+              <option value="Entrega / Fin de Servicio">Entrega / Fin de Servicio</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold m-0">Nota de Bienestar para el Dueño *</label>
+            <textarea id="rep-nota" class="form-control" rows="2" placeholder="Describe cómo se encuentra la mascota..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold m-0">URL Directa de Fotografía (PostImg) *</label>
+            <input type="url" id="rep-foto-url" class="form-control" placeholder="https://i.postimg.cc/HxXrCmbp/images.jpg" value="https://i.postimg.cc/HxXrCmbp/images.jpg">
+          </div>
+          <button class="btn btn-paw w-100 py-2" onclick="enviarReporteConFotoCuidador()">
+            <i class="bi bi-cloud-upload-fill me-1"></i> Publicar en el Muro de Bienestar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: NUEVA OFERTA DE SERVICIO (HU E-CODE) -->
+  <div class="modal fade" id="modalNuevaOferta" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold"><i class="bi bi-tag-fill me-2"></i>Publicar Oferta (HU E-Code)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Modalidad de Servicio</label>
+            <select id="of-tipo-servicio" class="form-select">
+              <option value="Paseo Recreativo Matutino">Paseo Recreativo Matutino</option>
+              <option value="Hospedaje Temporal Nocturno">Hospedaje Temporal Nocturno</option>
+              <option value="Guardería Diurna Especializada">Guardería Diurna Especializada</option>
+              <option value="Cuidado a Domicilio Turístico">Cuidado a Domicilio Turístico</option>
+              <option value="Paseo Ecológico Guiado">Paseo Ecológico Guiado</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Tarifa Diaria por Perro (S/)</label>
+            <input type="number" id="of-tarifa" class="form-control" value="35" min="10">
+          </div>
+          <button class="btn btn-paw w-100 py-2" onclick="guardarNuevaOfertaCuidador()">
+            <i class="bi bi-plus-circle me-1"></i> Generar Código HU E-Code
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: CALIFICAR Y DEJAR RESEÑA (CU-08) -->
+  <div class="modal fade" id="modalResena" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-warning-subtle border-0">
+          <h5 class="modal-title fw-bold">⭐ Calificar Servicio del Cuidador</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="rev-id-reserva">
+          <input type="hidden" id="rev-id-cuidador">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Puntuación en Estrellas</label>
+            <select id="rev-estrellas" class="form-select">
+              <option value="5">★★★★★ (5 - Excelente Cuidado)</option>
+              <option value="4">★★★★☆ (4 - Muy Bueno)</option>
+              <option value="3">★★★☆☆ (3 - Regular)</option>
+              <option value="2">★★☆☆☆ (2 - Deficiente)</option>
+              <option value="1">★☆☆☆☆ (1 - Malo)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Comentario sobre tu experiencia</label>
+            <textarea id="rev-comentario" class="form-control" rows="3" placeholder="Cuéntanos cómo trataron a tu mascota..."></textarea>
+          </div>
+          <button class="btn btn-paw w-100 py-2" onclick="enviarResenaPropietario()">
+            <i class="bi bi-send-check me-1"></i> Publicar Calificación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 8: REPORTAR INCIDENCIA / EMERGENCIA VETERINARIA (CU-07) -->
+  <div class="modal fade" id="modalEmergencia" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-danger text-white border-0">
+          <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-octagon-fill me-2"></i>Reportar Incidencia o Emergencia Veterinaria</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <input type="hidden" id="inc-id-reserva">
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Tipo de Incidencia</label>
+            <select id="inc-tipo" class="form-select">
+              <option value="Malestar digestivo / Inapetencia">Malestar digestivo / Inapetencia</option>
+              <option value="Lesión o herida leve en paseo">Lesión o herida leve en paseo</option>
+              <option value="Alergia cutánea o picadura">Alergia cutánea o picadura</option>
+              <option value="Ansiedad por separación">Ansiedad por separación</option>
+              <option value="Emergencia veterinaria prioritaria">Emergencia veterinaria prioritaria</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Clínica Veterinaria Aliada en Cusco para Derivación</label>
+            <select id="inc-clinica" class="form-select">
+              <option value="VET-01">VET-01: Clínica Veterinaria Cusco Centro (084-223344)</option>
+              <option value="VET-02">VET-02: Centro Veterinario San Jerónimo (984-999888)</option>
+              <option value="VET-03">VET-03: Hospital Veterinario Wanchaq 24h (084-245566)</option>
+              <option value="VET-04">VET-04: Veterinaria Patitas San Sebastián (984-654321)</option>
+              <option value="VET-05">VET-05: Consultorio Veterinario Santiago (984-112233)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Descripción de los Síntomas u Observaciones *</label>
+            <textarea id="inc-desc" class="form-control" rows="3" placeholder="Detalla qué ocurrió para activar el protocolo..."></textarea>
+          </div>
+          <button class="btn btn-danger w-100 py-2 fw-bold rounded-pill" onclick="enviarReporteEmergencia()">
+            <i class="bi bi-broadcast me-1"></i> Emitir Alerta y Derivar a Clínica
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 9: DIRECTORIO DE CLÍNICAS VETERINARIAS ALIADAS EN CUSCO -->
+  <div class="modal fade" id="modalDirectorioVet" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header bg-danger-subtle border-0">
+          <h5 class="modal-title fw-bold text-danger"><i class="bi bi-hospital-fill me-2"></i>Directorio de Clínicas Veterinarias Aliadas en Cusco</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="small text-muted mb-3">Red de asistencia veterinaria de derivación inmediata para reservas activas en Paw Patita Cusco:</p>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Código</th>
+                  <th>Clínica Veterinaria</th>
+                  <th>Distrito</th>
+                  <th>Dirección</th>
+                  <th>Teléfono Emergencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>VET-01</code></td>
+                  <td class="fw-bold">Clínica Veterinaria Cusco Centro</td>
+                  <td><span class="badge bg-secondary">Cusco</span></td>
+                  <td>Calle Matto Turner 220</td>
+                  <td><a href="tel:084223344" class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-telephone-fill me-1"></i>084-223344</a></td>
+                </tr>
+                <tr>
+                  <td><code>VET-02</code></td>
+                  <td class="fw-bold">Centro Veterinario San Jerónimo</td>
+                  <td><span class="badge bg-secondary">San Jerónimo</span></td>
+                  <td>Av. Manco Cápac 102</td>
+                  <td><a href="tel:984999888" class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-telephone-fill me-1"></i>984-999888</a></td>
+                </tr>
+                <tr>
+                  <td><code>VET-03</code></td>
+                  <td class="fw-bold">Hospital Veterinario Wanchaq 24h</td>
+                  <td><span class="badge bg-secondary">Wanchaq</span></td>
+                  <td>Av. Los Incas 710</td>
+                  <td><a href="tel:084245566" class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-telephone-fill me-1"></i>084-245566</a></td>
+                </tr>
+                <tr>
+                  <td><code>VET-04</code></td>
+                  <td class="fw-bold">Veterinaria Patitas San Sebastián</td>
+                  <td><span class="badge bg-secondary">San Sebastián</span></td>
+                  <td>Av. De la Cultura 2105</td>
+                  <td><a href="tel:984654321" class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-telephone-fill me-1"></i>984-654321</a></td>
+                </tr>
+                <tr>
+                  <td><code>VET-05</code></td>
+                  <td class="fw-bold">Consultorio Veterinario Santiago</td>
+                  <td><span class="badge bg-secondary">Santiago</span></td>
+                  <td>Av. Grau 815</td>
+                  <td><a href="tel:984112233" class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-telephone-fill me-1"></i>984-112233</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ========================================================================
+    // VARIABLES GLOBALES Y COMPATIBILIDAD 100% ES5/SANDBOX HTMLSERVICE
+    // ========================================================================
+    var FOTO_FALLBACK = 'https://i.postimg.cc/HxXrCmbp/images.jpg';
+    var modalLogin = null;
+    var modalRegistro = null;
+    var modalNuevaMascota = null;
+    var modalPerfilPublico = null;
+    var modalSubirReporte = null;
+    var modalNuevaOferta = null;
+    var modalResena = null;
+    var modalEmergencia = null;
+
+    var usuarioActual = null;
+    var cuidadoresGlobales = [];
+    var reservasCuidadorActual = [];
+    var timerLoader = null;
+
+    // Detectar si estamos dentro del entorno Google Apps Script
+    function esEntornoGAS() {
+      return (typeof google !== 'undefined' && google.script && google.script.run);
+    }
+
+    window.onload = function() {
+      modalLogin = new bootstrap.Modal(document.getElementById('modalLogin'));
+      modalRegistro = new bootstrap.Modal(document.getElementById('modalRegistro'));
+      modalNuevaMascota = new bootstrap.Modal(document.getElementById('modalNuevaMascota'));
+      modalPerfilPublico = new bootstrap.Modal(document.getElementById('modalPerfilPublico'));
+      modalSubirReporte = new bootstrap.Modal(document.getElementById('modalSubirReporte'));
+      modalNuevaOferta = new bootstrap.Modal(document.getElementById('modalNuevaOferta'));
+      modalResena = new bootstrap.Modal(document.getElementById('modalResena'));
+      modalEmergencia = new bootstrap.Modal(document.getElementById('modalEmergencia'));
+
+      var hoy = new Date();
+      var enDosDias = new Date(hoy.getTime() + 2 * 86400000);
+      document.getElementById('res-f-ini').value = formatearInputDate(hoy);
+      document.getElementById('res-f-fin').value = formatearInputDate(enDosDias);
+
+      cargarCatalogoCuidadores();
+    };
+
+    function formatearInputDate(d) {
+      var yyyy = d.getFullYear();
+      var mm = String(d.getMonth() + 1);
+      if (mm.length < 2) mm = '0' + mm;
+      var dd = String(d.getDate());
+      if (dd.length < 2) dd = '0' + dd;
+      return yyyy + '-' + mm + '-' + dd;
+    }
+
+    // HEURÍSTICA 1 NIELSEN: SPINNER CONTROLADO CON TIMEOUT DE SEGURIDAD
+    function loader(show, textoOpcional) {
+      var el = document.getElementById('loader');
+      var txt = document.getElementById('loader-text');
+      clearTimeout(timerLoader);
+      if (textoOpcional) {
+        txt.innerText = textoOpcional;
+      } else {
+        txt.innerText = 'Sincronizando con Paw Patita Cusco...';
+      }
+      if (show) {
+        el.style.display = 'flex';
+        timerLoader = setTimeout(function() {
+          el.style.display = 'none';
+        }, 8000);
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    function notificar(mensaje, tipo) {
+      var box = document.getElementById('toast-box');
+      var colorClass = (tipo === 'error') ? 'bg-danger text-white' : (tipo === 'warning' ? 'bg-warning text-dark' : 'bg-dark text-white');
+      var div = document.createElement('div');
+      div.className = ' p-3 rounded-4 shadow mb-2 d-flex align-items-center justify-content-between ' + colorClass;
+      div.style.minWidth = '280px';
+      div.innerHTML = '<span class="small fw-bold me-3">' + mensaje + '</span>' +
+                      '<button type="button" class="btn-close btn-close-white btn-sm" onclick="this.parentElement.remove()"></button>';
+      box.appendChild(div);
+      setTimeout(function() {
+        if (div && div.parentElement) div.remove();
+      }, 4500);
+    }
+
+    // HEURÍSTICA 3 NIELSEN: VER / OCULTAR CONTRASEÑA
+    function togglePassword(inputId, iconId) {
+      var inp = document.getElementById(inputId);
+      var ico = document.getElementById(iconId);
+      if (!inp) return;
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        if (ico) ico.className = 'bi bi-eye-slash';
+      } else {
+        inp.type = 'password';
+        if (ico) ico.className = 'bi bi-eye';
+      }
+    }
+
+    function autocompletarLogin(correo, pass) {
+      document.getElementById('txtCorreo').value = correo;
+      document.getElementById('txtPassword').value = pass;
+      document.getElementById('login-error').classList.add('d-none');
+    }
+
+    function parsearFechaLocal(strFecha) {
+      if (!strFecha) return new Date();
+      var partes = strFecha.split('-');
+      if (partes.length === 3) {
+        return new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      }
+      return new Date(strFecha);
+    }
+
+    function abrirLogin() {
+      document.getElementById('login-error').classList.add('d-none');
+      modalLogin.show();
+    }
+
+    function abrirModalRegistro(tipo) {
+      document.getElementById('reg-tipo').value = tipo;
+      document.getElementById('reg-titulo').innerText = (tipo === 'Cuidador')
+        ? '💼 Postulación de Cuidador Independiente'
+        : '🐶 Registro de Propietario (Local / Turista)';
+      document.getElementById('reg-error').classList.add('d-none');
+      var extra = document.getElementById('campos-extra-cuidador');
+      if (tipo === 'Cuidador') {
+        extra.classList.remove('d-none');
+      } else {
+        extra.classList.add('d-none');
+      }
+      modalRegistro.show();
+    }
+
+    // ========================================================================
+    // 1. CATÁLOGO PÚBLICO, FILTROS EN CUSCO Y MODAL DE PERFIL PÚBLICO
+    // ========================================================================
+
+    function obtenerDatosDemoCuidadores() {
+      return [
+        {
+          id_cuidador: 'CUID-01',
+          nombre: 'Carlos Quispe',
+          telefono: '984333444',
+          distrito: 'Wanchaq',
+          direccion: 'Urb. Magisterio II Etapa',
+          experiencia: 'Especialista en paseos matutinos y hospedaje de caninos en Wanchaq. Amplio jardín cercado y 4 años de experiencia en etología canina.',
+          capacidad: 3,
+          reputacion: '4.9',
+          foto_url: FOTO_FALLBACK,
+          servicios: [
+            { id_oferta: 'OF-101', hu_ecode: 'HU-801', tipo_servicio: 'Hospedaje Temporal Nocturno', tarifa: '45.00' },
+            { id_oferta: 'OF-102', hu_ecode: 'HU-802', tipo_servicio: 'Paseo Recreativo Matutino', tarifa: '25.00' }
+          ],
+          resenas: [
+            { estrellas: 5, comentario: 'Carlos es muy atento y puntual con los paseos en Wanchaq.', fecha: '2026-11-13' }
+          ]
+        },
+        {
+          id_cuidador: 'CUID-02',
+          nombre: 'Valeria Montes',
+          telefono: '984555666',
+          distrito: 'San Sebastián',
+          direccion: 'Av. La Cultura 1820',
+          experiencia: 'Auxiliar veterinaria con patio verde en San Sebastián. Atención personalizada, primeros auxilios y reportes fotográficos cada 3 horas.',
+          capacidad: 4,
+          reputacion: '5.0',
+          foto_url: FOTO_FALLBACK,
+          servicios: [
+            { id_oferta: 'OF-103', hu_ecode: 'HU-803', tipo_servicio: 'Hospedaje Familiar Premium', tarifa: '50.00' },
+            { id_oferta: 'OF-104', hu_ecode: 'HU-804', tipo_servicio: 'Guardería Diurna Especializada', tarifa: '35.00' }
+          ],
+          resenas: [
+            { estrellas: 5, comentario: 'Excelente servicio en San Sebastián, me envió fotos puntuales por PostImg.', fecha: '2026-11-04' }
+          ]
+        },
+        {
+          id_cuidador: 'CUID-03',
+          nombre: 'Diego Huamán',
+          telefono: '984777888',
+          distrito: 'San Jerónimo',
+          direccion: 'Calle Manco Cápac 310',
+          experiencia: 'Entrenador y paseador canino en San Jerónimo. Rutas ecológicas seguras, juegos de olfato y hospedaje familiar sin jaulas.',
+          capacidad: 5,
+          reputacion: '4.8',
+          foto_url: FOTO_FALLBACK,
+          servicios: [
+            { id_oferta: 'OF-105', hu_ecode: 'HU-805', tipo_servicio: 'Paseo Ecológico Guiado', tarifa: '30.00' },
+            { id_oferta: 'OF-106', hu_ecode: 'HU-806', tipo_servicio: 'Hospedaje Temporal Nocturno', tarifa: '40.00' }
+          ],
+          resenas: []
+        },
+        {
+          id_cuidador: 'CUID-04',
+          nombre: 'Lucía Mendoza',
+          telefono: '984222333',
+          distrito: 'Santiago',
+          direccion: 'Av. Antonio Lorena 512',
+          experiencia: 'Cuidadora de razas pequeñas y medianas en Santiago y Cusco Centro. Ideal para turistas que visitan Machu Picchu por el día.',
+          capacidad: 2,
+          reputacion: '4.7',
+          foto_url: FOTO_FALLBACK,
+          servicios: [
+            { id_oferta: 'OF-107', hu_ecode: 'HU-807', tipo_servicio: 'Cuidado a Domicilio Turístico', tarifa: '38.00' }
+          ],
+          resenas: []
+        }
+      ];
+    }
+
+    function cargarCatalogoCuidadores() {
+      if (!esEntornoGAS()) {
+        cuidadoresGlobales = obtenerDatosDemoCuidadores();
+        renderizarCatalogo(cuidadoresGlobales);
+        return;
+      }
+
+      loader(true, 'Cargando catálogo de cuidadores en Cusco...');
+      google.script.run
+        .withSuccessHandler(function(data) {
+          loader(false);
+          if (Array.isArray(data) && data.length > 0) {
+            cuidadoresGlobales = data;
+          } else {
+            cuidadoresGlobales = obtenerDatosDemoCuidadores();
+          }
+          renderizarCatalogo(cuidadoresGlobales);
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          cuidadoresGlobales = obtenerDatosDemoCuidadores();
+          renderizarCatalogo(cuidadoresGlobales);
+          notificar('Modo respaldo activado: ' + e.message, 'warning');
+        })
+        .obtenerCatalogoCuidadoresCompleto();
+    }
+
+    function renderizarCatalogo(lista) {
+      var cont = document.getElementById('catalogo-cuidadores');
+      var badgeCont = document.getElementById('contador-cuidadores');
+      if (!lista || lista.length === 0) {
+        badgeCont.innerText = '0 resultados';
+        cont.innerHTML = '<div class="col-12"><div class="card card-paw p-5 text-center text-muted">' +
+          '<i class="bi bi-search fs-1 text-warning mb-2"></i>' +
+          '<h5>No se encontraron cuidadores con esos filtros en Cusco</h5>' +
+          '<p class="small mb-3">Prueba seleccionando "Todos los distritos" o "Todas las modalidades".</p>' +
+          '<div><button class="btn btn-paw btn-sm px-4" onclick="limpiarFiltrosCatalogo()">Restablecer Filtros</button></div>' +
+          '</div></div>';
+        return;
+      }
+
+      badgeCont.innerText = lista.length + ' cuidador(es) disponible(s)';
+      var html = '';
+      for (var i = 0; i < lista.length; i++) {
+        var c = lista[i];
+        var sNom = (c.servicios && c.servicios.length > 0) ? c.servicios[0].tipo_servicio : 'Paseo Recreativo';
+        var sTar = (c.servicios && c.servicios.length > 0) ? c.servicios[0].tarifa : '30.00';
+        var sCode = (c.servicios && c.servicios.length > 0) ? c.servicios[0].hu_ecode : 'HU-801';
+        var rep = c.reputacion || '5.0';
+        var cap = c.capacidad || 3;
+
+        var tagsHtml = '';
+        if (c.servicios && c.servicios.length > 0) {
+          for (var s = 0; s < c.servicios.length; s++) {
+            tagsHtml += '<span class="badge bg-warning-subtle text-dark border me-1 mb-1">' +
+              c.servicios[s].tipo_servicio + ' (S/ ' + c.servicios[s].tarifa + ')</span>';
+          }
+        }
+
+        html += '<div class="col-md-6 col-lg-4">' +
+          '<div class="card card-paw card-paw-hover h-100 d-flex flex-column overflow-hidden">' +
+            '<div class="position-relative">' +
+              '<img src="' + (c.foto_url || FOTO_FALLBACK) + '" class="cuid-img" onerror="this.src=\'' + FOTO_FALLBACK + '\'">' +
+              '<span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75 rounded-pill px-3 py-1">' +
+                '<i class="bi bi-geo-alt-fill text-warning me-1"></i>' + (c.distrito || 'Cusco') +
+              '</span>' +
+              '<span class="position-absolute top-0 end-0 m-2 badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold shadow-sm">' +
+                '★ ' + rep +
+              '</span>' +
+            '</div>' +
+            '<div class="p-3 flex-grow-1 d-flex flex-column justify-content-between">' +
+              '<div>' +
+                '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                  '<h5 class="fw-bold text-dark m-0">' + c.nombre + '</h5>' +
+                  '<span class="badge bg-success-subtle text-success border small"><i class="bi bi-patch-check-fill me-1"></i>Verificado</span>' +
+                '</div>' +
+                '<div class="small text-muted mb-2">' +
+                  '<i class="bi bi-telephone me-1"></i>' + (c.telefono || '984000000') + ' • Máx. ' + cap + ' perros' +
+                '</div>' +
+                '<p class="small text-secondary mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">' +
+                  (c.experiencia || 'Atención canina responsable en Cusco.') +
+                '</p>' +
+                '<div class="mb-3">' + tagsHtml + '</div>' +
+              '</div>' +
+              '<div class="pt-2 border-top d-flex justify-content-between align-items-center gap-2">' +
+                '<div>' +
+                  '<small class="text-muted d-block" style="font-size:0.7rem;">Desde (' + sCode + ')</small>' +
+                  '<span class="fw-bold text-success fs-5">S/ ' + sTar + '</span><small class="text-muted">/día</small>' +
+                '</div>' +
+                '<div class="d-flex gap-1">' +
+                  '<button class="btn btn-outline-dark btn-sm rounded-pill px-3" onclick="verPerfilPublico(\'' + c.id_cuidador + '\')">' +
+                    '<i class="bi bi-eye me-1"></i>Perfil' +
+                  '</button>' +
+                  '<button class="btn btn-paw btn-sm px-3" onclick="seleccionarCuidadorParaReserva(\'' + c.id_cuidador + '\')">' +
+                    'Reservar' +
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      cont.innerHTML = html;
+    }
+
+    function aplicarFiltros() {
+      var serv = document.getElementById('filtro-servicio').value;
+      var dist = document.getElementById('filtro-distrito').value;
+      var texto = document.getElementById('filtro-texto').value.trim().toLowerCase();
+
+      var filtrados = cuidadoresGlobales.filter(function(c) {
+        var okD = (dist === 'TODOS') || (c.distrito && c.distrito.toLowerCase().indexOf(dist.toLowerCase()) !== -1);
+        var okS = (serv === 'TODOS') || (c.servicios && c.servicios.some(function(s) {
+          return s.tipo_servicio.toLowerCase().indexOf(serv.toLowerCase()) !== -1;
+        }));
+        var okT = !texto ||
+          (c.nombre && c.nombre.toLowerCase().indexOf(texto) !== -1) ||
+          (c.experiencia && c.experiencia.toLowerCase().indexOf(texto) !== -1) ||
+          (c.distrito && c.distrito.toLowerCase().indexOf(texto) !== -1);
+        return okD && okS && okT;
+      });
+      renderizarCatalogo(filtrados);
+    }
+
+    function limpiarFiltrosCatalogo() {
+      document.getElementById('filtro-servicio').value = 'TODOS';
+      document.getElementById('filtro-distrito').value = 'TODOS';
+      document.getElementById('filtro-texto').value = '';
+      renderizarCatalogo(cuidadoresGlobales);
+    }
+
+    function verPerfilPublico(idCuidador) {
+      var cuidador = null;
+      for (var i = 0; i < cuidadoresGlobales.length; i++) {
+        if (cuidadoresGlobales[i].id_cuidador === idCuidador) {
+          cuidador = cuidadoresGlobales[i];
+          break;
+        }
+      }
+      if (!cuidador) return;
+
+      var filasServicios = '';
+      var servs = cuidador.servicios || [];
+      for (var s = 0; s < servs.length; s++) {
+        filasServicios += '<tr>' +
+          '<td><code>' + servs[s].hu_ecode + '</code></td>' +
+          '<td class="fw-semibold">' + servs[s].tipo_servicio + '</td>' +
+          '<td class="text-success fw-bold">S/ ' + servs[s].tarifa + ' / día</td>' +
+        '</tr>';
+      }
+
+      var htmlResenas = '';
+      var revs = cuidador.resenas || [];
+      if (revs.length === 0) {
+        htmlResenas = '<div class="text-muted small fst-italic">Cuidador verificado recientemente; aún no registra reseñas escritas.</div>';
+      } else {
+        for (var r = 0; r < revs.length; r++) {
+          htmlResenas += '<div class="p-2 bg-light rounded-3 mb-2 border">' +
+            '<div class="d-flex justify-content-between small">' +
+              '<span class="text-warning fw-bold">★ ' + revs[r].estrellas + '.0</span>' +
+              '<span class="text-muted">' + (revs[r].fecha || '') + '</span>' +
+            '</div>' +
+            '<div class="small text-dark mt-1">"' + revs[r].comentario + '"</div>' +
+          '</div>';
+        }
+      }
+
+      var box = document.getElementById('contenido-perfil-publico');
+      box.innerHTML = '<div class="row g-4 align-items-center mb-3">' +
+          '<div class="col-md-4 text-center">' +
+            '<img src="' + (cuidador.foto_url || FOTO_FALLBACK) + '" class="rounded-4 w-100 shadow-sm" style="height:190px; object-fit:cover;" onerror="this.src=\'' + FOTO_FALLBACK + '\'">' +
+          '</div>' +
+          '<div class="col-md-8">' +
+            '<span class="badge bg-success mb-1"><i class="bi bi-shield-check me-1"></i>Antecedentes Verificados</span>' +
+            '<h4 class="fw-bold text-dark mb-1">' + cuidador.nombre + '</h4>' +
+            '<div class="small text-muted mb-2">' +
+              '<i class="bi bi-geo-alt-fill text-danger me-1"></i>' + cuidador.distrito + ' (' + (cuidador.direccion || 'Cusco') + ') • ' +
+              '<i class="bi bi-whatsapp text-success me-1"></i>' + cuidador.telefono +
+            '</div>' +
+            '<p class="small text-secondary mb-2">' + cuidador.experiencia + '</p>' +
+            '<div class="d-flex gap-3 small">' +
+              '<span class="badge bg-warning text-dark">★ Reputación: ' + cuidador.reputacion + '</span>' +
+              '<span class="badge bg-secondary">Capacidad máx: ' + cuidador.capacidad + ' mascotas</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<h6 class="fw-bold border-bottom pb-2 mb-2"><i class="bi bi-tags-fill text-warning me-1"></i>Ofertas Disponibles (HU E-Code)</h6>' +
+        '<table class="table table-sm small mb-3"><thead><tr><th>HU E-Code</th><th>Modalidad</th><th>Tarifa</th></tr></thead><tbody>' + filasServicios + '</tbody></table>' +
+        '<h6 class="fw-bold border-bottom pb-2 mb-2"><i class="bi bi-chat-quote-fill text-primary me-1"></i>Reseñas de Propietarios</h6>' +
+        '<div class="mb-3">' + htmlResenas + '</div>' +
+        '<div class="text-end">' +
+          '<button class="btn btn-paw px-4" onclick="modalPerfilPublico.hide(); seleccionarCuidadorParaReserva(\'' + cuidador.id_cuidador + '\')">' +
+            '<i class="bi bi-calendar2-check me-1"></i>Contratar a ' + cuidador.nombre +
+          '</button>' +
+        '</div>';
+
+      modalPerfilPublico.show();
+    }
+
+    function seleccionarCuidadorParaReserva(idCuidador) {
+      if (!usuarioActual) {
+        notificar('Inicia sesión como Propietario para reservar con este cuidador.', 'warning');
+        abrirLogin();
+        return;
+      }
+      var rolLower = String(usuarioActual.rol || '').toLowerCase();
+      if (rolLower.indexOf('propietario') === -1) {
+        notificar('Solo las cuentas de Propietario pueden realizar reservas.', 'warning');
+        return;
+      }
+      document.getElementById('contenedor-publico').style.display = 'none';
+      document.getElementById('contenedor-privado').style.display = 'flex';
+      cambiarSeccion('sec-prop-reservar');
+
+      var sel = document.getElementById('res-combo-servicios');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].getAttribute('data-cuid') === idCuidador) {
+          sel.selectedIndex = i;
+          calcularMontoPeriodo();
+          break;
+        }
+      }
+    }
+
+    function volverAlCatalogoPublico() {
+      document.getElementById('contenedor-privado').style.display = 'none';
+      document.getElementById('contenedor-publico').style.display = 'block';
+      cargarCatalogoCuidadores();
+    }
+
+    // ========================================================================
+    // 2. AUTENTICACIÓN Y REGISTRO DE USUARIOS (SIN CORCHETES DINÁMICOS EN GAS)
+    // ========================================================================
+
+    function login() {
+      var e = document.getElementById('txtCorreo').value.trim();
+      var p = document.getElementById('txtPassword').value.trim();
+      var err = document.getElementById('login-error');
+      err.classList.add('d-none');
+
+      if (!e || !p) {
+        err.innerText = 'Por favor, ingresa tu correo electrónico y contraseña.';
+        err.classList.remove('d-none');
+        return;
+      }
+
+      if (!esEntornoGAS()) {
+        // Fallback local para demostración fuera de GAS
+        var mockUser = null;
+        if (e.toLowerCase() === 'angelo@gmail.com' && p === '123456') {
+          mockUser = { exito: true, id_usuario: 'USR-01', num_doc: '71796410', nombre: 'Angelo Chacón', rol: 'Propietario', distrito: 'Cusco' };
+        } else if (e.toLowerCase() === 'carlos@gmail.com' && p === '123456') {
+          mockUser = { exito: true, id_usuario: 'USR-02', id_cuidador: 'CUID-01', num_doc: '49481516', nombre: 'Carlos Quispe', rol: 'Cuidador', distrito: 'Wanchaq' };
+        } else if (e.toLowerCase() === 'admin@pawpatita.pe' && p === 'admin123') {
+          mockUser = { exito: true, id_usuario: 'USR-03', num_doc: '10203040', nombre: 'Admin General', rol: 'Administrador', distrito: 'Cusco' };
+        }
+        if (mockUser) {
+          usuarioActual = mockUser;
+          modalLogin.hide();
+          activarLayoutPrivado(mockUser);
+          notificar('Bienvenido(a), ' + mockUser.nombre);
+        } else {
+          err.innerText = 'Credenciales inválidas en modo local.';
+          err.classList.remove('d-none');
+        }
+        return;
+      }
+
+      loader(true, 'Verificando credenciales...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          if (!res || !res.exito) {
+            err.innerText = res && res.mensaje ? res.mensaje : 'Correo o contraseña incorrectos.';
+            err.classList.remove('d-none');
+            return;
+          }
+          usuarioActual = res;
+          modalLogin.hide();
+          activarLayoutPrivado(res);
+          notificar('¡Bienvenido(a), ' + res.nombre + '!');
+        })
+        .withFailureHandler(function(error) {
+          loader(false);
+          err.innerText = 'Error de comunicación con el servidor: ' + error.message;
+          err.classList.remove('d-none');
+        })
+        .autenticarUsuario(e, p);
+    }
+
+    function guardarRegistroNuevo() {
+      var tipo = document.getElementById('reg-tipo').value || 'Propietario';
+      var err = document.getElementById('reg-error');
+      err.classList.add('d-none');
+
+      var d = {
+        nombre: document.getElementById('reg-nombre').value.trim(),
+        apellido: document.getElementById('reg-apellido').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-pass').value.trim(),
+        num_doc: document.getElementById('reg-dni').value.trim(),
+        telefono: document.getElementById('reg-tel').value.trim(),
+        distrito: document.getElementById('reg-distrito').value,
+        direccion: document.getElementById('reg-dir').value.trim()
+      };
+
+      if (!d.nombre || !d.email || !d.password || !d.num_doc) {
+        err.innerText = 'Por favor completa los campos obligatorios: Nombre, Correo, Contraseña y DNI.';
+        err.classList.remove('d-none');
+        return;
+      }
+
+      if (tipo === 'Cuidador') {
+        d.foto_url = document.getElementById('reg-foto').value.trim() || FOTO_FALLBACK;
+        d.capacidad = document.getElementById('reg-cuid-cap').value || 3;
+        d.servicio_principal = document.getElementById('reg-cuid-serv').value;
+        d.tarifa = document.getElementById('reg-cuid-tarifa').value || 35;
+        d.doc_policial_url = document.getElementById('reg-doc-pol').value.trim() || FOTO_FALLBACK;
+        d.doc_penal_url = document.getElementById('reg-doc-pen').value.trim() || FOTO_FALLBACK;
+        d.experiencia = document.getElementById('reg-cuid-exp').value.trim();
+      }
+
+      if (!esEntornoGAS()) {
+        modalRegistro.hide();
+        notificar('Registro simulado completado. Inicia sesión con tu correo.');
+        autocompletarLogin(d.email, d.password);
+        abrirLogin();
+        return;
+      }
+
+      loader(true, 'Registrando cuenta en Google Sheets...');
+
+      var onSuccessReg = function(res) {
+        loader(false);
+        if (res && res.exito) {
+          modalRegistro.hide();
+          notificar(res.mensaje || 'Registro completado con éxito.');
+          autocompletarLogin(d.email, d.password);
+          var camposLimpiar = ['reg-nombre', 'reg-apellido', 'reg-email', 'reg-pass', 'reg-dni', 'reg-tel', 'reg-dir', 'reg-cuid-exp'];
+          for (var i = 0; i < camposLimpiar.length; i++) {
+            var el = document.getElementById(camposLimpiar[i]);
+            if (el) el.value = '';
+          }
+          if (tipo === 'Cuidador') {
+            cargarCatalogoCuidadores();
+          }
+          abrirLogin();
+        } else {
+          err.innerText = res && res.mensaje ? res.mensaje : 'No se pudo completar el registro.';
+          err.classList.remove('d-none');
+        }
+      };
+
+      var onFailureReg = function(error) {
+        loader(false);
+        err.innerText = 'Error del servidor: ' + error.message;
+        err.classList.remove('d-none');
+      };
+
+      // Invocación directa (evita el bug de google.script.run[fnLlamar] en HtmlService)
+      if (tipo === 'Propietario') {
+        google.script.run
+          .withSuccessHandler(onSuccessReg)
+          .withFailureHandler(onFailureReg)
+          .registrarNuevoPropietario(d);
+      } else {
+        google.script.run
+          .withSuccessHandler(onSuccessReg)
+          .withFailureHandler(onFailureReg)
+          .registrarNuevoCuidador(d);
+      }
+    }
+
+    // ========================================================================
+    // 3. ACTIVACIÓN DEL LAYOUT PRIVADO CON SIDEBAR POR ROL
+    // ========================================================================
+
+    function activarLayoutPrivado(u) {
+      document.getElementById('contenedor-publico').style.display = 'none';
+      var priv = document.getElementById('contenedor-privado');
+      priv.style.display = 'flex';
+
+      document.getElementById('sidebar-user-name').innerText = u.nombre || 'Usuario';
+      document.getElementById('sidebar-rol-tag').innerText = (u.rol || 'Propietario').toUpperCase();
+      document.getElementById('sidebar-user-id').innerText = 'Doc: ' + (u.num_doc || u.id_usuario);
+      document.getElementById('sidebar-user-distrito').innerText = '📍 ' + (u.distrito || 'Cusco');
+
+      var navLinks = document.getElementById('sidebar-nav-links');
+      var r = String(u.rol || '').toLowerCase();
+
+      var secs = document.querySelectorAll('.seccion-dashboard');
+      for (var i = 0; i < secs.length; i++) {
+        secs[i].classList.add('d-none');
+      }
+
+      if (r.indexOf('propietario') !== -1) {
+        navLinks.innerHTML =
+          '<a href="javascript:void(0)" class="sidebar-link active" onclick="cambiarSeccion(\'sec-prop-mascotas\', this)"><i class="bi bi-heart-pulse-fill"></i> Mis Mascotas (PAW-ID)</a>' +
+          '<a href="javascript:void(0)" class="sidebar-link" onclick="cambiarSeccion(\'sec-prop-reservar\', this)"><i class="bi bi-calendar2-plus-fill"></i> Contratar por Periodo</a>' +
+          '<a href="javascript:void(0)" class="sidebar-link" onclick="cambiarSeccion(\'sec-prop-mis-reservas\', this)"><i class="bi bi-journal-check"></i> Mis Reservas y Reseñas</a>' +
+          '<a href="javascript:void(0)" class="sidebar-link" onclick="cambiarSeccion(\'sec-prop-muro\', this)"><i class="bi bi-camera-reels-fill"></i> Muro Fotos (PostImg)</a>';
+
+        document.getElementById('sec-prop-mascotas').classList.remove('d-none');
+        cargarMascotas(u.num_doc, u.id_usuario);
+        poblarCombosReserva(u.num_doc, u.id_usuario);
+        cargarReservasPropietario();
+      } else if (r.indexOf('cuidador') !== -1) {
+        navLinks.innerHTML =
+          '<a href="javascript:void(0)" class="sidebar-link active" onclick="cambiarSeccion(\'sec-cuid-dash\', this)"><i class="bi bi-speedometer2"></i> Panel del Cuidador</a>' +
+          '<a href="javascript:void(0)" class="sidebar-link" onclick="cambiarSeccion(\'sec-prop-muro\', this)"><i class="bi bi-images"></i> Ver Muro Fotográfico</a>';
+
+        document.getElementById('sec-cuid-dash').classList.remove('d-none');
+        cargarDashboardCuidador(u.id_cuidador, u.id_usuario);
+      } else {
+        navLinks.innerHTML =
+          '<a href="javascript:void(0)" class="sidebar-link active" onclick="cambiarSeccion(\'sec-admin-dash\', this)"><i class="bi bi-shield-lock-fill"></i> Auditoría General</a>' +
+          '<a href="javascript:void(0)" class="sidebar-link" onclick="cambiarSeccion(\'sec-prop-muro\', this)"><i class="bi bi-camera-fill"></i> Supervisar Muro Fotos</a>';
+
+        document.getElementById('sec-admin-dash').classList.remove('d-none');
+        cargarAdminConsolidado();
+      }
+    }
+
+    function cambiarSeccion(secId, elem) {
+      if (elem) {
+        var links = document.querySelectorAll('.sidebar-link');
+        for (var i = 0; i < links.length; i++) {
+          links[i].classList.remove('active');
+        }
+        elem.classList.add('active');
+      }
+      var secs = document.querySelectorAll('.seccion-dashboard');
+      for (var j = 0; j < secs.length; j++) {
+        secs[j].classList.add('d-none');
+      }
+      var target = document.getElementById(secId);
+      if (target) target.classList.remove('d-none');
+
+      if (secId === 'sec-prop-muro') cargarMuro();
+      if (secId === 'sec-prop-mis-reservas') cargarReservasPropietario();
+    }
+
+    function cerrarSesion() {
+      usuarioActual = null;
+      document.getElementById('contenedor-privado').style.display = 'none';
+      document.getElementById('contenedor-publico').style.display = 'block';
+      document.getElementById('txtCorreo').value = '';
+      document.getElementById('txtPassword').value = '';
+      notificar('Sesión cerrada correctamente.');
+    }
+
+    // ========================================================================
+    // 4. FUNCIONES DEL ROL PROPIETARIO
+    // ========================================================================
+
+    function cargarMascotas(doc, idUsu) {
+      if (!esEntornoGAS()) return;
+      google.script.run
+        .withSuccessHandler(function(list) {
+          var grid = document.getElementById('grid-mis-mascotas');
+          if (!list || list.length === 0) {
+            grid.innerHTML = '<div class="col-12"><div class="card card-paw p-4 text-center text-muted">' +
+              'No tienes mascotas registradas aún. Haz clic en "Registrar Mascota" para generar tu primer código PAW PATITA-ID.' +
+              '</div></div>';
+            return;
+          }
+          var h = '';
+          for (var i = 0; i < list.length; i++) {
+            var m = list[i];
+            h += '<div class="col-md-4">' +
+              '<div class="card card-paw p-3 h-100">' +
+                '<div class="position-relative mb-2">' +
+                  '<img src="' + (m.foto_url || FOTO_FALLBACK) + '" class="pet-img" onerror="this.src=\'' + FOTO_FALLBACK + '\'">' +
+                  '<span class="position-absolute top-0 start-0 m-2 badge bg-dark rounded-pill px-2 py-1">' + m.paw_patita_id + '</span>' +
+                  '<span class="position-absolute top-0 end-0 m-2 badge bg-success rounded-pill px-2 py-1">Vacunas: ' + (m.vacunas || 'Sí') + '</span>' +
+                '</div>' +
+                '<h5 class="fw-bold text-dark m-0">' + m.nombre + '</h5>' +
+                '<div class="small text-muted mb-2">' + m.raza + ' • ' + (m.edad || 1) + ' año(s) • ' + (m.peso || 5) + ' kg</div>' +
+                '<div class="small bg-light p-2 rounded-3">' +
+                  '<div><strong>Alergias:</strong> ' + (m.alergias || 'Ninguna') + '</div>' +
+                  '<div><strong>Conducta:</strong> ' + (m.conducta || 'Sociable') + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }
+          grid.innerHTML = h;
+        })
+        .withFailureHandler(function(e) {
+          notificar('Error al cargar mascotas: ' + e.message, 'error');
+        })
+        .obtenerMascotasPropietario(doc, idUsu);
+    }
+
+    function guardarMascotaPropietario() {
+      if (!usuarioActual) return;
+      var d = {
+        id_propietario: usuarioActual.num_doc || usuarioActual.id_usuario,
+        nombre: document.getElementById('p-nom').value.trim(),
+        raza: document.getElementById('p-raza').value.trim(),
+        edad: document.getElementById('p-edad').value,
+        peso: document.getElementById('p-peso').value,
+        vacunas: document.getElementById('p-vac').value,
+        alergias: document.getElementById('p-alergias').value.trim() || 'Ninguna',
+        conducta: document.getElementById('p-conducta').value.trim() || 'Sociable',
+        foto_url: document.getElementById('p-foto-url').value.trim() || FOTO_FALLBACK
+      };
+
+      if (!d.nombre || !d.raza) {
+        notificar('El nombre y la raza de la mascota son obligatorios.', 'warning');
+        return;
+      }
+
+      loader(true, 'Generando ficha PAW PATITA-ID...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          if (res && res.exito) {
+            modalNuevaMascota.hide();
+            document.getElementById('p-nom').value = '';
+            document.getElementById('p-raza').value = '';
+            document.getElementById('p-alergias').value = '';
+            document.getElementById('p-conducta').value = '';
+            notificar('Mascota registrada con código ' + res.paw_id);
+            cargarMascotas(usuarioActual.num_doc, usuarioActual.id_usuario);
+            poblarCombosReserva(usuarioActual.num_doc, usuarioActual.id_usuario);
+          } else {
+            notificar('Error: ' + (res ? res.mensaje : 'No se pudo guardar'), 'error');
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error de red: ' + e.message, 'error');
+        })
+        .registrarMascota(d);
+    }
+
+    function poblarCombosReserva(doc, idUsu) {
+      var selOf = document.getElementById('res-combo-servicios');
+      var options = '';
+      var listaC = (cuidadoresGlobales && cuidadoresGlobales.length > 0) ? cuidadoresGlobales : obtenerDatosDemoCuidadores();
+
+      for (var i = 0; i < listaC.length; i++) {
+        var c = listaC[i];
+        var servs = c.servicios || [];
+        for (var j = 0; j < servs.length; j++) {
+          var s = servs[j];
+          options += '<option value="' + s.id_oferta + '" data-tarifa="' + s.tarifa + '" data-cuid="' + c.id_cuidador + '">' +
+            '[' + s.hu_ecode + '] ' + s.tipo_servicio + ' - S/ ' + s.tarifa + '/día (' + c.nombre + ' - ' + c.distrito + ')' +
+            '</option>';
+        }
+      }
+      selOf.innerHTML = options;
+      calcularMontoPeriodo();
+
+      if (!esEntornoGAS()) return;
+      google.script.run
+        .withSuccessHandler(function(list) {
+          var selP = document.getElementById('res-combo-pets');
+          if (!list || list.length === 0) {
+            selP.innerHTML = '<option value="">Registra primero una mascota en "Mis Mascotas"</option>';
+          } else {
+            var htmlP = '';
+            for (var k = 0; k < list.length; k++) {
+              htmlP += '<option value="' + list[k].id_mascota + '">' + list[k].nombre + ' (' + list[k].paw_patita_id + ')</option>';
+            }
+            selP.innerHTML = htmlP;
+          }
+        })
+        .withFailureHandler(function(e) {})
+        .obtenerMascotasPropietario(doc, idUsu);
+    }
+
+    function calcularMontoPeriodo() {
+      var fIni = parsearFechaLocal(document.getElementById('res-f-ini').value);
+      var fFin = parsearFechaLocal(document.getElementById('res-f-fin').value);
+      var diff = Math.ceil((fFin - fIni) / (1000 * 60 * 60 * 24));
+      if (isNaN(diff) || diff <= 0) diff = 1;
+
+      var sel = document.getElementById('res-combo-servicios');
+      var tarifa = 30;
+      if (sel && sel.selectedIndex >= 0) {
+        tarifa = Number(sel.options[sel.selectedIndex].getAttribute('data-tarifa') || 30);
+      }
+      var total = diff * tarifa;
+      var comision = total * 0.15;
+      var neto = total - comision;
+
+      document.getElementById('res-dias-calculados').innerText = diff + ' día(s)';
+      document.getElementById('res-tarifa-unitaria').innerText = 'S/ ' + tarifa.toFixed(2);
+      document.getElementById('res-comision-label').innerText = 'S/ ' + comision.toFixed(2);
+      document.getElementById('res-neto-label').innerText = 'S/ ' + neto.toFixed(2);
+      document.getElementById('res-total-periodo-label').innerText = 'S/ ' + total.toFixed(2);
+    }
+
+    function enviarReservaPeriodo() {
+      if (!usuarioActual) return;
+      var sel = document.getElementById('res-combo-servicios');
+      var selPet = document.getElementById('res-combo-pets');
+
+      if (!sel.value || !selPet.value) {
+        notificar('Selecciona un servicio disponible y una mascota registrada.', 'warning');
+        return;
+      }
+
+      var strIni = document.getElementById('res-f-ini').value;
+      var strFin = document.getElementById('res-f-fin').value;
+      var fIni = parsearFechaLocal(strIni);
+      var fFin = parsearFechaLocal(strFin);
+      if (fFin < fIni) {
+        notificar('La fecha de fin no puede ser anterior a la fecha de inicio.', 'warning');
+        return;
+      }
+
+      var diff = Math.ceil((fFin - fIni) / (1000 * 60 * 60 * 24));
+      if (diff <= 0) diff = 1;
+
+      var tarifa = Number(sel.options[sel.selectedIndex].getAttribute('data-tarifa') || 30);
+      var idCuid = sel.options[sel.selectedIndex].getAttribute('data-cuid') || 'CUID-01';
+
+      var r = {
+        id_propietario: usuarioActual.num_doc || usuarioActual.id_usuario,
+        id_cuidador: idCuid,
+        id_oferta: sel.value,
+        id_mascota: selPet.value,
+        fecha_inicio: strIni,
+        fecha_fin: strFin,
+        monto_total: (diff * tarifa)
+      };
+
+      var p = {
+        metodo: document.getElementById('res-pago-metodo').value,
+        operacion: document.getElementById('res-pago-op').value.trim() || ('OP-' + Math.floor(100000 + Math.random() * 900000)),
+        comprobante: document.getElementById('res-pago-comp').value
+      };
+
+      loader(true, 'Procesando reserva y calculando comisión (15%)...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          var m = document.getElementById('msg-res-pago');
+          if (res && res.exito) {
+            m.className = 'alert alert-success py-2 small';
+            m.innerHTML = '<strong>¡Reserva confirmada!</strong> Código: <code>' + res.cod_reserva + '</code> | Total: S/ ' + res.monto_bruto + ' (Comisión 15%: S/ ' + res.comision + ')';
+            m.classList.remove('d-none');
+            document.getElementById('res-pago-op').value = '';
+            notificar('Reserva ' + res.cod_reserva + ' registrada con éxito.');
+            cargarReservasPropietario();
+          } else {
+            m.className = 'alert alert-danger py-2 small';
+            m.innerText = 'Error al registrar reserva: ' + (res ? res.mensaje : 'desconocido');
+            m.classList.remove('d-none');
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error de red: ' + e.message, 'error');
+        })
+        .crearReservaPorPeriodo(r, p);
+    }
+
+    function cargarReservasPropietario() {
+      if (!usuarioActual || !esEntornoGAS()) return;
+      google.script.run
+        .withSuccessHandler(function(lista) {
+          var tb = document.getElementById('tabla-prop-reservas');
+          if (!lista || lista.length === 0) {
+            tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Aún no tienes reservas registradas.</td></tr>';
+            return;
+          }
+          var h = '';
+          for (var i = 0; i < lista.length; i++) {
+            var r = lista[i];
+            var badgeColor = (r.estado === 'Finalizado') ? 'bg-success' : (r.estado === 'Cancelada' ? 'bg-danger' : 'bg-primary');
+            var btns = '';
+            if (r.estado !== 'Cancelada') {
+              btns += '<button class="btn btn-sm btn-outline-warning text-dark py-0 me-1" onclick="abrirModalResena(\'' + r.id_reserva + '\', \'' + r.id_cuidador + '\')" title="Calificar servicio">★ Calificar</button>';
+              btns += '<button class="btn btn-sm btn-outline-danger py-0 me-1" onclick="abrirModalEmergencia(\'' + r.id_reserva + '\')" title="Reportar emergencia">S.O.S.</button>';
+            }
+            if (r.estado === 'Confirmada') {
+              btns += '<button class="btn btn-sm btn-outline-secondary py-0" onclick="cancelarReservaUI(\'' + r.id_reserva + '\')">Cancelar</button>';
+            }
+
+            h += '<tr>' +
+              '<td><code>' + r.codigo_reserva + '</code><br><small class="text-muted">' + r.id_reserva + '</small></td>' +
+              '<td><strong>' + r.nombre_cuidador + '</strong><br><small class="text-muted">' + r.servicio + '</small></td>' +
+              '<td>' + r.mascota + '</td>' +
+              '<td>' + r.fecha_inicio + '<br><small class="text-muted">al ' + r.fecha_fin + '</small></td>' +
+              '<td><strong>S/ ' + r.monto_total + '</strong><br><small class="text-muted">Com: S/ ' + r.comision + '</small></td>' +
+              '<td><span class="badge ' + badgeColor + '">' + r.estado + '</span></td>' +
+              '<td>' + btns + '</td>' +
+            '</tr>';
+          }
+          tb.innerHTML = h;
+        })
+        .withFailureHandler(function(e) {})
+        .obtenerReservasPropietario(usuarioActual.num_doc, usuarioActual.id_usuario);
+    }
+
+    function cancelarReservaUI(idReserva) {
+      if (!confirm('¿Deseas cancelar esta reserva? Se aplicará la política del 15% de retención administrativa y 85% de reembolso.')) return;
+      loader(true, 'Procesando cancelación...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          if (res && res.exito) {
+            notificar(res.mensaje);
+            cargarReservasPropietario();
+          } else {
+            notificar(res ? res.mensaje : 'No se pudo cancelar', 'error');
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .cancelarReservaPropietario(idReserva);
+    }
+
+    function abrirModalResena(idReserva, idCuidador) {
+      document.getElementById('rev-id-reserva').value = idReserva;
+      document.getElementById('rev-id-cuidador').value = idCuidador;
+      document.getElementById('rev-comentario').value = '';
+      modalResena.show();
+    }
+
+    function enviarResenaPropietario() {
+      var d = {
+        id_reserva: document.getElementById('rev-id-reserva').value,
+        id_cuidador: document.getElementById('rev-id-cuidador').value,
+        id_propietario: usuarioActual ? (usuarioActual.num_doc || usuarioActual.id_usuario) : 'USR-01',
+        estrellas: document.getElementById('rev-estrellas').value,
+        comentario: document.getElementById('rev-comentario').value.trim()
+      };
+      if (!d.comentario) {
+        notificar('Escribe un breve comentario sobre la atención.', 'warning');
+        return;
+      }
+      loader(true, 'Guardando calificación y actualizando reputación...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          modalResena.hide();
+          notificar(res && res.mensaje ? res.mensaje : 'Calificación registrada.');
+          cargarReservasPropietario();
+          cargarCatalogoCuidadores();
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .registrarResenaServicio(d);
+    }
+
+    function abrirModalEmergencia(idReserva) {
+      document.getElementById('inc-id-reserva').value = idReserva || 'RES-1001';
+      document.getElementById('inc-desc').value = '';
+      modalEmergencia.show();
+    }
+
+    function enviarReporteEmergencia() {
+      var desc = document.getElementById('inc-desc').value.trim();
+      if (!desc) {
+        notificar('Describe los síntomas o el motivo de la emergencia.', 'warning');
+        return;
+      }
+      var d = {
+        id_reserva: document.getElementById('inc-id-reserva').value,
+        reportado_por: usuarioActual ? (usuarioActual.num_doc || usuarioActual.id_usuario) : 'Usuario',
+        tipo_incidencia: document.getElementById('inc-tipo').value,
+        id_clinica: document.getElementById('inc-clinica').value,
+        descripcion: desc
+      };
+      loader(true, 'Activando protocolo de emergencia veterinaria...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          modalEmergencia.hide();
+          notificar(res && res.mensaje ? res.mensaje : 'Emergencia registrada.');
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .registrarIncidenciaEmergencia(d);
+    }
+
+    function cargarMuro() {
+      if (!esEntornoGAS()) return;
+      loader(true, 'Cargando muro fotográfico PostImg...');
+      google.script.run
+        .withSuccessHandler(function(posts) {
+          loader(false);
+          var cont = document.getElementById('contenedor-fotos-muro');
+          if (!posts || posts.length === 0) {
+            cont.innerHTML = '<div class="col-12 text-center text-muted py-4">No hay fotos publicadas todavía.</div>';
+            return;
+          }
+          var h = '';
+          for (var i = 0; i < posts.length; i++) {
+            var pt = posts[i];
+            h += '<div class="col-md-4">' +
+              '<div class="card card-paw h-100 overflow-hidden">' +
+                '<img src="' + (pt.foto || FOTO_FALLBACK) + '" class="cuid-img" onerror="this.src=\'' + FOTO_FALLBACK + '\'">' +
+                '<div class="p-3">' +
+                  '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                    '<span class="badge bg-warning text-dark">' + (pt.evento || 'Seguimiento') + '</span>' +
+                    '<small class="text-muted"><code>' + (pt.reserva || '') + '</code></small>' +
+                  '</div>' +
+                  '<h6 class="fw-bold text-dark mb-1">' + (pt.mascota || 'Mascota') + '</h6>' +
+                  '<p class="small text-secondary mb-2">' + pt.nota + '</p>' +
+                  '<small class="text-muted d-block border-top pt-2" style="font-size:0.75rem;"><i class="bi bi-clock me-1"></i>' + pt.fecha + '</small>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }
+          cont.innerHTML = h;
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+        })
+        .obtenerMuroFotos();
+    }
+
+    // ========================================================================
+    // 5. FUNCIONES DEL ROL CUIDADOR INDEPENDIENTE
+    // ========================================================================
+
+    function cargarDashboardCuidador(idCuid, idUsu) {
+      if (!esEntornoGAS()) return;
+      loader(true, 'Sincronizando panel del cuidador...');
+      google.script.run
+        .withSuccessHandler(function(dash) {
+          loader(false);
+          if (dash && dash.id_cuidador && usuarioActual) {
+            usuarioActual.id_cuidador = dash.id_cuidador;
+          }
+          document.getElementById('dash-activas').innerText = dash ? dash.activas_semana : 0;
+          document.getElementById('dash-finalizadas').innerText = dash ? (dash.finalizadas || 0) : 0;
+          document.getElementById('dash-ingresos').innerText = 'S/ ' + (dash ? dash.ingresos_netos : '0.00');
+          document.getElementById('dash-reputacion').innerText = '★ ' + (dash && dash.reputacion ? dash.reputacion : '5.0');
+
+          reservasCuidadorActual = (dash && dash.reservas) ? dash.reservas : [];
+          var selRep = document.getElementById('rep-id-reserva');
+          var tb = document.getElementById('tabla-cuid-reservas');
+
+          if (reservasCuidadorActual.length === 0) {
+            tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Sin reservas asignadas por el momento.</td></tr>';
+            selRep.innerHTML = '<option value="RES-1001">RES-1001 (General)</option>';
+          } else {
+            var h = '';
+            var optRep = '';
+            for (var i = 0; i < reservasCuidadorActual.length; i++) {
+              var r = reservasCuidadorActual[i];
+              optRep += '<option value="' + r.id_reserva + '">' + r.id_reserva + ' - ' + r.mascota + '</option>';
+              var badge = (r.estado === 'Finalizado') ? 'bg-success' : (r.estado === 'En Curso' ? 'bg-warning text-dark' : 'bg-primary');
+              h += '<tr>' +
+                '<td><code>' + r.id_reserva + '</code><br><small class="text-muted">' + r.codigo + '</small></td>' +
+                '<td class="fw-bold">' + r.mascota + '</td>' +
+                '<td>' + r.inicio + ' al ' + r.fin + '</td>' +
+                '<td>S/ ' + r.monto + '<br><strong class="text-success">Neto: S/ ' + r.neto + '</strong></td>' +
+                '<td><span class="badge ' + badge + '">' + r.estado + '</span></td>' +
+                '<td>' +
+                  '<div class="d-flex flex-wrap gap-1">' +
+                    '<button class="btn btn-sm btn-outline-primary py-0" onclick="cambiarRes(\'' + r.id_reserva + '\', \'En Curso\')">Iniciar</button>' +
+                    '<button class="btn btn-sm btn-outline-dark py-0" onclick="abrirModalReporteReserva(\'' + r.id_reserva + '\')"><i class="bi bi-camera"></i> Foto</button>' +
+                    '<button class="btn btn-sm btn-outline-success py-0" onclick="cambiarRes(\'' + r.id_reserva + '\', \'Finalizado\')">Finalizar</button>' +
+                    '<button class="btn btn-sm btn-outline-danger py-0" onclick="abrirModalEmergencia(\'' + r.id_reserva + '\')">S.O.S.</button>' +
+                  '</div>' +
+                '</td>' +
+              '</tr>';
+            }
+            tb.innerHTML = h;
+            selRep.innerHTML = optRep;
+          }
+
+          var contServ = document.getElementById('lista-cuid-servicios');
+          var servs = (dash && dash.servicios) ? dash.servicios : [];
+          if (servs.length === 0) {
+            contServ.innerHTML = '<div class="col-12 text-muted small">No tienes ofertas registradas.</div>';
+          } else {
+            var hs = '';
+            for (var s = 0; s < servs.length; s++) {
+              hs += '<div class="col-md-4">' +
+                '<div class="p-3 bg-light rounded-4 border d-flex justify-content-between align-items-center">' +
+                  '<div>' +
+                    '<span class="badge bg-dark mb-1">' + servs[s].hu_ecode + '</span>' +
+                    '<div class="fw-bold small text-dark">' + servs[s].tipo_servicio + '</div>' +
+                  '</div>' +
+                  '<div class="fs-5 fw-bold text-success">S/ ' + servs[s].tarifa + '</div>' +
+                '</div>' +
+              '</div>';
+            }
+            contServ.innerHTML = hs;
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+        })
+        .obtenerDashboardCuidador(idCuid, idUsu);
+    }
+
+    function cambiarRes(id, est) {
+      loader(true, 'Actualizando estado de reserva a ' + est + '...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          if (res && res.exito) {
+            notificar('Reserva ' + id + ' cambiada a: ' + est);
+            cargarDashboardCuidador(usuarioActual ? usuarioActual.id_cuidador : '', usuarioActual ? usuarioActual.id_usuario : '');
+          } else {
+            notificar('No se pudo actualizar el estado.', 'error');
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .cambiarEstadoReserva(id, est);
+    }
+
+    function abrirModalReporteReserva(idReserva) {
+      var sel = document.getElementById('rep-id-reserva');
+      if (sel) sel.value = idReserva;
+      document.getElementById('rep-nota').value = '';
+      modalSubirReporte.show();
+    }
+
+    function enviarReporteConFotoCuidador() {
+      var nota = document.getElementById('rep-nota').value.trim();
+      var foto = document.getElementById('rep-foto-url').value.trim() || FOTO_FALLBACK;
+      if (!nota) {
+        notificar('Ingresa una nota de bienestar para el propietario.', 'warning');
+        return;
+      }
+      var r = {
+        id_reserva: document.getElementById('rep-id-reserva').value || 'RES-1001',
+        tipo_evento: document.getElementById('rep-tipo-evento').value,
+        nota: nota,
+        foto_url: foto
+      };
+      loader(true, 'Publicando foto PostImg en el muro...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          modalSubirReporte.hide();
+          notificar('¡Reporte fotográfico publicado con éxito!');
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .registrarReporteConFoto(r);
+    }
+
+    function guardarNuevaOfertaCuidador() {
+      var s = {
+        id_cuidador: usuarioActual ? (usuarioActual.id_cuidador || 'CUID-01') : 'CUID-01',
+        tipo_servicio: document.getElementById('of-tipo-servicio').value,
+        tarifa: document.getElementById('of-tarifa').value || 35
+      };
+      loader(true, 'Generando código HU E-Code...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          modalNuevaOferta.hide();
+          notificar(res && res.mensaje ? res.mensaje : 'Oferta creada.');
+          cargarDashboardCuidador(usuarioActual.id_cuidador, usuarioActual.id_usuario);
+          cargarCatalogoCuidadores();
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .publicarServicioCuidador(s);
+    }
+
+    // ========================================================================
+    // 6. FUNCIONES DEL ROL ADMINISTRADOR
+    // ========================================================================
+
+    function cargarAdminConsolidado() {
+      if (!esEntornoGAS()) return;
+      loader(true, 'Cargando auditoría administrativa...');
+      google.script.run
+        .withSuccessHandler(function(data) {
+          loader(false);
+          if (data && data.resumen) {
+            document.getElementById('admin-kpi-bruto').innerText = 'S/ ' + data.resumen.total_bruto;
+            document.getElementById('admin-kpi-comision').innerText = 'S/ ' + data.resumen.total_comision;
+            document.getElementById('admin-kpi-neto').innerText = 'S/ ' + data.resumen.total_neto;
+            document.getElementById('admin-kpi-cuidadores').innerText = data.resumen.total_cuidadores;
+          }
+
+          // 1. Tabla Postulantes / Antecedentes
+          var tbP = document.getElementById('tabla-admin-postulantes');
+          if (!data || !data.postulantes || data.postulantes.length === 0) {
+            tbP.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Sin postulantes registrados.</td></tr>';
+          } else {
+            var hP = '';
+            for (var i = 0; i < data.postulantes.length; i++) {
+              var p = data.postulantes[i];
+              var badgeP = (p.estado === 'Aprobado') ? 'bg-success' : (p.estado === 'Rechazado' ? 'bg-danger' : 'bg-warning text-dark');
+              hP += '<tr>' +
+                '<td><code>' + p.id_cuidador + '</code><br><small class="text-muted">' + p.id_antecedente + '</small></td>' +
+                '<td><strong>' + p.nombre + '</strong><br><small class="text-muted">📍 ' + p.distrito + '</small></td>' +
+                '<td>' +
+                  '<a href="' + p.policial_url + '" target="_blank" class="btn btn-sm btn-outline-secondary py-0 me-1"><i class="bi bi-file-earmark-check"></i> Policial</a>' +
+                  '<a href="' + p.penal_url + '" target="_blank" class="btn btn-sm btn-outline-secondary py-0"><i class="bi bi-file-earmark-medical"></i> Penal</a>' +
+                '</td>' +
+                '<td><span class="badge ' + badgeP + '">' + p.estado + '</span></td>' +
+                '<td>' +
+                  '<button class="btn btn-sm btn-success py-0 me-1" onclick="cambiarEstadoAntecedente(\'' + p.id_cuidador + '\', \'Aprobado\')">Aprobar</button>' +
+                  '<button class="btn btn-sm btn-outline-danger py-0" onclick="cambiarEstadoAntecedente(\'' + p.id_cuidador + '\', \'Rechazado\')">Rechazar</button>' +
+                '</td>' +
+              '</tr>';
+            }
+            tbP.innerHTML = hP;
+          }
+
+          // 2. Tabla Emergencias
+          var tbE = document.getElementById('tabla-admin-emergencias');
+          if (!data || !data.emergencias || data.emergencias.length === 0) {
+            tbE.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin incidencias reportadas.</td></tr>';
+          } else {
+            var hE = '';
+            for (var j = 0; j < data.emergencias.length; j++) {
+              var em = data.emergencias[j];
+              var badgeE = (em.estado === 'Resuelta') ? 'bg-success' : 'bg-danger';
+              var btnE = (em.estado === 'Resuelta')
+                ? '<span class="text-success small fw-bold"><i class="bi bi-check-all"></i> Atendida</span>'
+                : '<button class="btn btn-sm btn-outline-success py-0" onclick="marcarEmergenciaResuelta(\'' + em.id_incidencia + '\')">Resolver</button>';
+              hE += '<tr>' +
+                '<td><code>' + em.id_incidencia + '</code></td>' +
+                '<td><code>' + em.reserva + '</code></td>' +
+                '<td><strong>' + em.tipo + '</strong><br><small class="text-muted">' + em.descripcion + '</small></td>' +
+                '<td><span class="badge bg-dark">' + em.clinica + '</span></td>' +
+                '<td><span class="badge ' + badgeE + '">' + em.estado + '</span></td>' +
+                '<td>' + btnE + '</td>' +
+              '</tr>';
+            }
+            tbE.innerHTML = hE;
+          }
+
+          // 3. Tabla Finanzas y Liquidaciones
+          var tbF = document.getElementById('tabla-admin-finanzas');
+          if (!data || !data.finanzas || data.finanzas.length === 0) {
+            tbF.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin transacciones registradas.</td></tr>';
+          } else {
+            var hF = '';
+            for (var k = 0; k < data.finanzas.length; k++) {
+              var fn = data.finanzas[k];
+              var badgeL = (fn.estado_liquidacion === 'Liquidado') ? 'bg-success' : 'bg-warning text-dark';
+              var btnL = (fn.estado_liquidacion === 'Liquidado')
+                ? '<span class="text-success small fw-bold"><i class="bi bi-check2-circle"></i> Pagado</span>'
+                : '<button class="btn btn-sm btn-primary py-0" onclick="ejecutarLiquidacion(\'' + fn.id_pago + '\')">Liquidar 85%</button>';
+              hF += '<tr>' +
+                '<td><code>' + fn.id_pago + '</code></td>' +
+                '<td><code>' + fn.reserva + '</code> • ' + fn.metodo + '</td>' +
+                '<td class="fw-bold">S/ ' + fn.bruto + '</td>' +
+                '<td class="text-success fw-bold">S/ ' + fn.comision + '</td>' +
+                '<td class="text-primary fw-bold">S/ ' + fn.neto + '</td>' +
+                '<td><span class="badge ' + badgeL + '">' + fn.estado_liquidacion + '</span></td>' +
+                '<td>' + btnL + '</td>' +
+              '</tr>';
+            }
+            tbF.innerHTML = hF;
+          }
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+        })
+        .obtenerDatosAdminConsolidados();
+    }
+
+    function cambiarEstadoAntecedente(idCuidador, nuevoEstado) {
+      loader(true, 'Actualizando verificación del cuidador...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          notificar(res && res.mensaje ? res.mensaje : 'Estado actualizado.');
+          cargarAdminConsolidado();
+          cargarCatalogoCuidadores();
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .validarAntecedenteCuidador(idCuidador, nuevoEstado);
+    }
+
+    function marcarEmergenciaResuelta(idIncidencia) {
+      loader(true, 'Cerrando ticket de incidencia...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          notificar(res && res.mensaje ? res.mensaje : 'Incidencia resuelta.');
+          cargarAdminConsolidado();
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .resolverIncidenciaAdmin(idIncidencia, 'Atendido satisfactoriamente por clínica veterinaria aliada en Cusco');
+    }
+
+    function ejecutarLiquidacion(idPago) {
+      loader(true, 'Procesando liquidación del 85% al cuidador...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          loader(false);
+          notificar(res && res.mensaje ? res.mensaje : 'Liquidación completada.');
+          cargarAdminConsolidado();
+        })
+        .withFailureHandler(function(e) {
+          loader(false);
+          notificar('Error: ' + e.message, 'error');
+        })
+        .liquidarPagoCuidador(idPago);
+    }
+  </script>
+</body>
+</html>
