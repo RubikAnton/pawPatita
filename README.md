@@ -1,93 +1,133 @@
-# 🐾 Paw Patita Cusco — Plataforma Web de Cuidado Canino Responsable (Versión Final)
+# 🐾 Paw Patita Cusco v4.0 — Plataforma Integral de Cuidado Canino y Bienestar Animal
 
-> **Propuesta de StartUp Web, Ingeniería de Requisitos (SRS / STRS) y Evaluación UX/UI (10 Heurísticas de Nielsen)**  
+> **Proyecto Fin de Ciclo / StartUp SaaS Serverless**  
+> **Arquitectura:** Google Apps Script (GAS) + Google Sheets (Base de Datos Relacional en 3FN) + HtmlService (SPA)  
 > **Curso:** Análisis y Diseño de Software — NRC 39575  
 > **Docente:** Holguin Herrera, Melisa Betys  
 > **Estudiantes:** Chacón Copa, Angelo Ricardo; Huarancca Camala, Frank Smit; Illapuma Yupanqui, Jerson Reyder; Lovaton Casas, Arantxa Alejandra; Ortiz Gutierrez, Nasdig Jordan.  
-> **Cusco, Perú — 2026**
+> **Cusco, Perú — Noviembre 2026**
 
 ---
 
-## 📌 Descripción del Proyecto
+## 📌 Descripción General del Proyecto (v4.0)
 
-**Paw Patita Cusco** es una aplicación web responsiva desarrollada sobre la arquitectura serverless de **Google Apps Script (GAS)** y respaldada por una base de datos relacional modelada en **Google Sheets** (`BD-PAWPATITAS-v3.xlsx`), diseñada para conectar a propietarios de mascotas (residentes locales y turistas) con cuidadores independientes evaluados y verificados en los distritos de la ciudad del Cusco (*Cusco Centro, Wanchaq, San Sebastián, San Jerónimo y Santiago*).
+**Paw Patita Cusco v4.0** es una plataforma SaaS de economía colaborativa diseñada para resolver los desafíos de cuidado canino y bienestar animal en la ciudad histórica y turística de Cusco, Perú. Conecta a propietarios de perros (segmentados en **Residentes Locales** y **Turistas Nacionales/Extranjeros** que visitan atractivos como Machu Picchu o el Valle Sagrado) con **Cuidadores Independientes** certificados, bajo la supervisión médica activa de **Clínicas Veterinarias Aliadas 24 Horas** y la gobernanza del **Administrador de Red**.
 
----
-
-## 🚀 Innovaciones y Herramientas Avanzadas por Stakeholder
-
-### 📅 1. Calendario de Disponibilidad Semanal (Público y Cuidador)
-* **Vista en el Perfil Público del Cuidador (Modal):** Muestra una grilla visual de los 7 días de la semana (`Lunes` a `Domingo`) indicando los días y turnos disponibles (`✔ Disponible`) o de descanso (`✖ Descanso`) antes de realizar una reserva.
-* **Gestor Interactivo en el Panel del Cuidador:** Permite al cuidador activar o desactivar sus días de atención con un solo clic y guardar su disponibilidad en tiempo real en la pestaña `perfiles_cuidadores`.
-
-### 🐶 2. Herramientas para el Propietario (Local / Turista)
-* **Carné Digital de Mascota (`PAW PATITA-ID`):** Registro de historia clínica, vacunas, peso, alergias, temperamento y fotografía alojada en **PostImg**.
-* **Reserva por Periodo con Previsualización Visual:** Cálculo automático de días, tarifa diaria, comisión operativa (**15%**) y pago neto al cuidador (**85%**), mostrando las fotografías del cuidador y la mascota seleccionada, junto con la política de cancelación y reembolso.
-* **🚨 Botón de Pánico / Emergencia Veterinaria S.O.S.:** Acceso directo desde sus reservas activas y panel principal que despliega las 5 clínicas veterinarias aliadas en Cusco (`clinicas_veterinarias`) y genera un ticket de atención inmediata en `incidencias_emergencias`.
-* **⭐ Módulo de Calificación (1-5 Estrellas):** Evaluación post-servicio que registra el testimonio en `reseñas` y recalcula automáticamente el promedio de reputación pública del cuidador.
-* **📸 Muro Fotográfico de Bienestar en Vivo:** Visualización en tiempo real de las fotografías subidas por el cuidador vía enlaces directos de **PostImg**.
-
-### 💼 3. Herramientas para el Cuidador Independiente
-* **Dashboard Operativo y Control de Estados:** KPIs semanales (servicios activos, culminados, ganancias netas 85% y reputación) y transición de estados de reserva (`Confirmada` → `En Curso` → `Finalizada`).
-* **🧮 Calculadora Interactiva de Ganancias Netas (85%):** Simulador financiero donde el cuidador proyecta sus ingresos mensuales ingresando tarifa diaria, mascotas por día y días trabajados, descontando automáticamente el 15% de comisión de la plataforma.
-* **Publicador de Ofertas y Reportes Fotográficos PostImg:** Creación de nuevas modalidades de cuidado y envío de fotos en vivo al muro de bienestar.
-
-### 🛡️ 4. Herramientas para el Administrador
-* **Panel Ejecutivo con KPIs Globales:** Monitoreo en vivo del Total Recaudado Bruto (100%), Comisiones Retenidas por Paw Patita (15%), Fondo Neto de Cuidadores (85%) y Cuidadores Activos.
-* **Validación de Antecedentes Policiales y Penales:** Revisión documental con botones de **Aprobar** o **Rechazar** postulantes en un clic.
-* **Resolución de Tickets S.O.S. y Liquidaciones (`liquidaciones_cuidadores`):** Cierre de alertas médicas veterinarias y desembolso del 85% a los cuidadores.
+El sistema opera de forma 100% *serverless* sobre la infraestructura de Google Workspace, garantizando alta disponibilidad, coste cero de servidores, transaccionalidad mediante `LockService`, rendimiento optimizado con `CacheService` y cumplimiento estricto de las 10 Heurísticas de Nielsen (20/20).
 
 ---
 
-## ✅ Cumplimiento al 100% de las 10 Heurísticas de Jakob Nielsen (Rúbrica 20/20)
+## 🚀 Novedades y Capacidades Principales de la Versión 4.0
 
-| # | Heurística de Nielsen | Puntaje | Implementación en `Index.html` |
-| :---: | :--- | :---: | :--- |
-| **1** | **Visibilidad del estado del sistema** | **2/2 (Sí)** | Spinner activo con mensajes contextuales, notificaciones Toast y badges claros (`Confirmada`, `En Curso`, `Finalizada`, `Cancelada`). |
-| **2** | **Relación sistema-mundo real** | **2/2 (Sí)** | Lenguaje natural veterinario y de Cusco (distritos reales, Yape/Plin, *"Carné de Mascota"*), sin códigos internos crípticos expuestos. |
-| **3** | **Control y libertad del usuario** | **2/2 (Sí)** | Botones explícitos **"Cancelar / Volver"** en todos los formularios y modales que limpian los inputs sin guardar, y cancelación de reservas. |
-| **4** | **Consistencia y estándares** | **2/2 (Sí)** | Uniformidad total con Bootstrap 5.3.2, Bootstrap Icons 1.11, paleta cálida `#ff7e47` y tipografía amigable. |
-| **5** | **Prevención de errores** | **2/2 (Sí)** | Validaciones en tiempo real: bloqueo de fecha fin anterior a inicio (`min` dinámico), bloqueo de tarifas/pesos negativos y campos vacíos. |
-| **6** | **Reconocimiento antes que recuerdo** | **2/2 (Sí)** | Botón de ver/ocultar contraseña (ícono de ojo `bi-eye`), cuentas demo clicables y selectores con nombres, tarifas y fotos visibles. |
-| **7** | **Flexibilidad y eficiencia de uso** | **2/2 (Sí)** | Filtros instantáneos en la landing page por tipo de servicio, distrito de Cusco, tarifa máxima y búsqueda por texto. |
-| **8** | **Diseño estético y amigable (Temática Mascotas)** | **2/2 (Sí)** | Interfaz moderna, limpia y cálida enfocada en animales (iconos de perros y gatos, bordes suaves, tarjetas PostImg). |
-| **9** | **Ayuda para reconocer y recuperarse de errores** | **2/2 (Sí)** | Alertas en rojo (`alert-danger`) en lenguaje sencillo indicando exactamente qué dato corregir. |
-| **10** | **Ayuda y documentación** | **2/2 (Sí)** | Botón visible **"❓ Guía / Ayuda Rápida"** en la barra superior que abre un modal con preguntas frecuentes para dueños y cuidadores. |
+1. **Arquitectura Multi-Actor Estricta (4 Roles Activos):**
+   * **Propietario Local:** Carné digital `PAW PATITA-ID`, reservas por periodo, muro de fotos en vivo y cancelación con reembolso automático.
+   * **Propietario Turista Cusco:** Experiencia optimizada con selector de divisa dual (**PEN / USD** con tipo de cambio referencial $S/\ 3.75$), servicio extra de *Recojo y retorno en Hotel* e idioma inglés/español.
+   * **Cuidador Independiente:** Postulación con verificación policial y domiciliaria (`PostImg`), agenda mensual interactiva con control anti-overbooking por cupos, check-in/check-out y billetera digital con retiros a Yape/Plin/Banco.
+   * **Clínica Veterinaria Aliada (Actor Activo):** Central de Emergencias S.O.S. en vivo (triage médico, diagnóstico y alta clínica) y auditoría sanitaria oficial de carnés `PAW PATITA-ID`.
+   * **Administrador de Red:** Dashboard ejecutivo con gráficos interactivos vía **Chart.js** (distritos y categorías), aprobación de cuidadores, ejecución de reembolsos conciliados y bitácora de auditoría.
+2. **Motor Dinámico de Tarifas y Cupones:** Detección de temporadas altas en Cusco (*Inti Raymi, Fiestas Patrias, Semana Santa*) con factor multiplicador automático y motor de cupones promocionales (ej: `INTIRAYMI15`, `MACHUPICCHU15`).
+3. **Política Escalonada de Cancelación y Reembolso:** Cálculo transparente y atómico según las horas de anticipación al inicio del servicio (>48h: 100% reembolso; 24 a 48h: 70% reembolso y 30% penalidad; <24h: 0% reembolso).
+4. **Base de Datos Relacional Normalizada (3FN):** Ampliación de 11 a **22 pestañas interconectadas** en [BD-PAWPATITAS-v3.xlsx](file:///d:/Usuario/analisisGithub/BD-PAWPATITAS-v3.xlsx), con claves primarias y foráneas, contraseñas hasheadas en SHA-256 (`PAW::`) y conciliación contable sin desfases.
+5. **Frontend SaaS Profesional:** 3,400+ líneas en [Index.html](file:///d:/Usuario/analisisGithub/Index.html), compatible al 100% con `HtmlService` (0 operadores `?.` o `??`), wizard en 4 pasos, pasarela simulada y apagado garantizado del spinner.
 
 ---
 
-## 🔑 Credenciales de Acceso Rápido para Demostración
+## 🔑 Credenciales Oficiales de Demostración
 
-El modal de inicio de sesión incluye píldoras interactivas para autocompletar estas cuentas con un solo clic:
+El modal de inicio de sesión y la barra de navegación cuentan con un selector rápido con 1 clic ("Demo Acceso") que autocompleta cualquiera de estos perfiles:
 
-| Rol de Usuario | Correo Electrónico | Contraseña | Funcionalidades a Evaluar |
-| :--- | :--- | :--- | :--- |
-| 🐶 **Propietario** | `angelo@gmail.com` | `123456` | Carné de mascotas, reserva por periodo con previsualización, Botón S.O.S., calificación (1-5★) y Muro de Fotos. |
-| 💼 **Cuidador** | `carlos@gmail.com` | `123456` | Calendario de disponibilidad semanal (Lun-Dom), Calculadora de ganancias netas (85%), gestión de reservas y subida de fotos PostImg. |
-| 🛡️ **Administrador** | `admin@pawpatita.pe` | `admin123` | KPIs financieros, validación de antecedentes policiales/penales, resolución de emergencias S.O.S. y liquidación de pagos (85%). |
+| Rol del Actor | Correo Electrónico | Contraseña | Perfil y Capacidades a Evaluar |
+| :--- | :--- | :---: | :--- |
+| 🐶 **Propietario Local** | `angelo@gmail.com` | `123456` | Residente cusqueño (Angelo Pérez). Gestiona 4 perros con `PAW PATITA-ID`, wizard de reserva, muro de fotos en vivo y solicitudes de cancelación. |
+| 🧳 **Propietario Turista** | `sofia.turista@gmail.com` | `123456` | Turista en Cusco (Sofía Valdivia). Moneda en Dólares USD, recojo en Hotel Monasterio, uso de cupón `MACHUPICCHU15` y botón S.O.S. |
+| 🐕 **Cuidador Aprobado** | `carlos@gmail.com` | `123456` | Cuidador verificado (Carlos Quispe). Agenda mensual de cupos, Check-In / Check-Out, envío de fotos al muro y Billetera Digital con saldo disponible. |
+| ⏳ **Cuidador Pendiente** | `lucia@gmail.com` | `123456` | Cuidador en revisión (Lucía Fernández). Visualización de estado `Pendiente` y expediente de antecedentes policiales y domicilio. |
+| 🏥 **Clínica Veterinaria** | `vet.centro@pawpatita.pe` | `vet123` | *Clínica Veterinaria Cusco Centro (24h)*. Central S.O.S. para tomar casos críticos, triaje, alta médica y validación sanitaria de fichas caninas. |
+| 🛡️ **Administrador de Red** | `admin@pawpatita.pe` | `admin123` | Administrador general. Dashboard ejecutivo con **Chart.js**, aprobación de postulantes, ejecución de reembolsos, pago de liquidaciones y auditoría. |
 
 ---
 
-## 📁 Estructura del Repositorio
+## 📚 Índice Maestro de la Documentación Exhaustiva (`docs/`)
+
+Para la redacción del informe final oficial y auditorías académicas de software, se ha estructurado la documentación en 5 manuales técnicos dentro de `docs/`:
+
+1. **[01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md](file:///d:/Usuario/analisisGithub/docs/01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md):** Matriz comparativa exhaustiva (v3.0 vs. v4.0), justificación técnica de la normalización de 11 a 22 pestañas, evolución de los 4 actores y eliminación de acoplamientos por índices numéricos.
+2. **[02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md](file:///d:/Usuario/analisisGithub/docs/02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md):** Catálogo de Requisitos Funcionales (`RF-01` a `RF-25`), Requisitos No Funcionales adaptados a cuotas de GAS (`RNF-01` a `RNF-10`) y algoritmos formalizados en pseudocódigo (política de reembolso, cotizador estacional, anti-overbooking y máquina de estados).
+3. **[03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md](file:///d:/Usuario/analisisGithub/docs/03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md):** Catálogo de 26 Casos de Uso (`CU-01` a `CU-26`) y 10 Historias de Usuario completas (`HU-01` a `HU-10`) en formato Anverso / Reverso con criterios de aceptación verificables.
+4. **[04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md](file:///d:/Usuario/analisisGithub/docs/04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md):** Diccionario de datos campo por campo de las **22 pestañas relacionales** de `BD-PAWPATITAS-v3.xlsx`, arquitectura en capas con control de caché/locks y Diagrama Entidad-Relación (`erDiagram`).
+5. **[05_EVALUACION_HEURISTICAS_NIELSEN.md](file:///d:/Usuario/analisisGithub/docs/05_EVALUACION_HEURISTICAS_NIELSEN.md):** Matriz de evaluación de las **10 Heurísticas de Usabilidad de Jakob Nielsen con calificación perfecta 20/20**, detallando evidencia visual y código de soporte en `Index.html`.
+
+---
+
+## 🛠️ Guía Rápida de Despliegue en Google Sheets + Apps Script
+
+### Paso 1: Configurar la Base de Datos en Google Drive
+1. Sube el archivo `BD-PAWPATITAS-v3.xlsx` a tu unidad de **Google Drive**.
+2. Haz clic derecho sobre el archivo y selecciona **Abrir con > Hojas de cálculo de Google**.
+3. Selecciona **Archivo > Guardar como hoja de cálculo de Google**. Comprueba que se carguen las 22 pestañas con sus filas pobladas.
+
+### Paso 2: Crear y Desplegar el Proyecto en Google Apps Script
+1. En la hoja de cálculo creada, dirígete al menú superior: **Extensiones > Apps Script**.
+2. En el archivo `Código.gs`, borra el código por defecto y pega el contenido íntegro de [Codigo.gs](file:///d:/Usuario/analisisGithub/Codigo.gs).
+3. En el panel izquierdo del editor, haz clic en el botón `+` junto a *Archivos* y selecciona **HTML**. Nómbralo exactamente `Index` (se creará `Index.html`).
+4. Pega el contenido íntegro de [Index.html](file:///d:/Usuario/analisisGithub/Index.html) en el archivo HTML creado y guarda los cambios (`Ctrl + S`).
+
+### Paso 3: Verificación Automatizada en el Editor de GAS
+1. En el selector superior de funciones del editor de Apps Script, selecciona la función `testSistemaCompleto`.
+2. Presiona el botón **Ejecutar**.
+3. Revisa el registro de ejecución (*Execution Log*): debe mostrar `=== TEST SISTEMA COMPLETO: EXITOSO ===` con **149 aserciones automáticas aprobadas** (esquema de 22 pestañas, cotizador, cancelaciones, autenticación y dashboard).
+
+### Paso 4: Publicar la Aplicación Web
+1. Haz clic en el botón azul **Implementar > Nueva implementación**.
+2. En el tipo de implementación (engranaje), elige **Aplicación web**.
+3. Configura:
+   * **Descripción:** `Paw Patita Cusco v4.0 Oficial`
+   * **Ejecutar como:** `Yo (tu correo de Google)`
+   * **Quién tiene acceso:** `Cualquier usuario` (para permitir el acceso a clientes y evaluadores).
+4. Haz clic en **Implementar** y copia la **URL de la aplicación web**.
+
+---
+
+## 🧪 Verificación Local con Mock de GAS en Node.js
+
+Para auditar y probar el sistema localmente sin necesidad de conexión activa a Google Workspace:
+
+```bash
+# Ejecutar la suite automatizada de pruebas mock
+node tools/test_mock_gas.js
+```
+
+La suite valida:
+* Sintaxis JS estricta (0 operadores `?.` ni `??`).
+* Evaluación completa de `Codigo.gs` con mocks de `SpreadsheetApp`, `CacheService`, `LockService` y `Utilities`.
+* Ejecución completa de `testSistemaCompleto()` (149 aserciones).
+* Pruebas transaccionales de los 4 roles (login, cotización, reservas, check-in, billetera, SOS y analítica admin).
+
+---
+
+## 📂 Estructura del Repositorio
 
 ```text
 paw-patita-cusco/
-├── Codigo.gs                          # Backend en Google Apps Script (SpreadsheetApp.getActiveSpreadsheet() + testSistema())
-├── Index.html                         # Frontend responsivo con las 10 Heurísticas de Nielsen y Calendario Semanal
-├── BD-PAWPATITAS-v3.xlsx              # Base de datos relacional en Google Sheets (13 pestañas pobladas y verificadas)
-├── Informe_PawPatita_Actualizado.docx # Informe final en Word (.docx) con tablas de Nielsen, Stakeholders y marcadores de imágenes
-├── Informe_analisis.md                # Especificación técnica completa en Markdown con los 49 diagramas base64
-├── .gitignore                         # Exclusión de temporales de Python y sistema
-└── README.md                          # Documentación general del proyecto
+├── BD-PAWPATITAS-v3.xlsx              # Base de datos relacional normalizada (22 pestañas en 3FN, 154 filas)
+├── Codigo.gs                          # Backend en GAS (2,428 líneas, 71 funciones RPC, locking, caché, RBAC)
+├── Index.html                         # Frontend SPA SaaS (3,429 líneas, 4 dashboards, Chart.js, wizard 4 pasos)
+├── README.md                          # Índice maestro del proyecto v4.0, credenciales y guía de despliegue
+├── Informe_PawPatita_Actualizado.docx # Documento de informe oficial previo
+├── Informe_analisis.md                # Especificación técnica inicial
+├── docs/                              # Documentación técnica y académica exhaustiva v4.0
+│   ├── 01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md
+│   ├── 02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md
+│   ├── 03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md
+│   ├── 04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md
+│   └── 05_EVALUACION_HEURISTICAS_NIELSEN.md
+└── tools/                             # Herramientas de generación y pruebas automatizadas
+    ├── construir_index.py             # Compilador y validador de sintaxis de Index.html
+    ├── generar_bd_v4.py               # Generador de BD-PAWPATITAS-v3.xlsx con 22 pestañas
+    ├── seed.json                      # Respaldo JSON de las 22 pestañas y 154 filas
+    └── test_mock_gas.js               # Suite de pruebas automatizadas con mock completo de GAS
 ```
 
 ---
 
-## 🛠️ Instrucciones de Despliegue en Google Apps Script
-
-1. Sube o abre el archivo `BD-PAWPATITAS-v3.xlsx` en **Google Drive** y guárdalo como **Hoja de cálculo de Google** (verificando que estén las 13 pestañas).
-2. En el menú superior, selecciona **Extensiones > Apps Script**.
-3. Copia el contenido de `Codigo.gs` en el archivo `Código.gs` del editor.
-4. Crea un archivo HTML llamado `Index.html` y pega el contenido de `Index.html`.
-5. Ejecuta la función `testSistema()` en la barra superior del editor para comprobar en el registro de ejecución la lectura de las 13 pestañas y los 3 roles.
-6. Haz clic en **Implementar > Nueva implementación > Aplicación web** (*Ejecutar como: Yo* / *Acceso: Cualquier usuario*) y abre el enlace generado.
+*Desarrollado con pasión y excelencia técnica por el equipo de estudiantes de la Universidad Continental (Cusco, 2026).*
