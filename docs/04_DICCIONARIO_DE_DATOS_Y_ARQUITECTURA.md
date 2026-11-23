@@ -541,3 +541,88 @@ erDiagram
     temporadas_tarifas ||--o{ reservas : "ajusta tarifa (0..*)"
     terminos_condiciones ||--o{ aceptaciones_tyc : "es aceptada en (1..*)"
 ```
+
+---
+
+## 4. Arquitectura Relacional de Datos en Supabase (PostgreSQL 15 - v5.0)
+
+En la versión **v5.0**, el repositorio de datos migró formalmente de hojas de cálculo de Google Sheets hacia **PostgreSQL 15** administrado en **Supabase**, incorporando integridad referencial estricta, claves primarias compuestas y UUID, tipos enumerados (`ENUM`), índices b-tree y políticas de seguridad declarativa por fila (**Row Level Security - RLS**).
+
+### 4.1. Catálogo Canónico de las 23 Tablas PostgreSQL
+
+| N° | Nombre de Tabla | Clave Primaria | Claves Foráneas (FK) | Propósito de Negocio |
+| :---: | :--- | :--- | :--- | :--- |
+| **1** | `configuracion_plataforma` | `clave (text)` | — | Parámetros globales de la plataforma (comisión base 15%, umbrales de cancelación, versión de TyC). |
+| **2** | `clinicas_veterinarias` | `id_clinica (uuid)` | — | Directorio de sedes veterinarias 24h acreditadas en Cusco con RUC y datos de contacto. |
+| **3** | `perfiles_usuarios` | `id_usuario (uuid)` | `id_usuario -> auth.users`, `id_clinica_asociada -> clinicas_veterinarias` | Perfil extendido de usuarios vinculados 1:1 con `auth.users` de Supabase (rol, distrito de Cusco, datos personales). |
+| **4** | `mascotas` | `id_mascota (uuid)` | `id_propietario -> perfiles_usuarios` | Expediente canino con código PAW-ID único, raza, peso, edad, vacunas y enlace a cartilla. |
+| **5** | `validaciones_veterinarias`| `id_validacion (uuid)`| `id_mascota -> mascotas`, `id_veterinario -> perfiles_usuarios` | Dictamen médico oficial (Sello CMVP: `validado`, `observado` o `pendiente`) con vigencia. |
+| **6** | `perfiles_cuidadores` | `id_cuidador (uuid)` | `id_usuario -> perfiles_usuarios` | Perfil profesional de cuidadores (biografía, tarifa base, capacidad máxima, estado de aprobación). |
+| **7** | `antecedentes_cuidadores` | `id_antecedente (uuid)`| `id_cuidador -> perfiles_cuidadores` | Expediente de validación de antecedentes policiales, penales y verificación domiciliaria en Cusco. |
+| **8** | `servicios` | `id_servicio (uuid)` | `id_cuidador -> perfiles_cuidadores` | Ofertas de servicios (Paseo, Hospedaje, Guardería, Domicilio) y recargo de recojo en hotel. |
+| **9** | `disponibilidad_cuidadores`| `id_disponibilidad (uuid)`| `id_cuidador -> perfiles_cuidadores` | Agenda granular diaria/bloques horarios con control anti-overbooking (`cupos_reservados <= cupo_maximo`). |
+| **10** | `temporadas_tarifas` | `id_temporada (uuid)`| — | Calendario de temporadas turísticas de Cusco (Inti Raymi, Fiestas Patrias) con multiplicadores tarifarios. |
+| **11** | `cupones_promocionales` | `id_cupon (uuid)` | — | Descuentos promocionales segmentados (Local/Turista) con límite de redenciones. |
+| **12** | `reservas` | `id_reserva (uuid)` | `id_propietario -> perfiles_usuarios`, `id_cuidador -> perfiles_cuidadores`, `id_mascota -> mascotas`, `id_servicio -> servicios` | Contrato transaccional de cuidado canino con máquina de estados finita (7 estados). |
+| **13** | `pagos` | `id_pago (uuid)` | `id_reserva -> reservas`, `id_usuario -> perfiles_usuarios` | Transacciones de cobro simuladas (Yape, Plin, Tarjeta) con desglose de comisión y penalidades. |
+| **14** | `liquidaciones_cuidadores`| `id_liquidacion (uuid)`| `id_cuidador -> perfiles_cuidadores`, `id_reserva -> reservas` | Billetera digital del cuidador: retención en garantía, liberación a disponible y pago bancario auditado. |
+| **15** | `cancelaciones_reembolsos`| `id_cancelacion (uuid)`| `id_reserva -> reservas`, `id_solicitante -> perfiles_usuarios` | Gestión de disputas y reembolsos escalonados (>48h: 100%, 24-48h: 50%, <24h: 0%). |
+| **16** | `reportes_seguimiento` | `id_reporte (uuid)` | `id_reserva -> reservas`, `id_cuidador -> perfiles_cuidadores` | Reportes periódicos de cuidado emitidos por el cuidador durante el servicio activo. |
+| **17** | `fotos_reporte` | `id_foto (uuid)` | `id_reporte -> reportes_seguimiento` | Galería fotográfica de evidencia para el Muro de Seguimiento en vivo del propietario. |
+| **18** | `incidencias_emergencias` | `id_incidencia (uuid)`| `id_reserva -> reservas`, `id_mascota -> mascotas`, `id_clinica -> clinicas_veterinarias` | Alertas médicas prioritarias S.O.S. 24h con triaje, tratamiento y alta clínica. |
+| **19** | `resenas` | `id_resena (uuid)` | `id_reserva -> reservas`, `id_evaluador -> perfiles_usuarios` | Evaluaciones multidimensionales (1-5 estrellas) y derecho a réplica pública. |
+| **20** | `terminos_condiciones` | `id_version_tyc (uuid)`| — | Repositorio versionado del contrato de términos y condiciones de servicio. |
+| **21** | `aceptaciones_tyc` | `id_aceptacion (uuid)`| `id_usuario -> perfiles_usuarios`, `id_version_tyc -> terminos_condiciones` | Registro inmutable de consentimiento legal con hash, IP y timestamp. |
+| **22** | `auditoria_estados` | `id_auditoria (uuid)`| `id_usuario -> perfiles_usuarios` | Bitácora forense de auditoría inmutable alimentada automáticamente por triggers de PostgreSQL. |
+| **23** | `notificaciones` | `id_notificacion (uuid)`| `id_usuario -> perfiles_usuarios` | Mensajes in-app para alertas de estado, recordatorios y notificaciones de pago. |
+
+---
+
+## 5. Políticas de Seguridad Row Level Security (RLS) y RPCs Transaccionales
+
+### 5.1. Matriz de Acceso por Rol (Row Level Security)
+
+Todas las 23 tablas cuentan con `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`. Ningún cliente puede leer o escribir filas no autorizadas:
+
+1. **`Propietario` (`rol = 'propietario'`):**
+   - Solo puede leer y editar sus propias mascotas (`id_propietario = auth.uid()`).
+   - Solo puede ver sus propias reservas, pagos y notificaciones.
+   - Tiene acceso de solo lectura al catálogo público de cuidadores aprobados, clínicas activas y servicios.
+   - Tiene estrictamente **bloqueada** la lectura directa a `liquidaciones_cuidadores`, `antecedentes_cuidadores` y `auditoria_estados`.
+2. **`Cuidador` (`rol = 'cuidador'`):**
+   - Solo puede gestionar su propio perfil profesional y bloques de disponibilidad en agenda.
+   - Puede leer las reservas donde él es el cuidador asignado y las mascotas vinculadas a dichas reservas.
+   - Solo puede visualizar sus propias partidas en `liquidaciones_cuidadores`.
+   - Puede publicar reportes y fotos en `reportes_seguimiento` y `fotos_reporte`.
+3. **`Veterinaria` (`rol = 'veterinaria'`):**
+   - Puede inspeccionar fichas de mascotas pendientes de validación y registrar dictámenes en `validaciones_veterinarias`.
+   - Puede ver y atender incidentes en `incidencias_emergencias` asignados a su clínica asociada.
+4. **`Administrador` (`rol = 'administrador'`):**
+   - Acceso total de lectura y actualización para auditoría, aprobación de postulaciones, procesamiento de pagos y arbitraje de disputas.
+
+### 5.2. Catálogo de las 21 Funciones RPC PL/pgSQL
+
+| Categoría | Nombre de Función RPC | Parámetros Clave | Regla de Negocio que Garantiza |
+| :--- | :--- | :--- | :--- |
+| **Cotización y Reserva** | `rpc_cotizar_reserva` | fechas, servicio, cupon, hotel | Cálculo de días, factor de temporada Cusco, descuento y subtotal. |
+| | `rpc_crear_reserva` | payload JSON | Validación anti-overbooking atómica, reserva de cupo, cálculo de comisión 15% y registro de pago. |
+| **Operación Cuidador** | `rpc_cuidador_responder_reserva` | id_reserva, accion, motivo | Aceptación (`confirmada`) o rechazo con liberación de cupos y reembolso 100%. |
+| | `rpc_cuidador_checkin` | id_reserva, checklist | Transición a `en_curso`, verificación física y evento de inicio en muro. |
+| | `rpc_cuidador_checkout` | id_reserva, checklist | Transición a `finalizada` y **liberación inmediata del 85% neto** a `disponible`. |
+| | `rpc_solicitar_retiro` | cuenta_tipo, cuenta_numero | Transición de partidas `disponible` a `solicitado` para desembolso admin. |
+| **Cancelaciones** | `rpc_preview_cancelacion` | id_reserva | Cálculo previo de reembolso (>48h: 100%, 24-48h: 50%, <24h: 0%). |
+| | `rpc_cancelar_reserva` | id_reserva, motivo | Cancelación definitiva, liberación de agenda y registro en auditoría. |
+| | `rpc_abrir_disputa` | id_reserva, motivo | Congelamiento de fondos en liquidación (`retenido_disputa`). |
+| | `rpc_admin_resolver_caso`| id_cancelacion, accion, pct | Arbitraje ejecutivo distribuyendo fondos proporcionalmente. |
+| **Médico / S.O.S.** | `rpc_emitir_sos` | id_reserva, sintomas, clinica | Creación de alerta roja 24h y notificación prioritaria. |
+| | `rpc_vet_actualizar_sos` | id_incidencia, estado, notas | Triaje clínico y seguimiento médico en tiempo real. |
+| | `rpc_vet_dictaminar_ficha`| id_mascota, resultado, vacunas | Emisión del Sello Oficial CMVP o registro de observaciones médicas. |
+| | `rpc_obtener_paw_id_publico`| paw_id | Validación pública del carné para consulta por QR en el reverso. |
+| **Administración** | `rpc_admin_dashboard_metrics`| — | Cálculo en tiempo real de ingresos brutos, comisión real 15% y KPIs por distrito. |
+| | `rpc_admin_aprobar_cuidador`| id_cuidador, accion, motivo | Aprobación/rechazo de postulante con verificación de antecedentes. |
+| | `rpc_admin_aprobar_clinica`| id_clinica, accion, motivo | Acreditación oficial de clínica veterinaria aliada en Cusco. |
+| | `rpc_admin_crear_clinica_directa`| payload JSON | Alta administrativa directa de nuevas clínicas 24h. |
+| | `rpc_admin_procesar_liquidacion`| id_liquidacion, operacion | Desembolso bancario pasando partida a `pagado` y sumando al total cobrado. |
+| | `rpc_admin_reasignar_sos` | id_incidencia, nueva_clinica | Derivación médica urgente a otra sede aliada de Cusco. |
+| **Reputación** | `rpc_publicar_resena` | id_reserva, puntuacion, texto | Calificación multidimensional y actualización de promedio del cuidador. |
+

@@ -1,0 +1,869 @@
+/**
+ * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care" Calibrado
+ * css/main.css — Tokens maestros, resets, tipografías, componentes globales,
+ * navbar reactivo, inputs con halo háptico, micro-interacciones y empty states.
+ */
+
+:root {
+  /* ==========================================================================
+     1. PALETA DE COLORES "ANDES PET CARE" CALIBRADA
+     ========================================================================== */
+  /* Fondo General y Superficies */
+  --pp-bg-body: #F8FAFC;          /* Slate 50 — Suave para la vista */
+  --pp-bg-card: #FFFFFF;          /* Superficies y Tarjetas Blanco Puro */
+  --pp-bg-subtle: #F1F5F9;        /* Slate 100 — Contenedores secundarios */
+  --pp-border-color: #E2E8F0;     /* Slate 200 — Bordes sutiles y limpios */
+  --pp-border-light: #F1F5F9;
+
+  /* Terracota Paw Patita (Color Primario) */
+  --pp-primary: #FF6B35;
+  --pp-primary-hover: #E85A24;
+  --pp-primary-light: #FFF4EF;    /* Fondo activo pastel */
+  --pp-primary-focus: rgba(255, 107, 53, 0.15); /* Halo suave */
+
+  /* Azul Pizarra Andino (Secundario & Headings) */
+  --pp-secondary: #0F172A;        /* Slate 900 — Títulos y contraste máximo */
+  --pp-secondary-dark: #020617;   /* Slate 950 — Footers y barras oscuras */
+  --pp-secondary-light: #1E293B;  /* Slate 800 */
+  --pp-text-main: #1E293B;        /* Slate 800 — Texto principal legible */
+  --pp-text-muted: #64748B;       /* Slate 500 — Texto secundario accesible */
+  --pp-text-light: #94A3B8;       /* Slate 400 — Placeholders e iconos */
+
+  /* Verde Huaypo (Acento / Verificado / Éxito) */
+  --pp-accent: #0D9488;           /* Teal 600 — Sello verificado y salud */
+  --pp-accent-hover: #0F766E;     /* Teal 700 */
+  --pp-accent-light: #F0FDFA;     /* Teal 50 — Fondo suave */
+  --pp-accent-border: #CCFBF1;    /* Teal 100 */
+  --pp-success: #0D9488;
+  --pp-success-hover: #0F766E;
+  --pp-success-light: #F0FDFA;
+  --pp-success-text: #115E59;     /* WCAG AA */
+
+  /* Oro Inca (Reseñas / Destacados / Advertencias) */
+  --pp-gold: #D97706;             /* Amber 600 — Estrellas y reputación */
+  --pp-gold-hover: #B45309;       /* Amber 700 */
+  --pp-gold-light: #FFFBEB;       /* Amber 50 — Fondo pastel */
+  --pp-gold-border: #FEF3C7;      /* Amber 100 */
+  --pp-warning: #D97706;
+  --pp-warning-light: #FFFBEB;
+  --pp-warning-text: #92400E;     /* WCAG AA */
+
+  /* Rojo Emergencia S.O.S. (Peligro / Alertas Críticas) */
+  --pp-danger: #DC2626;           /* Red 600 */
+  --pp-danger-hover: #B91C1C;     /* Red 700 */
+  --pp-danger-light: #FEF2F2;     /* Red 50 — Fondo pastel */
+  --pp-danger-border: #FEE2E2;    /* Red 100 */
+  --pp-danger-text: #991B1B;      /* WCAG AA */
+
+  /* Azul Turquesa Información */
+  --pp-info: #0284C7;
+  --pp-info-light: #F0F9FF;
+  --pp-info-text: #075985;
+
+  /* ==========================================================================
+     2. TIPOGRAFÍAS, RADIOS Y ESPACIADO
+     ========================================================================== */
+  --pp-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --pp-font-display: 'Poppins', var(--pp-font-sans);
+  --pp-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+
+  --pp-radius-xs: 4px;
+  --pp-radius-sm: 8px;
+  --pp-radius-md: 12px;
+  --pp-radius-lg: 18px;
+  --pp-radius-xl: 24px;
+  --pp-radius-full: 9999px;
+
+  /* ==========================================================================
+     3. ELEVACIONES Y SOMBRAS DIFUSAS MULTICAPA (Adiós sombras duras)
+     ========================================================================== */
+  --pp-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
+  --pp-shadow-hover: 0 20px 25px -5px rgba(255, 107, 53, 0.12), 0 8px 10px -6px rgba(255, 107, 53, 0.06);
+  --pp-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+  --pp-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --pp-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --pp-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --pp-shadow-focus: 0 0 0 4px rgba(255, 107, 53, 0.15);
+
+  /* ==========================================================================
+     4. TRANSICIONES Y MICRO-INTERACCIONES
+     ========================================================================== */
+  --pp-transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --pp-transition-fast: all 0.14s ease-out;
+  --pp-transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ==========================================================================
+   5. RESETS Y BASE GLOBAL (Cero scroll horizontal en todo el body)
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--pp-font-sans);
+  background-color: var(--pp-bg-body);
+  color: var(--pp-text-main);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100%;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--pp-font-display);
+  font-weight: 700;
+  color: var(--pp-secondary);
+  letter-spacing: -0.015em;
+  margin-top: 0;
+}
+
+h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 1.2; }
+h2 { font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.25; }
+h3 { font-size: clamp(1.2rem, 2.5vw, 1.6rem); line-height: 1.3; }
+
+p {
+  color: var(--pp-text-main);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+a {
+  color: var(--pp-primary);
+  text-decoration: none;
+  transition: var(--pp-transition);
+}
+
+a:hover {
+  color: var(--pp-primary-hover);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* Enfoque accesible */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--pp-shadow-focus);
+}
+
+/* Layout Principal */
+#app-content {
+  flex: 1 0 auto;
+  min-height: calc(100vh - 72px - 220px);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   6. NAVBAR PRINCIPAL REACTIVO & CONTROLES
+   ========================================================================== */
+.navbar-pawpatita {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--pp-shadow-sm);
+  border-bottom: 1px solid var(--pp-border-color);
+  padding: 0.75rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.brand-paw {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--pp-font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--pp-primary);
+  letter-spacing: -0.02em;
+  transition: var(--pp-transition);
+  text-decoration: none !important;
+}
+
+.brand-paw:hover {
+  color: var(--pp-primary-hover);
+  transform: translateY(-1px);
+}
+
+.brand-paw .brand-icon {
+  font-size: 1.65rem;
+  color: var(--pp-primary);
+  filter: drop-shadow(0 2px 6px rgba(255, 107, 53, 0.3));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.brand-paw:hover .brand-icon {
+  transform: rotate(-10deg) scale(1.1);
+}
+
+.brand-paw .badge-cusco {
+  font-size: 0.68rem;
+  background-color: var(--pp-secondary);
+  color: #FFFFFF;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--pp-radius-full);
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Enlaces de Navegación */
+.navbar-pawpatita .nav-link {
+  color: var(--pp-secondary);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--pp-radius-md);
+  transition: var(--pp-transition);
+}
+
+.navbar-pawpatita .nav-link:hover {
+  color: var(--pp-primary);
+  background-color: var(--pp-primary-light);
+}
+
+.navbar-pawpatita .nav-link.active {
+  color: var(--pp-primary);
+  background-color: var(--pp-primary-light);
+  font-weight: 700;
+}
+
+/* Controles de Navbar (Moneda, Idioma, Notificaciones) */
+.navbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-pill-control {
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--pp-radius-full);
+  padding: 0.4rem 0.85rem;
+  min-height: 38px;
+  border: 1px solid var(--pp-border-color);
+  background-color: #FFFFFF;
+  color: var(--pp-secondary);
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-pill-control:hover, .btn-pill-control.active {
+  background-color: var(--pp-primary-light);
+  border-color: var(--pp-primary);
+  color: var(--pp-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.15);
+}
+
+.btn-pill-control:active {
+  transform: scale(0.97);
+}
+
+/* Campana de Notificaciones */
+.btn-notification-bell {
+  position: relative;
+  border-radius: var(--pp-radius-full);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  color: var(--pp-secondary);
+  transition: var(--pp-transition);
+  cursor: pointer;
+}
+
+.btn-notification-bell:hover {
+  background-color: var(--pp-primary-light);
+  border-color: var(--pp-primary);
+  color: var(--pp-primary);
+  transform: translateY(-1px);
+}
+
+.btn-notification-bell:active {
+  transform: scale(0.95);
+}
+
+.btn-notification-bell .badge-counter {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--pp-danger);
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: var(--pp-radius-full);
+  padding: 0.18rem 0.45rem;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.35);
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* Dropdown de Notificaciones */
+.notifications-dropdown {
+  width: 340px;
+  max-width: 92vw;
+  max-height: 440px;
+  overflow-y: auto;
+  border-radius: var(--pp-radius-md);
+  box-shadow: var(--pp-shadow-lg);
+  border: 1px solid var(--pp-border-color);
+  padding: 0.5rem 0;
+  background: #FFFFFF;
+}
+
+.notification-item {
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--pp-border-color);
+  font-size: 0.86rem;
+  transition: var(--pp-transition);
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  color: var(--pp-text-main);
+}
+
+.notification-item:last-child {
+  border-bottom: 0;
+}
+
+.notification-item.unread {
+  background-color: #F8FAFC;
+  border-left: 3px solid var(--pp-primary);
+  font-weight: 500;
+}
+
+.notification-item:hover {
+  background-color: var(--pp-primary-light);
+  color: var(--pp-primary);
+}
+
+.notification-item.alert-urgent {
+  background-color: var(--pp-danger-light);
+  border-left: 3px solid var(--pp-danger);
+  color: var(--pp-danger-text);
+}
+
+/* ==========================================================================
+   7. BOTONES & MICRO-INTERACCIONES HÁPTICAS (.btn-paw, .btn-paw-outline, etc.)
+   ========================================================================== */
+.btn-paw {
+  background-color: var(--pp-primary);
+  color: #FFFFFF !important;
+  font-family: var(--pp-font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  border-radius: var(--pp-radius-md);
+  padding: 0.65rem 1.35rem;
+  min-height: 44px;
+  border: 1px solid transparent;
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.16);
+  text-decoration: none !important;
+}
+
+.btn-paw:hover, .btn-paw:focus {
+  background-color: var(--pp-primary-hover);
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 20px -4px rgba(255, 107, 53, 0.35);
+  transform: translateY(-2px);
+}
+
+.btn-paw:active {
+  transform: scale(0.97) !important;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.2) !important;
+}
+
+.btn-paw-outline {
+  background-color: transparent;
+  color: var(--pp-primary) !important;
+  border: 2px solid var(--pp-primary);
+  font-family: var(--pp-font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--pp-radius-md);
+  padding: 0.6rem 1.3rem;
+  min-height: 44px;
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none !important;
+}
+
+.btn-paw-outline:hover, .btn-paw-outline:focus {
+  background-color: var(--pp-primary);
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 20px -4px rgba(255, 107, 53, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-paw-outline:active {
+  transform: scale(0.97) !important;
+}
+
+.btn-paw-secondary {
+  background-color: var(--pp-secondary);
+  color: #FFFFFF !important;
+  font-family: var(--pp-font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--pp-radius-md);
+  padding: 0.65rem 1.35rem;
+  min-height: 44px;
+  border: 1px solid transparent;
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-paw-secondary:hover {
+  background-color: var(--pp-secondary-dark);
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 18px -4px rgba(15, 23, 42, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-paw-secondary:active {
+  transform: scale(0.97) !important;
+}
+
+/* Modificadores de tamaño */
+.btn-paw.btn-sm, .btn-paw-outline.btn-sm {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  min-height: 36px;
+}
+
+.btn-paw.btn-lg, .btn-paw-outline.btn-lg {
+  padding: 0.85rem 1.85rem;
+  font-size: 1.05rem;
+  min-height: 50px;
+}
+
+/* Ergonomía táctil móvil general */
+@media (max-width: 768px) {
+  .btn, .btn-paw, .btn-paw-outline, .btn-pill-control, .form-select, .form-control {
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================================
+   8. FORMULARIOS, INPUTS Y HALOS SUAVES
+   ========================================================================== */
+.form-control, .form-select {
+  background-color: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-md);
+  color: var(--pp-text-main);
+  font-size: 0.95rem;
+  padding: 0.65rem 1rem;
+  transition: var(--pp-transition);
+}
+
+.form-control:hover, .form-select:hover {
+  border-color: #CBD5E1;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--pp-primary) !important;
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.15) !important;
+  outline: none !important;
+  background-color: #FFFFFF;
+}
+
+.form-check-input {
+  border: 1.5px solid var(--pp-border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--pp-transition);
+}
+
+.form-check-input:checked {
+  background-color: var(--pp-primary);
+  border-color: var(--pp-primary);
+}
+
+.form-check-input:focus {
+  border-color: var(--pp-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
+}
+
+.form-label {
+  color: var(--pp-secondary);
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ==========================================================================
+   9. TARJETAS Y CONTENEDORES (.card-paw)
+   ========================================================================== */
+.card-paw {
+  background-color: var(--pp-bg-card);
+  border-radius: var(--pp-radius-lg);
+  border: 1px solid var(--pp-border-color);
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+  position: relative;
+}
+
+.card-paw:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pp-shadow-hover);
+  border-color: rgba(255, 107, 53, 0.35);
+}
+
+/* ==========================================================================
+   10. BADGES Y TAGS DE ESTADO (WCAG AA Calibrado)
+   ========================================================================== */
+.badge-status {
+  padding: 0.32rem 0.8rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+  line-height: 1.25;
+}
+
+/* Estados Éxito / Validados / Pagados */
+.badge-status.status-activo,
+.badge-status.status-validado,
+.badge-status.status-confirmada,
+.badge-status.status-finalizada,
+.badge-status.status-pagado,
+.badge-status.status-aprobado {
+  background-color: var(--pp-accent-light);
+  color: var(--pp-success-text);
+  border-color: var(--pp-accent-border);
+}
+
+/* Estados Pendientes / En Proceso */
+.badge-status.status-pendiente,
+.badge-status.status-en_garantia,
+.badge-status.status-solicitado,
+.badge-status.status-en_curso,
+.badge-status.status-pendiente_confirmacion {
+  background-color: var(--pp-gold-light);
+  color: var(--pp-warning-text);
+  border-color: var(--pp-gold-border);
+}
+
+/* Estados Rechazados / Observados / Cancelados */
+.badge-status.status-rechazado,
+.badge-status.status-suspendido,
+.badge-status.status-observado,
+.badge-status.status-cancelada,
+.badge-status.status-anulado,
+.badge-status.status-en_disputa {
+  background-color: var(--pp-danger-light);
+  color: var(--pp-danger-text);
+  border-color: var(--pp-danger-border);
+}
+
+/* Alertas S.O.S. / Críticas con Pulsación */
+.badge-status.status-sos,
+.badge-status.status-critica {
+  background-color: var(--pp-danger);
+  color: #FFFFFF;
+  border-color: var(--pp-danger);
+  animation: pulse-sos 1.8s infinite;
+  font-weight: 700;
+}
+
+@keyframes pulse-sos {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* ==========================================================================
+   11. TABLAS ERGONÓMICAS (.table-responsive)
+   ========================================================================== */
+.table-responsive {
+  border-radius: var(--pp-radius-md);
+  border: 1px solid var(--pp-border-color);
+  background: #FFFFFF;
+  box-shadow: var(--pp-shadow-sm);
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive .table {
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.table-responsive .table th {
+  background-color: #F8FAFC;
+  color: var(--pp-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--pp-border-color);
+  white-space: nowrap;
+}
+
+.table-responsive .table td {
+  padding: 0.9rem 1rem;
+  color: var(--pp-text-main);
+  font-size: 0.88rem;
+  border-bottom: 1px solid #F1F5F9;
+  background-color: #FFFFFF;
+}
+
+.table-responsive .table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-responsive .table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.table-responsive .table tbody tr:hover td {
+  background-color: #F8FAFC;
+}
+
+/* ==========================================================================
+   12. EMPTY STATES ILUSTRADOS & SKELETON LOADERS
+   ========================================================================== */
+.empty-state-paw,
+.text-center.py-5.bg-light.rounded-3.border {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+  border: 1.5px dashed var(--pp-border-color) !important;
+  border-radius: var(--pp-radius-lg) !important;
+  padding: 3rem 1.5rem !important;
+  text-align: center;
+  box-shadow: var(--pp-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1.25rem 0;
+}
+
+.empty-state-paw .empty-icon,
+.text-center.py-5.bg-light.rounded-3.border > i {
+  font-size: 3rem !important;
+  color: var(--pp-primary) !important;
+  background: var(--pp-primary-light);
+  width: 76px;
+  height: 76px;
+  line-height: 76px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem !important;
+  border: 2px solid rgba(255, 107, 53, 0.25);
+  box-shadow: 0 8px 16px -4px rgba(255, 107, 53, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.empty-state-paw:hover .empty-icon,
+.text-center.py-5.bg-light.rounded-3.border:hover > i {
+  transform: scale(1.08) rotate(5deg);
+}
+
+.empty-state-paw h5,
+.empty-state-paw h6,
+.text-center.py-5.bg-light.rounded-3.border h6 {
+  font-family: var(--pp-font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--pp-secondary) !important;
+  margin-bottom: 0.45rem !important;
+}
+
+.empty-state-paw p,
+.text-center.py-5.bg-light.rounded-3.border p {
+  color: var(--pp-text-muted) !important;
+  font-size: 0.9rem !important;
+  max-width: 440px;
+  margin-bottom: 1.25rem !important;
+  line-height: 1.5;
+}
+
+/* Skeleton Shimmer Loaders */
+.skeleton-paw {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+  border-radius: var(--pp-radius-md);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   13. TOASTS, SPINNER GLOBAL Y MODALES GLOBALES
+   ========================================================================== */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1090;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+.toast-paw, .toast {
+  pointer-events: auto;
+  border-radius: var(--pp-radius-md);
+  border: 1px solid var(--pp-border-color);
+  box-shadow: var(--pp-shadow-xl);
+  overflow: hidden;
+  background-color: #FFFFFF;
+  backdrop-filter: blur(8px);
+}
+
+#global-spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  color: #FFFFFF;
+  transition: opacity 0.22s ease-in-out;
+}
+
+#global-spinner-overlay.d-none {
+  display: none !important;
+}
+
+.spinner-paw {
+  width: 3.8rem;
+  height: 3.8rem;
+  border-width: 0.35rem;
+  border-color: rgba(255, 255, 255, 0.25);
+  border-top-color: var(--pp-primary);
+  filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.4));
+}
+
+/* Modales Globales */
+.modal-content {
+  border-radius: var(--pp-radius-lg);
+  border: 1px solid var(--pp-border-color);
+  box-shadow: var(--pp-shadow-xl);
+  overflow: hidden;
+}
+
+.modal-backdrop.show {
+  opacity: 0.6;
+  backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   14. FOOTER INSTITUCIONAL
+   ========================================================================== */
+.footer-paw {
+  background-color: var(--pp-secondary-dark);
+  color: #CBD5E1;
+  padding: 3.5rem 1rem 1.75rem;
+  margin-top: auto;
+  border-top: 4px solid var(--pp-primary);
+}
+
+.footer-paw a {
+  color: #94A3B8;
+  transition: var(--pp-transition);
+}
+
+.footer-paw a:hover {
+  color: var(--pp-primary);
+  padding-left: 2px;
+}
+
+/* ==========================================================================
+   15. AJUSTES RESPONSIVOS DE PRECISIÓN (360px a 1920px)
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  .navbar-controls {
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .brand-paw {
+    font-size: 1.18rem;
+  }
+  .brand-paw .brand-icon {
+    font-size: 1.4rem;
+  }
+  .btn-pill-control {
+    font-size: 0.76rem;
+    padding: 0.35rem 0.65rem;
+  }
+  #toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+}

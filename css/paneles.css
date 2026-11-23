@@ -1,0 +1,966 @@
+/**
+ * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care"
+ * css/paneles.css — Estilos para Panel Propietario Unificado, Carné Digital PAW-ID,
+ * Wizard de Reserva 4 Pasos, Muro de Fotos en Vivo, Alertas S.O.S., Billetera y Calendario.
+ */
+
+/* ==========================================================================
+   1. LAYOUT DE PANELES OPERATIVOS (SIDEBAR + WORKSPACE)
+   ========================================================================== */
+.panel-dashboard-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.75rem;
+  padding: 1.5rem 0 3.5rem;
+  align-items: start;
+}
+
+@media (max-width: 991.98px) {
+  .panel-dashboard-shell {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding: 1rem 0 2.5rem;
+  }
+}
+
+.panel-sidebar {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-card);
+  overflow: hidden;
+  position: sticky;
+  top: 86px;
+}
+
+@media (max-width: 991.98px) {
+  .panel-sidebar {
+    position: static;
+  }
+}
+
+.panel-sidebar-profile {
+  background: linear-gradient(135deg, var(--pp-secondary) 0%, var(--pp-secondary-dark) 100%);
+  color: #FFFFFF;
+  padding: 1.4rem 1.35rem;
+  position: relative;
+  border-bottom: 3px solid var(--pp-primary);
+}
+
+.panel-avatar-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pp-primary), #FF9254);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pp-font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  border: 2.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.badge-origen-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.badge-origen-local {
+  background: rgba(13, 148, 136, 0.22);
+  color: #5EEAD4;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+}
+
+.badge-origen-turista {
+  background: rgba(217, 119, 6, 0.22);
+  color: #FDE68A;
+  border: 1px solid rgba(253, 230, 138, 0.45);
+}
+
+.panel-nav-menu {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (max-width: 991.98px) {
+  .panel-nav-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0.65rem;
+    scrollbar-width: thin;
+  }
+}
+
+.panel-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--pp-text-main);
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  border-radius: var(--pp-radius-md);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-align: left;
+  transition: var(--pp-transition);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.panel-nav-btn .nav-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.panel-nav-btn i {
+  font-size: 1.15rem;
+  color: var(--pp-text-muted);
+  transition: var(--pp-transition);
+}
+
+.panel-nav-btn:hover {
+  background-color: var(--pp-primary-light);
+  color: var(--pp-primary);
+  transform: translateX(2px);
+}
+
+.panel-nav-btn:hover i {
+  color: var(--pp-primary);
+}
+
+.panel-nav-btn:active {
+  transform: scale(0.97);
+}
+
+.panel-nav-btn.active {
+  background: linear-gradient(135deg, var(--pp-primary) 0%, var(--pp-primary-hover) 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.28);
+}
+
+.panel-nav-btn.active i {
+  color: #FFFFFF;
+}
+
+.panel-nav-btn.nav-btn-sos {
+  color: var(--pp-danger);
+  background: var(--pp-danger-light);
+}
+
+.panel-nav-btn.nav-btn-sos i {
+  color: var(--pp-danger);
+}
+
+.panel-nav-btn.nav-btn-sos:hover {
+  background: #FEE2E2;
+}
+
+.panel-nav-btn.nav-btn-sos.active {
+  background: linear-gradient(135deg, var(--pp-danger) 0%, #991B1B 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.panel-nav-btn.nav-btn-sos.active i {
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   2. HERO BANNER Y KPIS DEL PANEL OPERATIVO
+   ========================================================================= */
+.panel-main-area {
+  min-width: 0;
+}
+
+.panel-hero-banner {
+  background: linear-gradient(125deg, #FFFFFF 0%, var(--pp-primary-light) 100%);
+  border: 1px solid var(--pp-border-color);
+  border-left: 5px solid var(--pp-primary);
+  border-radius: var(--pp-radius-lg);
+  padding: 1.35rem 1.65rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--pp-shadow-card);
+}
+
+.kpi-grid-owner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.15rem;
+  margin-bottom: 1.65rem;
+}
+
+@media (max-width: 1199.98px) {
+  .kpi-grid-owner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .kpi-grid-owner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card-paw {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-md);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+}
+
+.kpi-card-paw:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pp-shadow-hover);
+  border-color: rgba(255, 107, 53, 0.35);
+}
+
+.kpi-icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+}
+
+.kpi-icon-box.kpi-terracota { background: var(--pp-primary-light); color: var(--pp-primary); }
+.kpi-icon-box.kpi-turquesa  { background: var(--pp-accent-light); color: var(--pp-accent); }
+.kpi-icon-box.kpi-andino    { background: #F1F5F9; color: var(--pp-secondary); }
+.kpi-icon-box.kpi-oro       { background: var(--pp-gold-light); color: var(--pp-gold); }
+.kpi-icon-box.kpi-rojo      { background: var(--pp-danger-light); color: var(--pp-danger); }
+
+.kpi-value {
+  font-family: var(--pp-font-display);
+  font-weight: 800;
+  font-size: 1.55rem;
+  color: var(--pp-secondary);
+  line-height: 1.15;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--pp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   3. TARJETAS DE MASCOTAS Y CARNÉ DIGITAL PAW-ID
+   ========================================================================== */
+.mascotas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.35rem;
+}
+
+.pet-card-paw {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-card-paw:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pp-shadow-hover);
+  border-color: rgba(255, 107, 53, 0.45);
+}
+
+.pet-card-top {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #F8FAFC 0%, var(--pp-primary-light) 100%);
+  border-bottom: 1px solid var(--pp-border-color);
+}
+
+.pet-avatar-photo {
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 3px solid #FFFFFF;
+  box-shadow: var(--pp-shadow-md);
+  flex-shrink: 0;
+  background: #E2E8F0;
+}
+
+.paw-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--pp-secondary);
+  color: #FFFFFF;
+  font-family: var(--pp-font-mono);
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+}
+
+.pet-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.pet-meta-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--pp-radius-full);
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  color: var(--pp-text-main);
+}
+
+.pet-card-body {
+  padding: 1.25rem;
+  flex: 1;
+  font-size: 0.88rem;
+}
+
+.pet-observation-box {
+  border-radius: var(--pp-radius-sm);
+  padding: 0.75rem 0.95rem;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+  line-height: 1.45;
+}
+
+.pet-observation-box.obs-validado {
+  background: var(--pp-accent-light);
+  border-left: 3.5px solid var(--pp-accent);
+  color: var(--pp-success-text);
+}
+
+.pet-observation-box.obs-pendiente {
+  background: var(--pp-gold-light);
+  border-left: 3.5px solid var(--pp-gold);
+  color: var(--pp-warning-text);
+}
+
+.pet-observation-box.obs-observado {
+  background: var(--pp-danger-light);
+  border-left: 3.5px solid var(--pp-danger);
+  color: var(--pp-danger-text);
+}
+
+.pet-card-actions {
+  padding: 0.95rem 1.25rem;
+  background: #F8FAFC;
+  border-top: 1px solid var(--pp-border-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   CREDENCIAL OFICIAL CARNÉ DIGITAL PAW-ID (EN PANTALLA TIPO TARJETA MÉDICA)
+   ========================================================================== */
+.carnet-credencial-card {
+  background: linear-gradient(145deg, #FFFFFF 0%, #FFFBF8 100%);
+  border: 1px solid var(--pp-border-color);
+  border-top: 5px solid var(--pp-primary);
+  border-radius: var(--pp-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-xl);
+  max-width: 680px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.carnet-credencial-header {
+  background: linear-gradient(135deg, var(--pp-secondary) 0%, var(--pp-secondary-dark) 100%);
+  color: #FFFFFF;
+  padding: 1.15rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(255, 107, 53, 0.4);
+}
+
+.carnet-credencial-header .badge {
+  font-family: var(--pp-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.carnet-credencial-body {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 140px 1fr 150px;
+  gap: 1.35rem;
+  align-items: center;
+  background: #FFFFFF;
+}
+
+@media (max-width: 767.98px) {
+  .carnet-credencial-body {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 1rem;
+  }
+}
+
+.carnet-photo-frame {
+  width: 132px;
+  height: 132px;
+  border-radius: 18px;
+  object-fit: cover;
+  border: 3.5px solid var(--pp-primary);
+  box-shadow: var(--pp-shadow-md);
+  margin: 0 auto;
+  background-color: #E2E8F0;
+}
+
+.carnet-qr-box {
+  background: #FFFFFF;
+  border: 2px dashed var(--pp-secondary);
+  border-radius: var(--pp-radius-md);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.carnet-qr-canvas {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carnet-qr-canvas img,
+.carnet-qr-canvas canvas {
+  max-width: 100%;
+  height: auto !important;
+  image-rendering: pixelated;
+}
+
+.carnet-credencial-footer {
+  background: #F8FAFC;
+  padding: 0.85rem 1.5rem;
+  border-top: 1px solid var(--pp-border-color);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+/* ==========================================================================
+   4. WIZARD DE RESERVA EN 4 PASOS
+   ========================================================================== */
+.wizard-steps-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.75rem;
+  background: #F8FAFC;
+  padding: 0.85rem;
+  border-radius: var(--pp-radius-md);
+  border: 1px solid var(--pp-border-color);
+}
+
+@media (max-width: 575.98px) {
+  .wizard-steps-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.wizard-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--pp-radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--pp-text-muted);
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  transition: var(--pp-transition);
+}
+
+.wizard-step-pill .step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: var(--pp-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.wizard-step-pill.active {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.15);
+}
+
+.wizard-step-pill.active .step-num {
+  background: var(--pp-primary);
+  color: #FFFFFF;
+}
+
+.wizard-step-pill.completed {
+  border-color: var(--pp-accent-border);
+  background: var(--pp-accent-light);
+  color: var(--pp-success-text);
+}
+
+.wizard-step-pill.completed .step-num {
+  background: var(--pp-accent);
+  color: #FFFFFF;
+}
+
+.wizard-selectable-card {
+  border: 2px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-md);
+  padding: 1.15rem;
+  cursor: pointer;
+  background: #FFFFFF;
+  transition: var(--pp-transition);
+  height: 100%;
+}
+
+.wizard-selectable-card:hover {
+  border-color: var(--pp-primary);
+  background: #FFFAF7;
+  transform: translateY(-2px);
+  box-shadow: var(--pp-shadow-hover);
+}
+
+.wizard-selectable-card.selected {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary-light);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.18);
+}
+
+.wizard-selectable-card.disabled-card {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #F8FAFC;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.cotizacion-receipt-box {
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-top: 4px solid var(--pp-primary);
+  border-radius: var(--pp-radius-md);
+  padding: 1.35rem;
+  box-shadow: var(--pp-shadow-card);
+}
+
+.cotizacion-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.94rem;
+  border-bottom: 1px dashed var(--pp-border-color);
+}
+
+.cotizacion-line:last-child {
+  border-bottom: 0;
+}
+
+.cotizacion-total-row {
+  background: linear-gradient(135deg, var(--pp-secondary) 0%, var(--pp-secondary-dark) 100%);
+  color: #FFFFFF;
+  border-radius: var(--pp-radius-sm);
+  padding: 1rem 1.25rem;
+  margin-top: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ==========================================================================
+   5. RESERVAS Y ESTRELLAS DE RESEÑA
+   ========================================================================== */
+.reserva-item-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-md);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+}
+
+.reserva-item-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: var(--pp-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.star-rating-interactive {
+  display: inline-flex;
+  gap: 0.4rem;
+  font-size: 1.75rem;
+  cursor: pointer;
+}
+
+.star-rating-interactive i {
+  color: #CBD5E1;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
+}
+
+.star-rating-interactive i.active {
+  color: var(--pp-gold);
+}
+
+.star-rating-interactive i:hover {
+  transform: scale(1.25);
+  color: var(--pp-gold-hover);
+}
+
+/* ==========================================================================
+   6. MURO DE FOTOS EN VIVO (TIMELINE CRONOLÓGICO + LIGHTBOX)
+   ========================================================================== */
+.muro-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.muro-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.6rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  background: linear-gradient(180deg, var(--pp-primary) 0%, var(--pp-accent) 100%);
+  border-radius: 4px;
+}
+
+.muro-post-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  padding: 1.35rem;
+  margin-bottom: 1.35rem;
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+}
+
+.muro-post-card:hover {
+  box-shadow: var(--pp-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.muro-post-card::before {
+  content: '';
+  position: absolute;
+  left: -1.75rem;
+  top: 1.45rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pp-primary);
+  border: 3.5px solid #FFFFFF;
+  box-shadow: 0 0 0 2px var(--pp-primary);
+}
+
+.muro-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-top: 0.95rem;
+}
+
+.muro-photo-thumb {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: var(--pp-radius-md);
+  cursor: zoom-in;
+  border: 1px solid var(--pp-border-color);
+  transition: var(--pp-transition);
+}
+
+.muro-photo-thumb:hover {
+  transform: scale(1.03);
+  box-shadow: var(--pp-shadow-hover);
+}
+
+/* ==========================================================================
+   7. CENTRAL Y TIMELINE DE ALERTAS S.O.S.
+   ========================================================================== */
+.sos-emergency-banner {
+  background: linear-gradient(135deg, var(--pp-danger) 0%, #991B1B 100%);
+  color: #FFFFFF;
+  border-radius: var(--pp-radius-lg);
+  padding: 1.4rem 1.65rem;
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.28);
+}
+
+.sos-stepper-track {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.55rem;
+  margin: 1.15rem 0;
+}
+
+@media (max-width: 575.98px) {
+  .sos-stepper-track {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sos-step-node {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--pp-radius-sm);
+  border: 1px solid var(--pp-border-color);
+  background: #F8FAFC;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--pp-text-muted);
+  text-align: center;
+  transition: var(--pp-transition);
+}
+
+.sos-step-node.step-done {
+  background: var(--pp-accent-light);
+  border-color: var(--pp-accent-border);
+  color: var(--pp-success-text);
+}
+
+.sos-step-node.step-current {
+  background: var(--pp-danger-light);
+  border-color: var(--pp-danger);
+  color: var(--pp-danger-text);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* ==========================================================================
+   8. CALENDARIO INTERACTIVO POR DÍAS Y BLOQUES HORARIOS
+   ========================================================================== */
+.agenda-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.agenda-weekday-header {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--pp-text-muted);
+  padding: 0.5rem 0;
+  background: #F8FAFC;
+  border-radius: var(--pp-radius-sm);
+  border: 1px solid var(--pp-border-color);
+}
+
+.agenda-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .agenda-calendar-weekdays {
+    display: none;
+  }
+  .agenda-calendar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.agenda-day-cell {
+  min-height: 122px;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-md);
+  padding: 0.65rem 0.7rem;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: var(--pp-transition);
+  box-shadow: var(--pp-shadow-sm);
+}
+
+.agenda-day-cell:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--pp-shadow-hover);
+  border-color: var(--pp-primary);
+}
+
+.agenda-day-cell.agenda-day-empty {
+  background: #F8FAFC;
+  border-style: dashed;
+  cursor: default;
+  opacity: 0.5;
+}
+
+.agenda-day-cell.agenda-day-empty:hover {
+  transform: none;
+  box-shadow: var(--pp-shadow-sm);
+  border-color: var(--pp-border-color);
+}
+
+.agenda-day-cell.agenda-day-today {
+  box-shadow: 0 0 0 2px var(--pp-primary);
+}
+
+.agenda-day-number {
+  font-family: var(--pp-font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--pp-secondary);
+}
+
+.agenda-cupo-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--pp-radius-full);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.agenda-status-disponible {
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pp-accent-light) 100%);
+  border-left: 4px solid var(--pp-accent);
+}
+
+.agenda-status-parcial {
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pp-gold-light) 100%);
+  border-left: 4px solid var(--pp-gold);
+}
+
+.agenda-status-lleno {
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pp-danger-light) 100%);
+  border-left: 4px solid var(--pp-danger);
+}
+
+.agenda-status-bloqueado {
+  background: #F1F5F9;
+  border-left: 4px solid var(--pp-text-muted);
+  color: var(--pp-text-muted);
+}
+
+.agenda-day-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.agenda-slot-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 0.16rem 0.45rem;
+  border-radius: 5px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: var(--pp-text-main);
+}
+
+.agenda-slot-chip.slot-chip-occupied {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+  color: #92400E;
+}
+
+.agenda-weekly-cell {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.agenda-weekly-cell:hover {
+  background-color: var(--pp-primary-light) !important;
+}
+
+/* ==========================================================================
+   9. BILLETERA DIGITAL DEL CUIDADOR Y SALDOS ESCROW
+   ========================================================================== */
+.wallet-balance-card {
+  border-radius: var(--pp-radius-lg);
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--pp-border-color);
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+}
+
+.wallet-balance-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--pp-shadow-hover);
+}
+
+.wallet-card-garantia {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--pp-gold-light) 100%);
+  border-left: 5px solid var(--pp-gold);
+}
+
+.wallet-card-disponible {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--pp-accent-light) 100%);
+  border-left: 5px solid var(--pp-accent);
+}
+
+.wallet-card-proceso {
+  background: linear-gradient(135deg, #FFFFFF 0%, var(--pp-info-light) 100%);
+  border-left: 5px solid var(--pp-info);
+}
+
+.wallet-card-cobrado {
+  background: linear-gradient(135deg, var(--pp-secondary) 0%, var(--pp-secondary-dark) 100%);
+  color: #FFFFFF;
+  border: 0;
+}

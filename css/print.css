@@ -1,0 +1,318 @@
+/**
+ * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care"
+ * css/print.css — Hoja de estilos profesional para impresión (@media print)
+ * del Carné Digital PAW-ID (Formato Billetera Médica 85mm x 54mm) y Comprobantes SUNAT
+ */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html, body {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    font-size: 8pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos de navegación, modales secundarios y controles interactivos */
+  header,
+  nav,
+  footer,
+  .navbar-pawpatita,
+  .footer-paw,
+  #toast-container,
+  #global-spinner-overlay,
+  .modal-backdrop,
+  .no-print,
+  .modal-header .btn-close,
+  .modal-footer,
+  .btn,
+  .btn-paw,
+  .btn-paw-outline,
+  .btn-pill-control,
+  .btn-notification-bell,
+  .dropdown-menu {
+    display: none !important;
+  }
+
+  /* Si se imprime desde un modal activo (Carné o Comprobante) */
+  body.modal-open {
+    overflow: visible !important;
+  }
+
+  .modal.show {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .modal.show .modal-dialog {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  .modal.show .modal-content {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .modal.show .modal-body {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* ==========================================================================
+     CREDENCIAL CARNÉ DIGITAL PAW-ID — DIMENSIONES ESTÁNDAR DE BILLETERA (85mm x 54mm)
+     ========================================================================== */
+  .carnet-credencial-card,
+  .carnet-paw-print-wrapper {
+    width: 85mm !important;
+    max-width: 85mm !important;
+    height: 54mm !important;
+    max-height: 54mm !important;
+    min-height: 54mm !important;
+    margin: 4mm auto !important;
+    border: 1.5pt solid #0F172A !important;
+    border-top: 3.5pt solid #FF6B35 !important;
+    border-radius: 3mm !important;
+    page-break-inside: avoid !important;
+    box-shadow: none !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Cabecera Ultra Compacta de la Credencial Billetera */
+  .carnet-credencial-header {
+    background: #0F172A !important;
+    color: #FFFFFF !important;
+    border-bottom: 1.5pt solid #FF6B35 !important;
+    padding: 1.5mm 3mm !important;
+    height: 9mm !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+
+  .carnet-credencial-header i {
+    font-size: 8pt !important;
+    color: #D97706 !important;
+  }
+
+  .carnet-credencial-header .fw-bold.text-uppercase {
+    font-size: 4pt !important;
+    letter-spacing: 0.05em !important;
+    color: #FDE68A !important;
+    line-height: 1 !important;
+  }
+
+  .carnet-credencial-header h5 {
+    font-size: 5.5pt !important;
+    margin: 0 !important;
+    color: #FFFFFF !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+  }
+
+  .carnet-credencial-header .badge {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+    font-size: 6pt !important;
+    font-weight: 800 !important;
+    padding: 0.8mm 2mm !important;
+    background-color: #D97706 !important;
+    color: #000000 !important;
+    border-radius: 1mm !important;
+  }
+
+  /* Cuerpo de la Credencial Billetera en 3 Columnas */
+  .carnet-credencial-body {
+    display: grid !important;
+    grid-template-columns: 20mm 1fr 20mm !important;
+    gap: 2mm !important;
+    padding: 2mm 3mm !important;
+    height: 38mm !important;
+    align-items: center !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
+    background: #FFFFFF !important;
+    overflow: hidden !important;
+  }
+
+  /* Columna 1: Fotografía de la Mascota */
+  .carnet-photo-frame {
+    width: 19mm !important;
+    height: 19mm !important;
+    border: 1.5pt solid #FF6B35 !important;
+    border-radius: 2mm !important;
+    object-fit: cover !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+
+  .badge-sanitario-validado,
+  .badge-sanitario-pendiente,
+  .badge-sanitario-observado {
+    font-size: 4pt !important;
+    padding: 0.5mm 1.5mm !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    display: inline-block !important;
+    text-align: center !important;
+    margin-top: 1mm !important;
+  }
+
+  .badge-sanitario-validado {
+    background: #CCFBF1 !important;
+    color: #0F766E !important;
+    border: 0.5pt solid #0D9488 !important;
+  }
+
+  /* Columna 2: Datos Médicos y de Custodia */
+  .carnet-credencial-body h4 {
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+    color: #0F172A !important;
+    margin: 0 0 0.5mm 0 !important;
+    line-height: 1 !important;
+  }
+
+  .carnet-credencial-body .text-secondary {
+    font-size: 5pt !important;
+    color: #475569 !important;
+    margin-bottom: 1mm !important;
+    line-height: 1 !important;
+  }
+
+  .carnet-credencial-body .row {
+    margin: 0 !important;
+  }
+
+  .carnet-credencial-body .col-sm-6 {
+    width: 50% !important;
+    float: left !important;
+    padding: 0 1mm 1mm 0 !important;
+  }
+
+  .carnet-credencial-body span.text-muted {
+    font-size: 3.8pt !important;
+    color: #64748B !important;
+    display: block !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+  }
+
+  .carnet-credencial-body strong {
+    font-size: 5pt !important;
+    color: #0F172A !important;
+    display: block !important;
+    line-height: 1.1 !important;
+  }
+
+  .carnet-credencial-body .bg-light.border {
+    background-color: #F8FAFC !important;
+    border: 0.5pt solid #E2E8F0 !important;
+    border-radius: 1mm !important;
+    padding: 1mm !important;
+    font-size: 4.2pt !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Columna 3: Código QR de Emergencia Escaneable */
+  .carnet-qr-box {
+    border: 1pt dashed #0F172A !important;
+    padding: 1mm !important;
+    background: #FFFFFF !important;
+    border-radius: 1.5mm !important;
+    width: 19mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .carnet-qr-canvas {
+    width: 16mm !important;
+    height: 16mm !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .carnet-qr-canvas img,
+  .carnet-qr-canvas canvas {
+    width: 16mm !important;
+    height: 16mm !important;
+    max-width: 16mm !important;
+    max-height: 16mm !important;
+    image-rendering: pixelated !important;
+  }
+
+  .carnet-qr-box div.fw-bold {
+    font-size: 3.5pt !important;
+    letter-spacing: 0.04em !important;
+    margin-top: 0.8mm !important;
+    text-align: center !important;
+    color: #0F172A !important;
+  }
+
+  /* Pie de la Credencial Billetera: Sello Veterinario */
+  .carnet-credencial-footer {
+    background: #F1F5F9 !important;
+    padding: 1mm 3mm !important;
+    height: 7mm !important;
+    border-top: 0.75pt solid #CBD5E1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-size: 4.2pt !important;
+    color: #334155 !important;
+    box-sizing: border-box !important;
+  }
+
+  .carnet-credencial-footer strong {
+    font-size: 4.5pt !important;
+  }
+
+  .carnet-credencial-footer .badge {
+    font-size: 4pt !important;
+    padding: 0.3mm 1mm !important;
+  }
+
+  /* ==========================================================================
+     COMPROBANTE ELECTRÓNICO DE RESERVA (Boleta / Factura SUNAT)
+     ========================================================================== */
+  .comprobante-print-wrapper {
+    width: 180mm !important;
+    max-width: 180mm !important;
+    margin: 5mm auto !important;
+    padding: 8mm !important;
+    border: 1.5pt solid #0F172A !important;
+    border-radius: 3mm !important;
+    page-break-inside: avoid !important;
+    background: #FFFFFF !important;
+    box-sizing: border-box !important;
+  }
+
+  .comprobante-print-wrapper h3,
+  .comprobante-print-wrapper h4 {
+    color: #0F172A !important;
+  }
+}

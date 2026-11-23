@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paw Patita Cusco v5.0 — Cuidado Familiar & Central SOS 24h</title>
+  <meta name="description" content="Plataforma SaaS de cuidado confiable de mascotas en Cusco con Carné Digital PAW-ID, seguimiento fotográfico en vivo y red de emergencias veterinarias 24h.">
+  
+  <!-- Favicon Paw Patita -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+
+  <!-- Google Fonts: Inter & Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3.3 CSS & Bootstrap Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Leaflet 1.9.4 CSS CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- Hojas de Estilo Propias del Sistema Andes Pet Care -->
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/auth.css">
+  <link rel="stylesheet" href="./css/catalogo.css">
+  <link rel="stylesheet" href="./css/paneles.css">
+  <link rel="stylesheet" href="./css/print.css">
+</head>
+<body>
+
+  <!-- Spinner Global de Carga con Apagado Garantizado -->
+  <div id="global-spinner-overlay" class="d-none" role="status" aria-live="polite">
+    <div class="spinner-border spinner-paw" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <div id="spinner-message" class="fw-semibold fs-5 text-white">Procesando solicitud segura...</div>
+  </div>
+
+  <!-- Contenedor Fijo de Toasts en Español -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- NAVBAR PRINCIPAL REACTIVO -->
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-pawpatita" aria-label="Navegación principal">
+      <div class="container-fluid px-lg-4">
+        <!-- Logotipo y Marca Oficial Cusco -->
+        <a class="navbar-brand brand-paw" href="#/">
+          <i class="bi bi-paw-fill brand-icon"></i>
+          <span>Paw Patita</span>
+          <span class="badge-cusco">Cusco</span>
+        </a>
+
+        <!-- Botón Menú Móvil -->
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMainContent" aria-controls="navbarMainContent" aria-expanded="false" aria-label="Abrir menú de navegación">
+          <i class="bi bi-list fs-2 text-dark"></i>
+        </button>
+
+        <!-- Contenido Colapsable del Navbar -->
+        <div class="collapse navbar-collapse" id="navbarMainContent">
+          <!-- Enlaces Públicos Principales -->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+            <li class="nav-item">
+              <a class="nav-link fw-semibold" href="#/" data-route="#/">
+                <i class="bi bi-house-door me-1"></i> Inicio
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link fw-semibold" href="#/catalogo" data-route="#/catalogo">
+                <i class="bi bi-compass me-1"></i> Cuidadores
+              </a>
+            </li>
+          </ul>
+
+          <!-- Enlaces Dinámicos según Rol Autenticado -->
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="navbar-role-links"></ul>
+
+          <!-- Controles de Accesibilidad (Idioma, Moneda, Notificaciones y Auth) -->
+          <div class="navbar-controls ms-lg-3 mt-3 mt-lg-0">
+            <!-- Selector Moneda (PEN / USD) -->
+            <button class="btn btn-pill-control" id="btn-toggle-currency" title="Cambiar Moneda">
+              <i class="bi bi-cash-stack"></i> S/ PEN
+            </button>
+
+            <!-- Selector Idioma (ES / EN) -->
+            <button class="btn btn-pill-control" id="btn-toggle-lang" title="Cambiar Idioma">
+              <i class="bi bi-translate"></i> ES
+            </button>
+
+            <!-- Campana de Notificaciones Realtime (visible solo autenticado) -->
+            <div class="dropdown d-none" id="navbar-notification-bell">
+              <button class="btn btn-notification-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Centro de Notificaciones">
+                <i class="bi bi-bell-fill fs-5"></i>
+                <span class="badge-counter d-none" id="notif-badge-count">0</span>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end notifications-dropdown shadow">
+                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                  <strong class="text-dark small"><i class="bi bi-bell me-1"></i> Notificaciones en Vivo</strong>
+                  <span class="badge bg-danger rounded-pill">Realtime</span>
+                </div>
+                <div id="notifications-list">
+                  <div class="p-3 text-center text-muted small">No tienes notificaciones pendientes.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sección Dinámica de Autenticación (Login/Registro o Perfil de Usuario) -->
+            <div id="navbar-auth-section" class="d-flex align-items-center ms-2"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL SPA DINÁMICO -->
+  <main id="app-content" role="main" tabindex="-1">
+    <!-- Renderizado dinámicamente por router.js -->
+  </main>
+
+  <!-- FOOTER INSTITUCIONAL MODERNO -->
+  <footer class="footer-paw no-print">
+    <div class="container py-4">
+      <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-paw-fill text-warning fs-3"></i>
+            <span class="h5 fw-bold text-white mb-0">Paw Patita Cusco</span>
+          </div>
+          <p class="small text-muted mb-3">
+            Plataforma digital para el cuidado ético y familiar de mascotas en la Capital Histórica del Perú. Identidad médica digital PAW-ID y red veterinaria de urgencias 24h.
+          </p>
+          <div class="small text-muted">
+            <i class="bi bi-geo-alt-fill text-warning me-1"></i> Cusco Centro, Wanchaq, San Sebastián, San Jerónimo, San Blas
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-md-6">
+          <h6 class="text-white fw-bold mb-3">Para Mascotas</h6>
+          <ul class="list-unstyled small">
+            <li class="mb-2"><a href="#/catalogo">Buscar Cuidador</a></li>
+            <li class="mb-2"><a href="#/propietario">Carné Digital PAW-ID</a></li>
+            <li class="mb-2"><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario">Registro Propietario</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+          <h6 class="text-white fw-bold mb-3">Únete a la Red</h6>
+          <ul class="list-unstyled small">
+            <li class="mb-2">
+              <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-postular-cuidador">
+                <i class="bi bi-heart text-warning me-1"></i> Postular como Cuidador
+              </a>
+            </li>
+            <li class="mb-2">
+              <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-postular-clinica">
+                <i class="bi bi-hospital text-danger me-1"></i> Postular Clínica Veterinaria
+              </a>
+            </li>
+            <li class="mb-2"><a href="#/login">Acceso a Mi Panel</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+          <h6 class="text-white fw-bold mb-3">Soporte & Emergencias</h6>
+          <p class="small text-muted mb-2">
+            En caso de urgencia médica en Cusco, nuestras clínicas aliadas atienden las 24 horas del día.
+          </p>
+          <div class="badge bg-danger p-2 fs-6 w-100 text-center">
+            <i class="bi bi-telephone-fill me-1"></i> Central SOS Cusco 24h
+          </div>
+        </div>
+      </div>
+
+      <div class="border-top border-secondary mt-4 pt-3 d-flex justify-content-between align-items-center flex-wrap small text-muted">
+        <div>© 2026 Paw Patita Cusco v5.0. Todos los derechos reservados.</div>
+        <div>Términos de Servicio v5.0 • Políticas de Privacidad Cusco</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================== -->
+  <!-- MODALES GLOBALES DE AUTENTICACIÓN Y ACCESO -->
+  <!-- ========================================== -->
+
+  <!-- 1. MODAL DE LOGIN CON SELECTOR DEMO LIMPIO (4 ROLES ACTIVOS) -->
+  <div class="modal fade" id="modal-login" tabindex="-1" aria-labelledby="modal-login-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-header">
+          <h5 class="modal-title" id="modal-login-title">
+            <i class="bi bi-box-arrow-in-right text-warning"></i> Iniciar Sesión en Paw Patita
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="auth-body">
+          <!-- Selector Demo Rápido para Evaluación -->
+          <div class="demo-accounts-panel">
+            <div class="demo-title">
+              <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Accesos Demo Rápidos (4 Roles Activos)</span>
+              <span class="badge bg-secondary">Clave: PawPatita2026!</span>
+            </div>
+            <div class="demo-grid">
+              <button type="button" class="btn-demo-badge" data-email="lucia.mendoza@gmail.com" data-pass="PawPatita2026!">
+                <strong>🐾 Propietaria</strong>
+                <span>Lucía Mendoza (Local/Turista)</span>
+              </button>
+              <button type="button" class="btn-demo-badge" data-email="valeria.cuidadora@pawpatitacusco.pe" data-pass="PawPatita2026!">
+                <strong>🏡 Cuidadora Aprobada</strong>
+                <span>Valeria Quispe (Wanchaq)</span>
+              </button>
+              <button type="button" class="btn-demo-badge" data-email="vet.sanfrancisco@pawpatitacusco.pe" data-pass="PawPatita2026!">
+                <strong>🏥 Clínica Veterinaria</strong>
+                <span>Dr. Marco Polo (24 Horas)</span>
+              </button>
+              <button type="button" class="btn-demo-badge" data-email="admin@pawpatitacusco.pe" data-pass="PawPatita2026!">
+                <strong>🛡️ Administrador</strong>
+                <span>Comisión 15% & Arbitraje</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="divider-or">O ingresa con tu correo</div>
+
+          <!-- Formulario de Login -->
+          <form id="form-login" novalidate>
+            <div class="form-floating-paw mb-3">
+              <label for="login-email" class="form-label small fw-bold">Correo Electrónico</label>
+              <input type="email" class="form-control" id="login-email" required placeholder="tu@correo.com">
+            </div>
+
+            <div class="form-floating-paw mb-3">
+              <div class="d-flex justify-content-between">
+                <label for="login-password" class="form-label small fw-bold">Contraseña</label>
+                <a href="javascript:void(0)" class="small fw-semibold" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-forgot-password">
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
+              <div class="input-password-wrapper">
+                <input type="password" class="form-control" id="login-password" required placeholder="Tu contraseña">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Entrar a Mi Cuenta
+            </button>
+          </form>
+
+          <div class="text-center mt-3 small text-secondary">
+            ¿No tienes cuenta aún? 
+            <a href="javascript:void(0)" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario" class="fw-bold">
+              Crear cuenta de Propietario
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL OLVIDÉ MI CONTRASEÑA -->
+  <div class="modal fade" id="modal-forgot-password" tabindex="-1" aria-labelledby="modal-forgot-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-header">
+          <h5 class="modal-title" id="modal-forgot-title">
+            <i class="bi bi-shield-lock text-warning"></i> Recuperar Contraseña
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="auth-body">
+          <p class="text-secondary small mb-3">
+            Ingresa el correo registrado con tu cuenta. Te enviaremos un enlace seguro para restablecer tu contraseña.
+          </p>
+          <form id="form-forgot-password">
+            <div class="mb-3">
+              <label for="forgot-email" class="form-label small fw-bold">Correo Electrónico</label>
+              <input type="email" class="form-control" id="forgot-email" required placeholder="ejemplo@gmail.com">
+            </div>
+            <button type="submit" class="btn btn-paw w-100">
+              <i class="bi bi-envelope-paper me-1"></i> Enviar Enlace de Restablecimiento
+            </button>
+          </form>
+          <div class="text-center mt-3">
+            <button type="button" class="btn btn-link btn-sm text-secondary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-login">
+              Volver al inicio de sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL REGISTRO PROPIETARIO UNIFICADO (LOCAL / TURISTA) -->
+  <div class="modal fade" id="modal-registro-propietario" tabindex="-1" aria-labelledby="modal-reg-prop-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-header">
+          <h5 class="modal-title" id="modal-reg-prop-title">
+            <i class="bi bi-person-heart text-warning"></i> Registro de Propietario — Paw Patita Cusco
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="auth-body">
+          <form id="form-registro-propietario">
+            <!-- Toggle Turista / Local -->
+            <div class="tourist-toggle-card">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="reg-prop-turista-check">
+                <label class="form-check-label fw-bold text-success" for="reg-prop-turista-check">
+                  <i class="bi bi-airplane me-1"></i> ¿Estás de visita o turismo en Cusco? Activa esta opción
+                </label>
+              </div>
+              <small class="text-muted d-block mt-1">
+                Te permitirá registrar tu hotel de hospedaje para coordinar recojos y asistencia en inglés si lo requieres.
+              </small>
+            </div>
+
+            <!-- Campos Condicionales de Turista -->
+            <div id="reg-prop-turista-fields" class="row g-2 mb-3 p-3 bg-light rounded d-none border">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">País de Origen</label>
+                <input type="text" class="form-control form-control-sm" id="reg-prop-pais" placeholder="Ej. España, EE.UU.">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Idioma Preferido</label>
+                <select class="form-select form-select-sm" id="reg-prop-idioma">
+                  <option value="ES">Español</option>
+                  <option value="EN">English</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Hotel / Hospedaje en Cusco</label>
+                <input type="text" class="form-control form-control-sm" id="reg-prop-hotel" placeholder="Nombre de hotel o Airbnb">
+              </div>
+            </div>
+
+            <!-- Datos Personales Base -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Nombres</label>
+                <input type="text" class="form-control" id="reg-prop-nombre" required placeholder="Tus nombres">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Apellidos</label>
+                <input type="text" class="form-control" id="reg-prop-apellido" required placeholder="Tus apellidos">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Correo Electrónico</label>
+                <input type="email" class="form-control" id="reg-prop-email" required placeholder="tu@correo.com">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Contraseña Segura</label>
+                <input type="password" class="form-control" id="reg-prop-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Tipo Documento</label>
+                <select class="form-select" id="reg-prop-tipodoc">
+                  <option value="DNI">DNI (Perú)</option>
+                  <option value="CE">Carné Extranjería</option>
+                  <option value="Pasaporte">Pasaporte</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Número de Documento</label>
+                <input type="text" class="form-control" id="reg-prop-numdoc" required placeholder="N° de identidad">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
+                <input type="tel" class="form-control" id="reg-prop-tel" required placeholder="984 000 000">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-5">
+                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <select class="form-select" id="reg-prop-distrito">
+                  <option value="Cusco Centro">Cusco Centro</option>
+                  <option value="Wanchaq">Wanchaq</option>
+                  <option value="San Sebastián">San Sebastián</option>
+                  <option value="San Jerónimo">San Jerónimo</option>
+                  <option value="Santiago">Santiago</option>
+                  <option value="San Blas">San Blas</option>
+                </select>
+              </div>
+              <div class="col-md-7">
+                <label class="form-label small fw-bold">Dirección / Referencia</label>
+                <input type="text" class="form-control" id="reg-prop-direccion" placeholder="Calle, número o referencia">
+              </div>
+            </div>
+
+            <!-- Contacto de Emergencia -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Contacto de Emergencia (Nombre)</label>
+                <input type="text" class="form-control" id="reg-prop-contacto-nombre" placeholder="Familiar o amigo">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Contacto de Emergencia (Teléfono)</label>
+                <input type="tel" class="form-control" id="reg-prop-contacto-tel" placeholder="Teléfono de emergencia">
+              </div>
+            </div>
+
+            <!-- TyC v5.0 -->
+            <div class="form-check mb-4">
+              <input class="form-check-input" type="checkbox" id="reg-prop-tyc" required>
+              <label class="form-check-label small text-secondary" for="reg-prop-tyc">
+                He leído y acepto los <a href="#/" class="fw-bold">Términos y Condiciones v5.0</a> de Paw Patita Cusco y la Política de Emergencias Veterinarias.
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
+              <i class="bi bi-check-circle-fill me-1"></i> Completar Registro y Crear Carné PAW-ID
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL POSTULAR COMO CUIDADOR INDEPENDIENTE -->
+  <div class="modal fade" id="modal-postular-cuidador" tabindex="-1" aria-labelledby="modal-post-cuid-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-header">
+          <h5 class="modal-title" id="modal-post-cuid-title">
+            <i class="bi bi-heart-pulse-fill text-warning"></i> Postular a la Red de Cuidadores de Cusco
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="auth-body">
+          <div class="alert alert-warning border-0 small mb-3">
+            <i class="bi bi-info-circle-fill me-1"></i> Tu postulación será evaluada por nuestro equipo administrativo. Tu cuenta quedará en estado <strong>Pendiente</strong> hasta la verificación de antecedentes.
+          </div>
+
+          <form id="form-postular-cuidador">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Nombres</label>
+                <input type="text" class="form-control" id="post-cuid-nombre" required placeholder="Tus nombres">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Apellidos</label>
+                <input type="text" class="form-control" id="post-cuid-apellido" required placeholder="Tus apellidos">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Correo Electrónico</label>
+                <input type="email" class="form-control" id="post-cuid-email" required placeholder="tu@correo.com">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Contraseña para tu Panel</label>
+                <input type="password" class="form-control" id="post-cuid-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Tipo Documento</label>
+                <select class="form-select" id="post-cuid-tipodoc">
+                  <option value="DNI">DNI (Perú)</option>
+                  <option value="CE">Carné Extranjería</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Número de Documento</label>
+                <input type="text" class="form-control" id="post-cuid-numdoc" required placeholder="8 dígitos">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Teléfono Móvil</label>
+                <input type="tel" class="form-control" id="post-cuid-tel" required placeholder="984 000 000">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <select class="form-select" id="post-cuid-distrito">
+                  <option value="Wanchaq">Wanchaq</option>
+                  <option value="Cusco Centro">Cusco Centro</option>
+                  <option value="San Sebastián">San Sebastián</option>
+                  <option value="San Jerónimo">San Jerónimo</option>
+                  <option value="Santiago">Santiago</option>
+                  <option value="San Blas">San Blas</option>
+                </select>
+              </div>
+              <div class="col-md-8">
+                <label class="form-label small fw-bold">Dirección de Residencia</label>
+                <input type="text" class="form-control" id="post-cuid-direccion" required placeholder="Calle, urbanización o sector">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Años de Experiencia</label>
+                <input type="number" class="form-control" id="post-cuid-exp" min="1" max="30" value="2" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Tipo de Vivienda</label>
+                <select class="form-select" id="post-cuid-vivienda">
+                  <option value="Casa con Jardín">Casa con Jardín</option>
+                  <option value="Departamento Amplio">Departamento Amplio</option>
+                  <option value="Casa Familiar">Casa Familiar</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Capacidad Máx. Mascotas</label>
+                <input type="number" class="form-control" id="post-cuid-capacidad" min="1" max="6" value="3" required>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Tarifa Paseo Inicial (S/ PEN)</label>
+                <input type="number" class="form-control" id="post-cuid-tarifa" min="20" max="150" value="35" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Enlace DNI / Antecedentes (PostImg o URL)</label>
+                <input type="url" class="form-control" id="post-cuid-doc-url" placeholder="https://i.postimg.cc/tu-dni.jpg">
+              </div>
+            </div>
+
+            <!-- Declaración Jurada Obligatoria -->
+            <div class="p-3 bg-light rounded border mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="post-cuid-declaracion" required>
+                <label class="form-check-label small fw-bold text-dark" for="post-cuid-declaracion">
+                  DECLARACIÓN JURADA: Declaro bajo juramento no poseer antecedentes penales ni denuncias por maltrato animal en el Perú ni en el extranjero.
+                </label>
+              </div>
+            </div>
+
+            <!-- TyC -->
+            <div class="form-check mb-4">
+              <input class="form-check-input" type="checkbox" id="post-cuid-tyc" required>
+              <label class="form-check-label small text-secondary" for="post-cuid-tyc">
+                Acepto el Código de Conducta de Cuidadores y la comisión del 15% de Paw Patita.
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
+              <i class="bi bi-send-fill me-1"></i> Enviar Postulación de Cuidador
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL POSTULAR COMO CLÍNICA VETERINARIA ALIADA -->
+  <div class="modal fade" id="modal-postular-clinica" tabindex="-1" aria-labelledby="modal-post-vet-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content auth-modal-content">
+        <div class="auth-header">
+          <h5 class="modal-title" id="modal-post-vet-title">
+            <i class="bi bi-hospital-fill text-warning"></i> Postulación de Clínica Veterinaria Aliada
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="auth-body">
+          <p class="text-secondary small mb-3">
+            Únete a la red de validación de carné <strong>PAW-ID</strong> y atención de emergencias S.O.S. en Cusco.
+          </p>
+
+          <form id="form-postular-clinica">
+            <div class="row g-3 mb-3">
+              <div class="col-md-7">
+                <label class="form-label small fw-bold">Razón Social / Nombre Comercial</label>
+                <input type="text" class="form-control" id="post-vet-nombre" required placeholder="Ej. Veterinaria San Francisco Cusco">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small fw-bold">RUC Institucional (11 dígitos)</label>
+                <input type="text" class="form-control" id="post-vet-ruc" required minlength="11" maxlength="11" placeholder="20XXXXXXXXX">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Correo Electrónico Institucional</label>
+                <input type="email" class="form-control" id="post-vet-email" required placeholder="clinica@ejemplo.com">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Contraseña para el Panel Médico</label>
+                <input type="password" class="form-control" id="post-vet-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Teléfono de Emergencias 24h</label>
+                <input type="tel" class="form-control" id="post-vet-tel" required placeholder="984 000 000">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <select class="form-select" id="post-vet-distrito">
+                  <option value="Cusco Centro">Cusco Centro</option>
+                  <option value="Wanchaq">Wanchaq</option>
+                  <option value="San Sebastián">San Sebastián</option>
+                  <option value="San Jerónimo">San Jerónimo</option>
+                  <option value="Santiago">Santiago</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Horario de Atención</label>
+                <select class="form-select" id="post-vet-horario">
+                  <option value="24 Horas">24 Horas Ininterrumpidas</option>
+                  <option value="Extendido">Extendido (07:00 - 23:00)</option>
+                  <option value="Diurno">Diurno (08:00 - 20:00)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Dirección Física de la Clínica</label>
+              <input type="text" class="form-control" id="post-vet-direccion" required placeholder="Av. o Calle exacta en Cusco">
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Colegiatura CMVP del Director</label>
+                <input type="text" class="form-control" id="post-vet-cmvp" required placeholder="Ej. CMVP-10452">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Médico Responsable (Nombre)</label>
+                <input type="text" class="form-control" id="post-vet-responsable" required placeholder="Dr(a). Nombre y Apellido">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">DNI del Responsable</label>
+                <input type="text" class="form-control" id="post-vet-dni-responsable" required placeholder="8 dígitos">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Tarifa Base Consulta de Emergencia (S/ PEN)</label>
+              <input type="number" class="form-control" id="post-vet-tarifa" min="30" max="250" value="60" required>
+            </div>
+
+            <div class="form-check mb-4">
+              <input class="form-check-input" type="checkbox" id="post-vet-tyc" required>
+              <label class="form-check-label small text-secondary" for="post-vet-tyc">
+                Acepto los Términos de Afiliación Veterinaria y el Protocolo de Atención S.O.S. de Paw Patita Cusco.
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
+              <i class="bi bi-hospital me-1"></i> Enviar Solicitud de Afiliación
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VER PERFIL COMPLETO DEL CUIDADOR (FASE 4) -->
+  <div class="modal fade" id="modal-perfil-cuidador" tabindex="-1" aria-labelledby="modalPerfilCuidadorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: var(--pp-radius-md); overflow: hidden;">
+        <div id="modal-perfil-cuidador-content">
+          <!-- Renderizado dinámicamente por catalogo.js -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet 1.9.4 JS CDN -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Bootstrap 5.3.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+  <!-- QRCode.js CDN (Generación en cliente de Carné Digital PAW-ID y QR de pago) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- Chart.js 4.4.1 CDN (Gráficos de Billetera Cuidador y Dashboard Administrador) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+
+  <!-- Supabase JS Client v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Script Modular Principal ES6 -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

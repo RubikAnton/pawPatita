@@ -1,133 +1,195 @@
-# 🐾 Paw Patita Cusco v4.0 — Plataforma Integral de Cuidado Canino y Bienestar Animal
+# 🐾 Paw Patita Cusco v5.0 — Plataforma Integral de Cuidado Canino y Bienestar Animal
 
-> **Proyecto Fin de Ciclo / StartUp SaaS Serverless**  
-> **Arquitectura:** Google Apps Script (GAS) + Google Sheets (Base de Datos Relacional en 3FN) + HtmlService (SPA)  
+[![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-brightgreen?logo=github)](https://nasdigog-glitch.github.io/paw-patita-cusco/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase%20PostgreSQL-3ECF8E?logo=supabase)](https://supabase.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Architecture](https://img.shields.io/badge/Architecture-Vanilla%20ES%20Modules-blue.svg)](#arquitectura-tecnol%C3%B3gica)
+[![Security: RLS](https://img.shields.io/badge/Security-Row%20Level%20Security%20(RLS)-orange.svg)](#seguridad-y-pol%C3%ADticas-rls)
+
+> **Proyecto Fin de Ciclo / StartUp SaaS de Economía Colaborativa**  
+> **Arquitectura v5.0:** SPA Serverless (ES Modules nativos + Bootstrap 5.3) en **GitHub Pages** + Backend Relacional en **Supabase** (PostgreSQL 15, RLS, 21 RPCs Transaccionales, Storage y Realtime).  
+> **URL Oficial de Producción:** [https://nasdigog-glitch.github.io/paw-patita-cusco/](https://nasdigog-glitch.github.io/paw-patita-cusco/)  
 > **Curso:** Análisis y Diseño de Software — NRC 39575  
 > **Docente:** Holguin Herrera, Melisa Betys  
-> **Estudiantes:** Chacón Copa, Angelo Ricardo; Huarancca Camala, Frank Smit; Illapuma Yupanqui, Jerson Reyder; Lovaton Casas, Arantxa Alejandra; Ortiz Gutierrez, Nasdig Jordan.  
+> **Equipo de Desarrollo:**  
+> - Chacón Copa, Angelo Ricardo  
+> - Huarancca Camala, Frank Smit  
+> - Illapuma Yupanqui, Jerson Reyder  
+> - Lovaton Casas, Arantxa Alejandra  
+> - Ortiz Gutierrez, Nasdig Jordan  
 > **Cusco, Perú — Noviembre 2026**
 
 ---
 
-## 📌 Descripción General del Proyecto (v4.0)
+## 📌 Descripción General del Sistema
 
-**Paw Patita Cusco v4.0** es una plataforma SaaS de economía colaborativa diseñada para resolver los desafíos de cuidado canino y bienestar animal en la ciudad histórica y turística de Cusco, Perú. Conecta a propietarios de perros (segmentados en **Residentes Locales** y **Turistas Nacionales/Extranjeros** que visitan atractivos como Machu Picchu o el Valle Sagrado) con **Cuidadores Independientes** certificados, bajo la supervisión médica activa de **Clínicas Veterinarias Aliadas 24 Horas** y la gobernanza del **Administrador de Red**.
+**Paw Patita Cusco v5.0** es una plataforma SaaS de economía colaborativa para el cuidado integral canino en la región de Cusco, Perú. Conecta de forma confiable a propietarios de perros (residentes locales y turistas que recorren el Valle Sagrado y Machu Picchu) con cuidadores certificados e independientes, bajo supervisión médica activa de clínicas veterinarias 24 horas acreditadas y gobernanza centralizada.
 
-El sistema opera de forma 100% *serverless* sobre la infraestructura de Google Workspace, garantizando alta disponibilidad, coste cero de servidores, transaccionalidad mediante `LockService`, rendimiento optimizado con `CacheService` y cumplimiento estricto de las 10 Heurísticas de Nielsen (20/20).
-
----
-
-## 🚀 Novedades y Capacidades Principales de la Versión 4.0
-
-1. **Arquitectura Multi-Actor Estricta (4 Roles Activos):**
-   * **Propietario Local:** Carné digital `PAW PATITA-ID`, reservas por periodo, muro de fotos en vivo y cancelación con reembolso automático.
-   * **Propietario Turista Cusco:** Experiencia optimizada con selector de divisa dual (**PEN / USD** con tipo de cambio referencial $S/\ 3.75$), servicio extra de *Recojo y retorno en Hotel* e idioma inglés/español.
-   * **Cuidador Independiente:** Postulación con verificación policial y domiciliaria (`PostImg`), agenda mensual interactiva con control anti-overbooking por cupos, check-in/check-out y billetera digital con retiros a Yape/Plin/Banco.
-   * **Clínica Veterinaria Aliada (Actor Activo):** Central de Emergencias S.O.S. en vivo (triage médico, diagnóstico y alta clínica) y auditoría sanitaria oficial de carnés `PAW PATITA-ID`.
-   * **Administrador de Red:** Dashboard ejecutivo con gráficos interactivos vía **Chart.js** (distritos y categorías), aprobación de cuidadores, ejecución de reembolsos conciliados y bitácora de auditoría.
-2. **Motor Dinámico de Tarifas y Cupones:** Detección de temporadas altas en Cusco (*Inti Raymi, Fiestas Patrias, Semana Santa*) con factor multiplicador automático y motor de cupones promocionales (ej: `INTIRAYMI15`, `MACHUPICCHU15`).
-3. **Política Escalonada de Cancelación y Reembolso:** Cálculo transparente y atómico según las horas de anticipación al inicio del servicio (>48h: 100% reembolso; 24 a 48h: 70% reembolso y 30% penalidad; <24h: 0% reembolso).
-4. **Base de Datos Relacional Normalizada (3FN):** Ampliación de 11 a **22 pestañas interconectadas** en [BD-PAWPATITAS-v3.xlsx](file:///d:/Usuario/analisisGithub/BD-PAWPATITAS-v3.xlsx), con claves primarias y foráneas, contraseñas hasheadas en SHA-256 (`PAW::`) y conciliación contable sin desfases.
-5. **Frontend SaaS Profesional:** 3,400+ líneas en [Index.html](file:///d:/Usuario/analisisGithub/Index.html), compatible al 100% con `HtmlService` (0 operadores `?.` o `??`), wizard en 4 pasos, pasarela simulada y apagado garantizado del spinner.
+En esta **Versión 5.0**, el sistema migró completamente de Google Apps Script hacia una arquitectura moderna, escalable y robusta basada en **GitHub Pages + Supabase (PostgreSQL)**, superando definitivamente las cuotas de 6 minutos de GAS, problemas de concurrencia y límites de almacenamiento.
 
 ---
 
-## 🔑 Credenciales Oficiales de Demostración
+## 🔑 Credenciales Oficiales de Demostración (Acceso en 1 Clic)
 
-El modal de inicio de sesión y la barra de navegación cuentan con un selector rápido con 1 clic ("Demo Acceso") que autocompleta cualquiera de estos perfiles:
+El modal de inicio de sesión dispone de botones de **Acceso Rápido Demo** que autocompletan las credenciales para evaluar cualquiera de los 4 roles del ecosistema:
 
 | Rol del Actor | Correo Electrónico | Contraseña | Perfil y Capacidades a Evaluar |
 | :--- | :--- | :---: | :--- |
-| 🐶 **Propietario Local** | `angelo@gmail.com` | `123456` | Residente cusqueño (Angelo Pérez). Gestiona 4 perros con `PAW PATITA-ID`, wizard de reserva, muro de fotos en vivo y solicitudes de cancelación. |
-| 🧳 **Propietario Turista** | `sofia.turista@gmail.com` | `123456` | Turista en Cusco (Sofía Valdivia). Moneda en Dólares USD, recojo en Hotel Monasterio, uso de cupón `MACHUPICCHU15` y botón S.O.S. |
-| 🐕 **Cuidador Aprobado** | `carlos@gmail.com` | `123456` | Cuidador verificado (Carlos Quispe). Agenda mensual de cupos, Check-In / Check-Out, envío de fotos al muro y Billetera Digital con saldo disponible. |
-| ⏳ **Cuidador Pendiente** | `lucia@gmail.com` | `123456` | Cuidador en revisión (Lucía Fernández). Visualización de estado `Pendiente` y expediente de antecedentes policiales y domicilio. |
-| 🏥 **Clínica Veterinaria** | `vet.centro@pawpatita.pe` | `vet123` | *Clínica Veterinaria Cusco Centro (24h)*. Central S.O.S. para tomar casos críticos, triaje, alta médica y validación sanitaria de fichas caninas. |
-| 🛡️ **Administrador de Red** | `admin@pawpatita.pe` | `admin123` | Administrador general. Dashboard ejecutivo con **Chart.js**, aprobación de postulantes, ejecución de reembolsos, pago de liquidaciones y auditoría. |
+| 🐶 **Propietario** | `owner@pawpatita.pe` | `OwnerDemo2026!` | Registro de mascotas, emisión e impresión de Carné Digital `PAW-ID` con código QR, catálogo con mapa Leaflet, reserva con cotizador estacional, pasarela de pago simulada, muro de fotos en tiempo real y cancelación escalonada. |
+| 🐕 **Cuidador** | `cuidador@pawpatita.pe` | `CuidadorDemo2026!` | Gestión de agenda mensual sin overbooking, protocolo de Check-In con verificación PAW-ID, publicación de reportes con fotos, botón de Emergencia S.O.S., Check-Out con acreditación inmediata del 85% neto y Billetera Virtual con retiros. |
+| 🏥 **Veterinaria** | `vet@pawpatita.pe` | `VetDemo2026!` | Auditoría sanitaria de cartillas de vacunas (Antirrábica, Séxtuple), dictamen médico con **Sello Oficial CMVP**, visor de cartillas y Central de Emergencias Médicas S.O.S. 24 horas con geolocalización. |
+| 🛡️ **Administrador** | `admin@pawpatita.pe` | `AdminDemo2026!` | Centro de comando con métricas financieras en tiempo real (Comisión 15% calculada sobre volumen bruto), gráficos Chart.js por los 8 distritos de Cusco, aprobación de cuidadores/clínicas, arbitraje de disputas, liquidaciones y bitácora de auditoría forense con exportación CSV. |
 
 ---
 
-## 📚 Índice Maestro de la Documentación Exhaustiva (`docs/`)
+## 🏗️ Arquitectura Tecnológica v5.0
 
-Para la redacción del informe final oficial y auditorías académicas de software, se ha estructurado la documentación en 5 manuales técnicos dentro de `docs/`:
-
-1. **[01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md](file:///d:/Usuario/analisisGithub/docs/01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md):** Matriz comparativa exhaustiva (v3.0 vs. v4.0), justificación técnica de la normalización de 11 a 22 pestañas, evolución de los 4 actores y eliminación de acoplamientos por índices numéricos.
-2. **[02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md](file:///d:/Usuario/analisisGithub/docs/02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md):** Catálogo de Requisitos Funcionales (`RF-01` a `RF-25`), Requisitos No Funcionales adaptados a cuotas de GAS (`RNF-01` a `RNF-10`) y algoritmos formalizados en pseudocódigo (política de reembolso, cotizador estacional, anti-overbooking y máquina de estados).
-3. **[03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md](file:///d:/Usuario/analisisGithub/docs/03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md):** Catálogo de 26 Casos de Uso (`CU-01` a `CU-26`) y 10 Historias de Usuario completas (`HU-01` a `HU-10`) en formato Anverso / Reverso con criterios de aceptación verificables.
-4. **[04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md](file:///d:/Usuario/analisisGithub/docs/04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md):** Diccionario de datos campo por campo de las **22 pestañas relacionales** de `BD-PAWPATITAS-v3.xlsx`, arquitectura en capas con control de caché/locks y Diagrama Entidad-Relación (`erDiagram`).
-5. **[05_EVALUACION_HEURISTICAS_NIELSEN.md](file:///d:/Usuario/analisisGithub/docs/05_EVALUACION_HEURISTICAS_NIELSEN.md):** Matriz de evaluación de las **10 Heurísticas de Usabilidad de Jakob Nielsen con calificación perfecta 20/20**, detallando evidencia visual y código de soporte en `Index.html`.
-
----
-
-## 🛠️ Guía Rápida de Despliegue en Google Sheets + Apps Script
-
-### Paso 1: Configurar la Base de Datos en Google Drive
-1. Sube el archivo `BD-PAWPATITAS-v3.xlsx` a tu unidad de **Google Drive**.
-2. Haz clic derecho sobre el archivo y selecciona **Abrir con > Hojas de cálculo de Google**.
-3. Selecciona **Archivo > Guardar como hoja de cálculo de Google**. Comprueba que se carguen las 22 pestañas con sus filas pobladas.
-
-### Paso 2: Crear y Desplegar el Proyecto en Google Apps Script
-1. En la hoja de cálculo creada, dirígete al menú superior: **Extensiones > Apps Script**.
-2. En el archivo `Código.gs`, borra el código por defecto y pega el contenido íntegro de [Codigo.gs](file:///d:/Usuario/analisisGithub/Codigo.gs).
-3. En el panel izquierdo del editor, haz clic en el botón `+` junto a *Archivos* y selecciona **HTML**. Nómbralo exactamente `Index` (se creará `Index.html`).
-4. Pega el contenido íntegro de [Index.html](file:///d:/Usuario/analisisGithub/Index.html) en el archivo HTML creado y guarda los cambios (`Ctrl + S`).
-
-### Paso 3: Verificación Automatizada en el Editor de GAS
-1. En el selector superior de funciones del editor de Apps Script, selecciona la función `testSistemaCompleto`.
-2. Presiona el botón **Ejecutar**.
-3. Revisa el registro de ejecución (*Execution Log*): debe mostrar `=== TEST SISTEMA COMPLETO: EXITOSO ===` con **149 aserciones automáticas aprobadas** (esquema de 22 pestañas, cotizador, cancelaciones, autenticación y dashboard).
-
-### Paso 4: Publicar la Aplicación Web
-1. Haz clic en el botón azul **Implementar > Nueva implementación**.
-2. En el tipo de implementación (engranaje), elige **Aplicación web**.
-3. Configura:
-   * **Descripción:** `Paw Patita Cusco v4.0 Oficial`
-   * **Ejecutar como:** `Yo (tu correo de Google)`
-   * **Quién tiene acceso:** `Cualquier usuario` (para permitir el acceso a clientes y evaluadores).
-4. Haz clic en **Implementar** y copia la **URL de la aplicación web**.
-
----
-
-## 🧪 Verificación Local con Mock de GAS en Node.js
-
-Para auditar y probar el sistema localmente sin necesidad de conexión activa a Google Workspace:
-
-```bash
-# Ejecutar la suite automatizada de pruebas mock
-node tools/test_mock_gas.js
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   CLIENTE NAVEGADOR (SPA JAMstack)                     │
+│  GitHub Pages (index.html, ES Modules, Bootstrap 5.3, Leaflet, Chart)  │
+└──────────────────┬───────────────────────────────────┬─────────────────┘
+                   │ HTTPS / WSS                       │ Storage REST
+                   ▼                                   ▼
+┌──────────────────────────────────────┐   ┌─────────────────────────────┐
+│          SUPABASE POSTGREST          │   │      SUPABASE STORAGE       │
+│  - 23 Tablas Relacionales            │   │  - paw-cartillas            │
+│  - Row Level Security (RLS) Activo   │   │  - paw-reportes             │
+│  - 21 Funciones RPC Transaccionales  │   │  - paw-documentos           │
+│  - Triggers y Auditoría Forense      │   └─────────────────────────────┘
+└──────────────────────────────────────┘
 ```
 
-La suite valida:
-* Sintaxis JS estricta (0 operadores `?.` ni `??`).
-* Evaluación completa de `Codigo.gs` con mocks de `SpreadsheetApp`, `CacheService`, `LockService` y `Utilities`.
-* Ejecución completa de `testSistemaCompleto()` (149 aserciones).
-* Pruebas transaccionales de los 4 roles (login, cotización, reservas, check-in, billetera, SOS y analítica admin).
+1. **Frontend Desacoplado (GitHub Pages):**
+   - Sin bundlers ni Node.js en producción; ejecuta **ES Modules nativos**.
+   - Entry point único: `index.html` (minúscula) compatible con GitHub Pages y `.nojekyll`.
+   - Librerías CDN: Bootstrap 5.3, Leaflet 1.9.4 (mapas), Chart.js 4.4.1 (analítica), QRCode.js (credenciales).
+2. **Backend Relacional Serverless (Supabase PostgreSQL):**
+   - **23 Tablas Normalizadas:** Modelo relacional íntegro que reemplaza las 22 hojas de cálculo legacy.
+   - **Row Level Security (RLS):** Aislamiento estricto multitenant; ninguna tabla es accesible públicamente sin autenticación o permisos explícitos.
+   - **21 Funciones RPC:** Lógica transaccional crítica del lado del servidor (prevención de overbooking, cálculo de comisión del 15%, cancelación escalonada, liquidaciones y auditoría).
+   - **Seguridad Garantizada:** Cero claves maestras (`service_role`) en el frontend; únicamente `SUPABASE_ANON_KEY`.
 
 ---
 
-## 📂 Estructura del Repositorio
+## 📁 Estructura del Repositorio
 
 ```text
 paw-patita-cusco/
-├── BD-PAWPATITAS-v3.xlsx              # Base de datos relacional normalizada (22 pestañas en 3FN, 154 filas)
-├── Codigo.gs                          # Backend en GAS (2,428 líneas, 71 funciones RPC, locking, caché, RBAC)
-├── Index.html                         # Frontend SPA SaaS (3,429 líneas, 4 dashboards, Chart.js, wizard 4 pasos)
-├── README.md                          # Índice maestro del proyecto v4.0, credenciales y guía de despliegue
-├── Informe_PawPatita_Actualizado.docx # Documento de informe oficial previo
-├── Informe_analisis.md                # Especificación técnica inicial
-├── docs/                              # Documentación técnica y académica exhaustiva v4.0
+├── index.html                        # Entrypoint SPA oficial (GitHub Pages)
+├── .nojekyll                         # Evita procesamiento Jekyll en GitHub Pages
+├── PLAN_MIGRACION_SUPABASE.md        # Plan Maestro de Migración con checklist por fases
+├── BITACORA_EJECUCION_V5.md          # Bitácora técnica viva de ejecución y trazabilidad
+├── README.md                         # Este documento de arquitectura y guía
+│
+├── css/                              # Hojas de estilo modulares
+│   ├── main.css                      # Variables de diseño (paleta Cusco), layout y navbar
+│   ├── auth.css                      # Modales y formularios de login/registro
+│   ├── catalogo.css                  # Tarjetas de cuidadores y popups Leaflet
+│   ├── paneles.css                   # Dashboards para Propietario, Cuidador, Vet y Admin
+│   └── print.css                     # Estilos @media print para Carné Digital PAW-ID
+│
+├── js/                               # Código modular en Vanilla ES Modules
+│   ├── config.js                     # Variables Supabase y constantes canónicas de Cusco
+│   ├── supabase-client.js            # Cliente Supabase singleton (DB, Auth, Storage)
+│   ├── router.js                     # Enrutador SPA basado en hash con guardias por rol
+│   ├── auth/                         # Gestión de sesiones y autenticación
+│   ├── components/                   # Mapa Leaflet, Gráficos Chart.js, Modales y QR
+│   ├── roles/                        # Vistas de Propietario, Cuidador, Veterinaria y Admin
+│   └── utils/                        # Formateadores peruanos (S/, fechas) y helpers UI
+│
+├── supabase/                         # Scripts SQL ejecutables en Supabase
+│   ├── 01_schema.sql                 # Esquema relacional de 23 tablas y ENUMs
+│   ├── 02_functions_triggers.sql     # Funciones utilitarias y triggers de auditoría
+│   ├── 03_rpc_business.sql           # 21 funciones RPC transaccionales de negocio
+│   ├── 04_rls_policies.sql           # Políticas de seguridad Row Level Security
+│   ├── 05_storage_buckets.sql        # Buckets y políticas de Storage
+│   ├── 06_seed.sql                   # Datos semilla con perfiles y cuidadores de Cusco
+│   └── README_SETUP_SUPABASE.md      # Guía paso a paso para el despliegue en Supabase
+│
+├── tests/                            # Suite de verificación y aseguramiento de calidad
+│   ├── sql_integrity_checks.sql      # Aserciones automáticas para Supabase SQL Editor
+│   └── e2e_verification_checklist.md # Matriz de pruebas end-to-end (52 casos probados)
+│
+├── docs/                             # Documentación formal y académica
 │   ├── 01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md
 │   ├── 02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md
 │   ├── 03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md
 │   ├── 04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md
 │   └── 05_EVALUACION_HEURISTICAS_NIELSEN.md
-└── tools/                             # Herramientas de generación y pruebas automatizadas
-    ├── construir_index.py             # Compilador y validador de sintaxis de Index.html
-    ├── generar_bd_v4.py               # Generador de BD-PAWPATITAS-v3.xlsx con 22 pestañas
-    ├── seed.json                      # Respaldo JSON de las 22 pestañas y 154 filas
-    └── test_mock_gas.js               # Suite de pruebas automatizadas con mock completo de GAS
+│
+└── legacy-gas/                       # Archivo histórico preservado (sin pérdida de historial git)
+    ├── Codigo.gs                     # Backend legacy Google Apps Script
+    ├── Index.html                    # Frontend monolítico v4.0 legacy
+    ├── BD-PAWPATITAS-v3.xlsx         # Hoja de cálculo relacional v4.0
+    └── tools/                        # Scripts de migración y validación mock previa
 ```
 
 ---
 
-*Desarrollado con pasión y excelencia técnica por el equipo de estudiantes de la Universidad Continental (Cusco, 2026).*
+## 🚀 Guía de Despliegue
+
+### 1. Despliegue de la Base de Datos en Supabase
+1. Crea un proyecto nuevo en [Supabase](https://supabase.com/).
+2. Abre el **SQL Editor** y ejecuta los scripts ubicados en `supabase/` en el siguiente orden estricto:
+   - `01_schema.sql` (Crea tipos ENUM y las 23 tablas relacionales).
+   - `02_functions_triggers.sql` (Instala triggers de actualización y auditoría forense).
+   - `03_rpc_business.sql` (Despliega las 21 funciones de negocio transaccionales).
+   - `04_rls_policies.sql` (Habilita RLS y define políticas de acceso por rol).
+   - `05_storage_buckets.sql` (Crea los buckets para cartillas, reportes y documentos).
+   - `06_seed.sql` (Inserta datos de prueba representativos para Cusco).
+3. En la sección **Project Settings > API**, copia tu `Project URL` y `anon public key`.
+4. En **Authentication > URL Configuration**, añade `https://nasdigog-glitch.github.io/paw-patita-cusco/` a las *Redirect URLs*.
+
+### 2. Configuración del Frontend
+1. Abre el archivo `js/config.js`.
+2. Actualiza los valores de `SUPABASE_URL` y `SUPABASE_ANON_KEY` con los de tu proyecto:
+   ```javascript
+   export const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
+   export const SUPABASE_ANON_KEY = 'tu-clave-anon-publica';
+   ```
+
+### 3. Publicación en GitHub Pages
+1. Asegúrate de que el archivo `.nojekyll` esté presente en la raíz del repositorio.
+2. En tu repositorio de GitHub, dirígete a **Settings > Pages**.
+3. En la sección **Build and deployment**:
+   - **Source:** *Deploy from a branch*
+   - **Branch:** `main` / Folder: `/(root)`
+4. Haz clic en **Save**. En un par de minutos tu aplicación estará disponible en vivo en:
+   **`https://<usuario>.github.io/<repositorio>/`**
+
+---
+
+## 🧪 Ejecución de Pruebas y Certificación de Calidad
+
+### Pruebas de Integridad SQL (Supabase)
+Ejecuta el script [tests/sql_integrity_checks.sql](file:///d:/Usuario/analisisGithub/tests/sql_integrity_checks.sql) en el **SQL Editor** de Supabase para validar:
+- Existencia de las 23 tablas canónicas.
+- RLS activo en el 100% de las tablas.
+- Integridad referencial de claves foráneas.
+- Exactitud en el cálculo de comisión del 15% y neto de cuidadores (85%).
+- Prevención de sobrecupos y overbooking horario.
+- Escalamiento estricto de reembolsos (>48h: 100%, 24-48h: 50%, <24h: 0%).
+- Triggers de auditoría en la tabla `auditoria_estados`.
+
+### Matriz de Verificación E2E
+Consulta la [Matriz de Verificación E2E](file:///d:/Usuario/analisisGithub/tests/e2e_verification_checklist.md) para revisar los **52 casos de prueba** completados en verde sobre los 4 roles del sistema, garantizando:
+- **0 textos `undefined`** o `[object Object]` en pantalla.
+- **Responsividad verificada** en 360px, 768px y 1440px.
+- **Impresión nítida** del Carné Digital PAW-ID vía `@media print`.
+
+---
+
+## 📚 Documentación Técnica Detallada (`docs/`)
+
+- [01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md](file:///d:/Usuario/analisisGithub/docs/01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md): Historial de versiones y memoria técnica de la migración arquitectónica v4.0 → v5.0.
+- [02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md](file:///d:/Usuario/analisisGithub/docs/02_ESPECIFICACION_REQUISITOS_Y_REGLAS.md): Catálogo de 25 Requisitos Funcionales, 10 RNF y reglas formalizadas de negocio.
+- [03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md](file:///d:/Usuario/analisisGithub/docs/03_CASOS_DE_USO_E_HISTORIAS_USUARIO.md): 26 Casos de Uso y 10 Historias de Usuario verificables.
+- [04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md](file:///d:/Usuario/analisisGithub/docs/04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md): Modelo Entidad-Relación PostgreSQL de 23 tablas, catálogo de campos, RPCs y políticas RLS.
+- [05_EVALUACION_HEURISTICAS_NIELSEN.md](file:///d:/Usuario/analisisGithub/docs/05_EVALUACION_HEURISTICAS_NIELSEN.md): Evaluación de usabilidad de Jakob Nielsen con puntuación 20/20.
+
+---
+
+## 🏛️ Código Legacy Preservado (`legacy-gas/`)
+
+Por motivos de trazabilidad académica y auditoría de software, la versión histórica v4.0 basada en Google Apps Script ha sido archivada íntegramente en la carpeta [legacy-gas/](file:///d:/Usuario/analisisGithub/legacy-gas/) mediante comandos Git, preservando intacto el 100% del historial de commits del proyecto.

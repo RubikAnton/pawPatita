@@ -1,0 +1,799 @@
+/**
+ * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care"
+ * css/catalogo.css — Catálogo de Cuidadores, Filtros Avanzados, Mapa Leaflet,
+ * Ficha Pública de Emergencia PAW-ID y Modal de Detalle
+ */
+
+/* =============================================================================
+   1. LAYOUT PRINCIPAL DEL CATÁLOGO Y PANEL DE FILTROS
+   ============================================================================= */
+
+.catalogo-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 991.98px) {
+  .catalogo-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+/* Panel Lateral de Filtros */
+.filtros-sidebar {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  padding: 1.35rem;
+  box-shadow: var(--pp-shadow-card);
+  position: sticky;
+  top: 86px;
+  max-height: calc(100vh - 105px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.filtros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.15rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--pp-border-color);
+}
+
+.filtros-header h5 {
+  font-family: var(--pp-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pp-secondary);
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filtro-seccion {
+  margin-bottom: 1.35rem;
+}
+
+.filtro-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pp-secondary);
+  margin-bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Chips de Distrito Cusco */
+.distritos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip-distrito {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--pp-radius-full);
+  border: 1px solid var(--pp-border-color);
+  background: var(--pp-bg-body);
+  color: var(--pp-text-main);
+  cursor: pointer;
+  transition: var(--pp-transition);
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.chip-distrito:hover {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+  transform: translateY(-1px);
+}
+
+.chip-distrito:active {
+  transform: scale(0.96);
+}
+
+.chip-distrito.active {
+  background: var(--pp-primary);
+  border-color: var(--pp-primary);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.25);
+}
+
+/* Checkboxes y Radios de Servicio */
+.filtro-item-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--pp-radius-sm);
+  cursor: pointer;
+  transition: var(--pp-transition);
+  font-size: 0.88rem;
+  color: var(--pp-text-main);
+}
+
+.filtro-item-check:hover {
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+}
+
+.filtro-item-check input {
+  cursor: pointer;
+}
+
+/* Selector de Estrellas */
+.estrellas-selector {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.estrella-btn {
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-sm);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--pp-text-muted);
+  cursor: pointer;
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.estrella-btn.active, .estrella-btn:hover {
+  border-color: var(--pp-gold);
+  background: var(--pp-gold-light);
+  color: var(--pp-gold-hover);
+  font-weight: 700;
+  transform: translateY(-1px);
+}
+
+.estrella-btn:active {
+  transform: scale(0.96);
+}
+
+/* =============================================================================
+   2. TARJETAS DE CUIDADORES "ANDES PET CARE"
+   ============================================================================= */
+
+.grid-cuidadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.35rem;
+}
+
+@media (max-width: 575.98px) {
+  .grid-cuidadores {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-cuidador {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-card);
+  transition: var(--pp-transition);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.card-cuidador:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pp-shadow-hover);
+  border-color: rgba(255, 107, 53, 0.45);
+}
+
+.cuidador-header-banner {
+  height: 84px;
+  background: linear-gradient(135deg, #FF6B35 0%, #F4A261 100%);
+  position: relative;
+}
+
+.cuidador-header-banner.banner-turistico {
+  background: linear-gradient(135deg, var(--pp-accent) 0%, #2A9D8F 100%);
+}
+
+.badge-hu-code {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #FFFFFF;
+  font-family: var(--pp-font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--pp-radius-full);
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.cuidador-avatar-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-top: -40px;
+  margin-left: 1.35rem;
+}
+
+.cuidador-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3.5px solid #FFFFFF;
+  box-shadow: var(--pp-shadow-md);
+  background-color: #E2E8F0;
+}
+
+.badge-verificado-icon {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: var(--pp-accent);
+  color: #FFFFFF;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.cuidador-body {
+  padding: 0.85rem 1.35rem 1.35rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cuidador-nombre {
+  font-family: var(--pp-font-display);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--pp-secondary);
+  margin-bottom: 0.25rem;
+  line-height: 1.25;
+}
+
+.cuidador-distrito {
+  font-size: 0.85rem;
+  color: var(--pp-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
+.cuidador-distrito i {
+  color: var(--pp-primary);
+}
+
+.cuidador-calificacion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.estrellas-score {
+  color: var(--pp-gold);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.score-num {
+  font-weight: 800;
+  color: var(--pp-secondary);
+  font-size: 0.92rem;
+  margin-left: 0.25rem;
+}
+
+.resenas-count {
+  font-size: 0.82rem;
+  color: var(--pp-text-muted);
+}
+
+.cuidador-bio {
+  font-size: 0.87rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tags de Servicios */
+.cuidador-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.15rem;
+}
+
+.tag-servicio {
+  font-size: 0.74rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--pp-radius-full);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tag-hotel {
+  background: var(--pp-accent-light);
+  color: var(--pp-accent);
+}
+
+.tag-especialidad {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.cuidador-footer {
+  margin-top: auto;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--pp-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cuidador-precio-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.precio-desde-label {
+  font-size: 0.72rem;
+  color: var(--pp-text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.precio-monto {
+  font-family: var(--pp-font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--pp-secondary);
+  line-height: 1.1;
+}
+
+.precio-unidad {
+  font-size: 0.75rem;
+  color: var(--pp-text-muted);
+}
+
+.btn-reservar-cuidador {
+  background: var(--pp-primary);
+  color: #FFFFFF !important;
+  border: none;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--pp-radius-md);
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: var(--pp-transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255, 107, 53, 0.2);
+}
+
+.btn-reservar-cuidador:hover {
+  background: var(--pp-primary-hover);
+  color: #FFFFFF !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -2px rgba(255, 107, 53, 0.35);
+}
+
+.btn-reservar-cuidador:active {
+  transform: scale(0.97);
+}
+
+/* =============================================================================
+   3. MAPA INTERACTIVO DE CUSCO (LEAFLET.JS)
+   ============================================================================= */
+
+.mapa-seccion-card {
+  background: var(--pp-bg-card);
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-lg);
+  box-shadow: var(--pp-shadow-card);
+  overflow: hidden;
+  margin-bottom: 2.25rem;
+}
+
+.mapa-header-toolbar {
+  padding: 1rem 1.35rem;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--pp-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+#mapa-cusco-leaf {
+  width: 100%;
+  height: 490px;
+  background-color: #E2E8F0;
+  z-index: 1;
+}
+
+@media (max-width: 767.98px) {
+  #mapa-cusco-leaf {
+    height: 380px;
+  }
+}
+
+/* Marcadores Personalizados Leaflet */
+.custom-pin-cuidador, .custom-pin-clinica {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: var(--pp-transition);
+  cursor: pointer;
+}
+
+.custom-pin-cuidador {
+  background: var(--pp-primary);
+  border: 2.5px solid #FFFFFF;
+  width: 38px;
+  height: 38px;
+  font-size: 1.05rem;
+}
+
+.custom-pin-cuidador:hover {
+  transform: scale(1.18);
+  background: var(--pp-primary-hover);
+  box-shadow: 0 8px 16px rgba(255, 107, 53, 0.45);
+}
+
+.custom-pin-clinica {
+  background: var(--pp-danger);
+  border: 2.5px solid #FFFFFF;
+  width: 42px;
+  height: 42px;
+  font-size: 1.2rem;
+  animation: pulse-sos-pin 2s infinite ease-in-out;
+}
+
+.custom-pin-clinica:hover {
+  transform: scale(1.18);
+}
+
+@keyframes pulse-sos-pin {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Popups Leaflet Personalizados */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--pp-radius-md) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-shadow: var(--pp-shadow-lg) !important;
+  border: 1px solid var(--pp-border-color) !important;
+  background: #FFFFFF !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.45 !important;
+}
+
+.popup-cuidador-content {
+  padding: 1.15rem;
+  width: 270px;
+}
+
+.popup-cuidador-top {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.popup-cuidador-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--pp-primary);
+  background-color: #E2E8F0;
+}
+
+.popup-clinica-content {
+  padding: 1.15rem;
+  width: 280px;
+  border-top: 4px solid var(--pp-danger);
+}
+
+/* Leyenda del Mapa */
+.mapa-leyenda {
+  display: flex;
+  gap: 1.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  align-items: center;
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--pp-secondary);
+}
+
+/* =============================================================================
+   4. MODAL DETALLE COMPLETO DEL CUIDADOR
+   ============================================================================= */
+
+.modal-perfil-header {
+  position: relative;
+  height: 150px;
+  background: linear-gradient(135deg, var(--pp-primary) 0%, var(--pp-secondary) 100%);
+  border-radius: var(--pp-radius-md) var(--pp-radius-md) 0 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 1rem 1.65rem;
+}
+
+.modal-avatar-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: -38px;
+}
+
+.modal-cuidador-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #FFFFFF;
+  box-shadow: var(--pp-shadow-md);
+  background: #E2E8F0;
+}
+
+.servicios-table th {
+  background: #F8FAFC;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: var(--pp-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* =============================================================================
+   5. FICHA PÚBLICA DE EMERGENCIA PAW-ID (#/paw-id/:paw_id)
+   ============================================================================= */
+
+.paw-id-public-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pp-border-color);
+  border-radius: var(--pp-radius-xl);
+  box-shadow: var(--pp-shadow-xl);
+  overflow: hidden;
+  max-width: 620px;
+  margin: 1.75rem auto 3.5rem;
+}
+
+.paw-id-banner-emergencia {
+  background: linear-gradient(135deg, var(--pp-danger) 0%, #991B1B 100%);
+  color: #FFFFFF;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.paw-id-body {
+  padding: 1.75rem;
+}
+
+@media (max-width: 576px) {
+  .paw-id-body {
+    padding: 1.25rem 1rem;
+  }
+}
+
+.paw-id-pet-header {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .paw-id-pet-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+.paw-id-foto-grande {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #FFFFFF;
+  box-shadow: var(--pp-shadow-md);
+  background-color: #EDF2F7;
+}
+
+.badge-sanitario-validado {
+  background: var(--pp-accent-light);
+  color: var(--pp-success-text);
+  border: 1px solid var(--pp-accent-border);
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-sanitario-pendiente {
+  background: var(--pp-gold-light);
+  color: var(--pp-warning-text);
+  border: 1px solid var(--pp-gold-border);
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-sanitario-observado {
+  background: var(--pp-danger-light);
+  color: var(--pp-danger-text);
+  border: 1px solid var(--pp-danger-border);
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--pp-radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.paw-id-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.95rem;
+  background: #F8FAFC;
+  padding: 1.15rem;
+  border-radius: var(--pp-radius-md);
+  border: 1px solid var(--pp-border-color);
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .paw-id-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paw-id-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.paw-id-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--pp-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+
+.paw-id-valor {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: var(--pp-secondary);
+}
+
+.paw-id-alerta-medica {
+  background: var(--pp-danger-light);
+  border-left: 4px solid var(--pp-danger);
+  padding: 0.95rem 1.15rem;
+  border-radius: 0 var(--pp-radius-sm) var(--pp-radius-sm) 0;
+  margin-bottom: 1.5rem;
+  color: var(--pp-danger-text);
+}
+
+.btn-contacto-emergencia {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.85rem 1.35rem;
+  min-height: 48px;
+  border-radius: var(--pp-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  text-decoration: none !important;
+  transition: var(--pp-transition);
+  cursor: pointer;
+}
+
+.btn-contacto-whatsapp {
+  background: #25D366;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.btn-contacto-whatsapp:hover {
+  background: #1EBE5D;
+  color: #FFFFFF !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+}
+
+.btn-contacto-whatsapp:active {
+  transform: scale(0.97);
+}
+
+.btn-contacto-tel {
+  background: var(--pp-primary);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+}
+
+.btn-contacto-tel:hover {
+  background: var(--pp-primary-hover);
+  color: #FFFFFF !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.35);
+}
+
+.btn-contacto-tel:active {
+  transform: scale(0.97);
+}
