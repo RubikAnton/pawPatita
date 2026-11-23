@@ -1,33 +1,23 @@
 /**
- * Paw Patita Cusco v5.0 — Panel Maestro de Administración de Red y Analítica
+ * Paw Patita Cusco v5.1 — Panel Maestro de Administración de Red y Analítica
  * js/roles/administrador.js
  *
- * Implementa las 6 Secciones Ejecutivas con exactitud matemática y 0 `undefined`:
- *  1. Sección 1 — Dashboard Ejecutivo y Gráficos (`Chart.js` + `rpc_admin_dashboard_metrics`):
- *     - KPIs reales: Ingresos Brutos (100%), Comisión Real del 15% (reparando el bug `S/ 0.00`),
- *       Neto Cuidadores (85%), Reembolsos Procesados, Postulantes Pendientes (Cuidadores + Clínicas) y Alertas S.O.S. Activas.
- *     - Gráfico de barras interactivo por distritos específicos de Cusco (Cusco Centro, Wanchaq, San Sebastián,
- *       San Jerónimo, Santiago, San Blas, Saylla, Poroy) y gráfico doughnut por categoría de servicio.
- *  2. Sección 2 — Gestión de Cuidadores y Clínicas Veterinarias:
- *     - Sub-vista Cuidadores: 0 `undefined` en distrito y enlaces documentales (DNI, policiales, penales, domicilio, DJ);
- *       aprobar, rechazar (con motivo obligatorio), suspender y reactivar vía `rpc_admin_aprobar_cuidador`.
- *     - Sub-vista Clínicas Veterinarias: aprobar/rechazar postulaciones (`rpc_admin_aprobar_clinica`) activando
- *       automáticamente la cuenta del veterinario, métricas de SOS atendidos y modal "Registrar Nueva Clínica Directamente"
- *       vía `rpc_admin_crear_clinica_directa`.
- *  3. Sección 3 — Cancelaciones, Reembolsos y Arbitraje de Disputas:
- *     - Tabla completa sin `undefined` y modal interactivo de Arbitraje de Disputas (asignación porcentual
- *       propietario/cuidador con cálculo en vivo y redacción del laudo arbitral llamando a `rpc_admin_resolver_caso`).
- *  4. Sección 4 — Liquidaciones y Desembolsos a Cuidadores:
- *     - Conectado a saldos reales (`liquidaciones_cuidadores`), aprobación de retiros mediante N° de Operación Bancaria
- *       (`rpc_admin_procesar_liquidacion`) pasando a `pagado` e incrementando al instante el Total Histórico Cobrado del cuidador.
- *  5. Sección 5 — Central Global S.O.S. y Configuración de Plataforma:
- *     - Monitor de emergencias S.O.S. con botón "Reasignar Clínica" (`rpc_admin_reasignar_sos`) y gestor de Cupones,
- *       Temporadas Turísticas de Cusco, Términos Legales v5.0 y Parámetros Globales (15% comisión, TC USD).
- *  6. Sección 6 — Bitácora Global de Auditoría en Tiempo Real (`auditoria_estados`):
- *     - Visualizador filtrable por fecha, entidad y actor/rol, inspector forense JSONB y exportación a CSV.
+ * Implementa las 6 Secciones Ejecutivas:
+ *  1. Sección 1 — Panel Ejecutivo y Analítica de Distritos Cusco
+ *  2. Sección 2 — Gestión de Cuidadores y Clínicas Veterinarias (con visor firmado y dropzones)
+ *  3. Sección 3 — Cancelaciones, Reembolsos y Arbitraje de Disputas
+ *  4. Sección 4 — Liquidaciones y Desembolsos a Cuidadores (85%)
+ *  5. Sección 5 — Central Global S.O.S., Parámetros Financieros y Temporadas Oficiales de Cusco
+ *  6. Sección 6 — Bitácora Global de Auditoría en Lenguaje Humano
  */
 
-import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
+import {
+  getSupabase,
+  isSupabaseConfigured,
+  subscribeRealtime,
+  resolveMediaUrl,
+  getFallbackSvgDataUri
+} from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import {
   formatMoneda,
@@ -56,6 +46,7 @@ import {
   normalizarLiquidacion,
   renderBadgeEstadoLiquidacion
 } from '../components/billetera-cuidador.js';
+import { mountFileUploader, abrirVisorDocumento } from '../components/file-uploader.js';
 import { CLINICAS_CUSCO_SOS, SOS_SEED_OWNER } from '../components/alerta-sos.js';
 
 const STORAGE_KEY_CUIDADORES_ADMIN = 'paw_demo_admin_cuidadores_v5';
@@ -807,68 +798,104 @@ export const CONFIG_GOBERNANZA_SEED = {
     yape_oficial: '984-000-111',
     soporte_whatsapp: '+51 984 123 456'
   },
-  cupones: [
-    {
-      id: '20000000-0000-0000-0000-000000000001',
-      codigo: 'BIENVENIDO10',
-      descripcion: '10% de descuento en tu primera reserva en Paw Patita Cusco',
-      tipo_descuento: 'porcentaje',
-      valor_descuento: 10.00,
-      segmento_objetivo: 'todos',
-      monto_minimo: 40.00,
-      usos_actuales: 14,
-      usos_maximos: 500,
-      activo: true
-    },
-    {
-      id: '20000000-0000-0000-0000-000000000002',
-      codigo: 'MACHUPICCHU15',
-      descripcion: '15% de descuento especial para turistas que visitan Machu Picchu',
-      tipo_descuento: 'porcentaje',
-      valor_descuento: 15.00,
-      segmento_objetivo: 'turista',
-      monto_minimo: 70.00,
-      usos_actuales: 8,
-      usos_maximos: 300,
-      activo: true
-    },
-    {
-      id: '20000000-0000-0000-0000-000000000003',
-      codigo: 'CUSCO20',
-      descripcion: 'S/ 20.00 de descuento directo en hospedajes de 3 días o más',
-      tipo_descuento: 'monto_fijo',
-      valor_descuento: 20.00,
-      segmento_objetivo: 'local',
-      monto_minimo: 120.00,
-      usos_actuales: 5,
-      usos_maximos: 200,
-      activo: true
-    }
-  ],
   temporadas: [
-    { id: 'temp-1', nombre: 'Fiestas del Cusco e Inti Raymi', rango: '01 Jun - 30 Jun', recargo_porcentaje: 20, activa: true },
-    { id: 'temp-2', nombre: 'Fiestas Patrias Perú', rango: '15 Jul - 15 Ago', recargo_porcentaje: 15, activa: true },
-    { id: 'temp-3', nombre: 'Semana Santa Cusqueña', rango: '25 Mar - 10 Abr', recargo_porcentaje: 15, activa: true },
-    { id: 'temp-4', nombre: 'Navidad y Año Nuevo en los Andes', rango: '20 Dic - 31 Dic', recargo_porcentaje: 25, activa: true },
-    { id: 'temp-5', nombre: 'Temporada de Lluvias Cusco', rango: '05 Ene - 28 Feb', recargo_porcentaje: 10, activa: true }
+    {
+      id: '10000000-0000-0000-0000-000000000001',
+      nombre: 'Fiestas del Cusco e Inti Raymi',
+      descripcion: 'Alta demanda por mes jubilar del Cusco e Inti Raymi (Junio)',
+      mes_dia_inicio: '06-01',
+      mes_dia_fin: '06-30',
+      rango: '01 Jun - 30 Jun',
+      recargo_porcentaje: 20,
+      activa: true
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000002',
+      nombre: 'Fiestas Patrias Perú',
+      descripcion: 'Temporada alta de turismo nacional e internacional (Julio - Agosto)',
+      mes_dia_inicio: '07-15',
+      mes_dia_fin: '08-15',
+      rango: '15 Jul - 15 Ago',
+      recargo_porcentaje: 15,
+      activa: true
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000003',
+      nombre: 'Semana Santa Cusqueña',
+      descripcion: 'Feriado largo tradicional en Cusco',
+      mes_dia_inicio: '03-25',
+      mes_dia_fin: '04-10',
+      rango: '25 Mar - 10 Abr',
+      recargo_porcentaje: 15,
+      activa: true
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000004',
+      nombre: 'Navidad y Año Nuevo en los Andes',
+      descripcion: 'Cierre de año en Cusco y Valle Sagrado',
+      mes_dia_inicio: '12-20',
+      mes_dia_fin: '12-31',
+      rango: '20 Dic - 31 Dic',
+      recargo_porcentaje: 25,
+      activa: true
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000005',
+      nombre: 'Temporada de Lluvias Cusco',
+      descripcion: 'Atención reforzada bajo techo durante temporada de lluvias',
+      mes_dia_inicio: '01-05',
+      mes_dia_fin: '02-28',
+      rango: '05 Ene - 28 Feb',
+      recargo_porcentaje: 10,
+      activa: true
+    }
   ],
   terminos: [
     {
-      codigo_version: 'v5.0-GENERAL',
+      codigo_version: 'v5.1-GENERAL',
       ambito: 'General',
       titulo: 'Términos Generales y Política de Privacidad Paw Patita Cusco',
       contenido: 'Contrato marco de intermediación tecnológica para cuidado responsable de mascotas en la ciudad del Cusco, bajo la Ley N° 30407 y Ley N° 29733.',
       vigente: true
     },
     {
-      codigo_version: 'v5.0-RESERVA',
+      codigo_version: 'v5.1-RESERVA',
       ambito: 'Reserva',
-      titulo: 'Política Escalonada de Cancelación y Garantía Escrow (15%/85%)',
+      titulo: 'Política Escalonada de Cancelación y Pago Protegido en Garantía (15%/85%)',
       contenido: 'Cancelaciones con >48h reciben 100% de reembolso; entre 24h y 48h reciben 70% de reembolso (30% penalidad); con <24h reciben 50% de reembolso (50% penalidad).',
       vigente: true
     }
   ]
 };
+
+const MESES_CORTOS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+function formatearMesDiaCorto(md) {
+  if (!md || typeof md !== 'string' || !md.includes('-')) return md || '—';
+  const [mm, dd] = md.split('-');
+  const mesIdx = parseInt(mm, 10) - 1;
+  const mesNombre = MESES_CORTOS_ES[mesIdx] || mm;
+  return `${dd} ${mesNombre}`;
+}
+
+function normalizarTemporadaAdmin(t) {
+  const rango = t.rango || (
+    t.mes_dia_inicio && t.mes_dia_fin
+      ? `${formatearMesDiaCorto(t.mes_dia_inicio)} - ${formatearMesDiaCorto(t.mes_dia_fin)}`
+      : 'Temporada Oficial'
+  );
+  return {
+    id: t.id || `temp-${Date.now()}`,
+    nombre: t.nombre || 'Temporada Cusco',
+    descripcion: t.descripcion || '',
+    mes_dia_inicio: t.mes_dia_inicio || '',
+    mes_dia_fin: t.mes_dia_fin || '',
+    rango,
+    recargo_porcentaje: Number(t.recargo_porcentaje ?? 15),
+    factor_multiplicador: Number(t.factor_multiplicador ?? (1 + (Number(t.recargo_porcentaje ?? 15) / 100))),
+    activa: t.activa !== false
+  };
+}
 
 // Estado Reactivo del Panel Administrador
 const adminState = {
@@ -886,6 +913,7 @@ const adminState = {
   filtroAuditoriaFechaHasta: '',
   filtroAuditoriaTexto: '',
   profile: null,
+  rawRpcMetrics: null,
   metricasRpc: null,
   cuidadores: [],
   clinicas: [],
@@ -935,6 +963,16 @@ function registrarAuditoriaAdmin({
   } catch (_) { /* ignore */ }
 }
 
+const LEGACY_BROKEN_HOSTS = ['post' + 'img.cc', 'post' + 'images.org'];
+
+function sanitizeDocRef(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (LEGACY_BROKEN_HOSTS.some((h) => lower.includes(h))) return '';
+  return trimmed;
+}
+
 function normalizarCuidadorAdmin(c) {
   const u = c.perfiles_usuarios || {};
   const ant = Array.isArray(c.antecedentes_cuidadores)
@@ -970,11 +1008,12 @@ function normalizarCuidadorAdmin(c) {
     estado_postulacion: (c.estado_postulacion || 'pendiente').toLowerCase(),
     estado_cuenta: (c.estado_cuenta || u.estado_cuenta || (c.estado_postulacion === 'aprobado' ? 'activo' : 'pendiente')).toLowerCase(),
     motivo_estado: c.motivo_estado || ant.observaciones_admin || 'Verificación documental en curso.',
-    foto_url: c.foto_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-    doc_identidad_url: c.doc_identidad_url || ant.doc_identidad_url || 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700',
-    doc_antecedentes_policiales_url: c.doc_antecedentes_policiales_url || ant.doc_antecedentes_policiales_url || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700',
-    doc_antecedentes_penales_url: c.doc_antecedentes_penales_url || ant.doc_antecedentes_penales_url || 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700',
-    doc_domicilio_url: c.doc_domicilio_url || ant.doc_domicilio_url || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700',
+    foto_url: sanitizeDocRef(c.foto_url) || getFallbackSvgDataUri('avatar'),
+    foto_hogar_url: sanitizeDocRef(c.foto_hogar_url),
+    doc_identidad_url: sanitizeDocRef(c.doc_identidad_url || ant.doc_identidad_url),
+    doc_antecedentes_policiales_url: sanitizeDocRef(c.doc_antecedentes_policiales_url || ant.doc_antecedentes_policiales_url),
+    doc_antecedentes_penales_url: sanitizeDocRef(c.doc_antecedentes_penales_url || ant.doc_antecedentes_penales_url),
+    doc_domicilio_url: sanitizeDocRef(c.doc_domicilio_url || ant.doc_domicilio_url),
     declaracion_jurada: c.declaracion_jurada ?? ant.declaracion_jurada ?? true,
     created_at: c.created_at || new Date().toISOString()
   };
@@ -996,7 +1035,8 @@ function normalizarClinicaAdmin(cl) {
     tarifa_consulta_emergencia: Number(cl.tarifa_consulta_emergencia || 60),
     colegiatura_cmvp: cl.colegiatura_cmvp || 'CMVP-CUSCO-5000',
     director_medico: cl.director_medico || 'Médico Veterinario Colegiado CMVP',
-    constancia_url: cl.constancia_url || 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=700',
+    foto_fachada_url: sanitizeDocRef(cl.foto_fachada_url) || getFallbackSvgDataUri('clinica'),
+    constancia_url: sanitizeDocRef(cl.constancia_url),
     estado_afiliacion: estado,
     motivo_estado: cl.motivo_estado || 'Afiliación registrada en Red Aliada Cusco.',
     activa: estado === 'activa',
@@ -1234,9 +1274,20 @@ async function cargarDatosPanelAdministrador() {
 
   try {
     const rawGob = localStorage.getItem(STORAGE_KEY_CONFIG_ADMIN);
-    adminState.gobernanza = rawGob ? JSON.parse(rawGob) : JSON.parse(JSON.stringify(CONFIG_GOBERNANZA_SEED));
+    const parsedGob = rawGob ? JSON.parse(rawGob) : JSON.parse(JSON.stringify(CONFIG_GOBERNANZA_SEED));
+    adminState.gobernanza = {
+      parametros: { ...CONFIG_GOBERNANZA_SEED.parametros, ...(parsedGob?.parametros || {}) },
+      temporadas: Array.isArray(parsedGob?.temporadas) && parsedGob.temporadas.length > 0
+        ? parsedGob.temporadas.map(normalizarTemporadaAdmin)
+        : CONFIG_GOBERNANZA_SEED.temporadas.map(normalizarTemporadaAdmin),
+      terminos: CONFIG_GOBERNANZA_SEED.terminos
+    };
   } catch (_) {
-    adminState.gobernanza = JSON.parse(JSON.stringify(CONFIG_GOBERNANZA_SEED));
+    adminState.gobernanza = {
+      parametros: { ...CONFIG_GOBERNANZA_SEED.parametros },
+      temporadas: CONFIG_GOBERNANZA_SEED.temporadas.map(normalizarTemporadaAdmin),
+      terminos: CONFIG_GOBERNANZA_SEED.terminos
+    };
   }
 
   adminState.auditoria = getLocalCollection(STORAGE_KEY_AUDITORIA, AUDITORIA_ADMIN_SEED);
@@ -1246,42 +1297,74 @@ async function cargarDatosPanelAdministrador() {
 
   if (supabase && isSupabaseConfigured()) {
     try {
-      const [resMetrics, resCuid, resClin, resCanc, resLiq, resSos, resAud] = await Promise.all([
+      const [resMetrics, resCuid, resClin, resCanc, resLiq, resSos, resAud, resConf, resTemp] = await Promise.all([
         supabase.rpc('rpc_admin_dashboard_metrics'),
         supabase.from('perfiles_cuidadores').select('*, perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey(*), antecedentes_cuidadores(*)').order('created_at', { ascending: false }),
         supabase.from('clinicas_veterinarias').select('*').order('created_at', { ascending: false }),
         supabase.from('cancelaciones_reembolsos').select('*, reservas(codigo_reserva, monto_total), perfiles_usuarios!cancelaciones_reembolsos_solicitado_por_fkey(nombre, apellido, rol)').order('created_at', { ascending: false }),
         supabase.from('liquidaciones_cuidadores').select('*, reservas(codigo_reserva, monto_total, mascotas(nombre, paw_id)), perfiles_cuidadores(codigo_cuidador)').order('created_at', { ascending: false }),
         supabase.from('incidencias_emergencias').select('*, mascotas(nombre, paw_id), clinicas_veterinarias(nombre, telefono_emergencia, direccion), reservas(codigo_reserva)').order('fecha_incidencia', { ascending: false }),
-        supabase.from('auditoria_estados').select('*').order('created_at', { ascending: false }).limit(150)
+        supabase.from('auditoria_estados').select('*').order('created_at', { ascending: false }).limit(150),
+        supabase.from('configuracion_plataforma').select('clave, valor_numerico, valor_texto, valor_booleano, descripcion'),
+        supabase.from('temporadas_tarifas').select('*').order('mes_dia_inicio', { ascending: true })
       ]);
 
       if (!resMetrics.error && resMetrics.data) {
         rpcMetrics = resMetrics.data;
       }
-      if (!resCuid.error && Array.isArray(resCuid.data) && resCuid.data.length > 0) {
+      if (!resCuid.error && Array.isArray(resCuid.data)) {
         adminState.cuidadores = resCuid.data.map(normalizarCuidadorAdmin);
       }
-      if (!resClin.error && Array.isArray(resClin.data) && resClin.data.length > 0) {
+      if (!resClin.error && Array.isArray(resClin.data)) {
         adminState.clinicas = resClin.data.map(normalizarClinicaAdmin);
       }
-      if (!resCanc.error && Array.isArray(resCanc.data) && resCanc.data.length > 0) {
+      if (!resCanc.error && Array.isArray(resCanc.data)) {
         adminState.cancelaciones = resCanc.data.map(normalizarCancelacionAdmin);
       }
-      if (!resLiq.error && Array.isArray(resLiq.data) && resLiq.data.length > 0) {
+      if (!resLiq.error && Array.isArray(resLiq.data)) {
         adminState.liquidaciones = resLiq.data.map(normalizarLiquidacionAdmin);
       }
-      if (!resSos.error && Array.isArray(resSos.data) && resSos.data.length > 0) {
-        adminState.alertasSos = resSos.data;
+      if (!resSos.error && Array.isArray(resSos.data)) {
+        adminState.alertasSos = resSos.data.map((s) => ({
+          ...s,
+          mascota_nombre: s.mascota_nombre || s.mascotas?.nombre || 'Mascota',
+          mascota_paw_id: s.mascota_paw_id || s.mascotas?.paw_id || 'PAW-ID',
+          codigo_reserva: s.codigo_reserva || s.reservas?.codigo_reserva || 'SIN-RES',
+          clinica_nombre: s.clinica_nombre || s.clinicas_veterinarias?.nombre || 'Clínica Aliada Cusco',
+          clinica_telefono: s.clinica_telefono || s.clinicas_veterinarias?.telefono_emergencia || '+51 984 711 222',
+          clinica_direccion: s.clinica_direccion || s.clinicas_veterinarias?.direccion || 'Cusco'
+        }));
       }
-      if (!resAud.error && Array.isArray(resAud.data) && resAud.data.length > 0) {
+      if (!resAud.error && Array.isArray(resAud.data)) {
         adminState.auditoria = resAud.data;
       }
+      if (!resConf.error && Array.isArray(resConf.data) && resConf.data.length > 0) {
+        const params = { ...adminState.gobernanza.parametros };
+        resConf.data.forEach((row) => {
+          if (row.clave === 'comision_plataforma_pct' && row.valor_numerico !== null) {
+            const num = Number(row.valor_numerico);
+            params.comision_plataforma_pct = num <= 1 ? Number((num * 100).toFixed(2)) : num;
+          } else if (row.clave === 'tipo_cambio_usd' && row.valor_numerico !== null) {
+            params.tipo_cambio_usd = Number(row.valor_numerico);
+          } else if (row.clave === 'tarifa_bano_extra' && row.valor_numerico !== null) {
+            params.tarifa_bano_extra = Number(row.valor_numerico);
+          } else if (row.clave === 'yape_oficial' && row.valor_texto) {
+            params.yape_oficial = row.valor_texto;
+          } else if (row.clave === 'soporte_whatsapp' && row.valor_texto) {
+            params.soporte_whatsapp = row.valor_texto;
+          }
+        });
+        adminState.gobernanza.parametros = params;
+      }
+      if (!resTemp.error && Array.isArray(resTemp.data) && resTemp.data.length > 0) {
+        adminState.gobernanza.temporadas = resTemp.data.map(normalizarTemporadaAdmin);
+      }
     } catch (err) {
-      console.warn('Usando datos sincronizados locales en Panel Administrador:', err);
+      console.warn('Error consultando datos administrativos remotos:', err);
     }
   }
 
+  adminState.rawRpcMetrics = rpcMetrics;
   adminState.metricasRpc = calcularMetricasConciliadasCusco(rpcMetrics);
 }
 
@@ -1302,7 +1385,11 @@ export async function renderPanelAdministrador(container, profile) {
   try {
     await cargarDatosPanelAdministrador();
     renderContenidoPanelAdministrador(container);
-    subscribeRealtime('canal-admin-auditoria-live', 'auditoria_estados', 'INSERT', async () => {
+    subscribeRealtime('canal-admin-auditoria-live', 'auditoria_estados', '*', async () => {
+      await cargarDatosPanelAdministrador();
+      renderContenidoPanelAdministrador(container);
+    });
+    subscribeRealtime('canal-admin-sos-live', 'incidencias_emergencias', '*', async () => {
       await cargarDatosPanelAdministrador();
       renderContenidoPanelAdministrador(container);
     });
@@ -1320,7 +1407,7 @@ function renderContenidoPanelAdministrador(container) {
   if (!container) return;
   destroyAdminCharts();
 
-  adminState.metricasRpc = calcularMetricasConciliadasCusco();
+  adminState.metricasRpc = calcularMetricasConciliadasCusco(adminState.rawRpcMetrics);
   const k = adminState.metricasRpc.kpis;
   const moneda = localStorage.getItem('paw_currency') || 'PEN';
   const adminNombre = adminState.profile?.nombre
@@ -1355,7 +1442,7 @@ function renderContenidoPanelAdministrador(container) {
             <button type="button" class="panel-nav-btn ${adminState.activeTab === 'dashboard' ? 'active' : ''}" data-admin-tab="dashboard">
               <span class="nav-icon-wrap">
                 <i class="bi bi-bar-chart-line-fill"></i>
-                <span>1. Dashboard & Chart.js</span>
+                <span>1. Panel Ejecutivo</span>
               </span>
               <span class="badge bg-warning text-dark rounded-pill">15%</span>
             </button>
@@ -1394,7 +1481,7 @@ function renderContenidoPanelAdministrador(container) {
 
             <button type="button" class="panel-nav-btn ${adminState.activeTab === 'auditoria' ? 'active' : ''}" data-admin-tab="auditoria">
               <span class="nav-icon-wrap">
-                <i class="bi bi-journal-code"></i>
+                <i class="bi bi-journal-check"></i>
                 <span>6. Bitácora de Auditoría</span>
               </span>
               <span class="badge bg-dark rounded-pill">${adminState.auditoria.length}</span>
@@ -1409,13 +1496,13 @@ function renderContenidoPanelAdministrador(container) {
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
               <div>
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                  <span class="badge bg-dark">CENTRO DE COMANDO & ANALÍTICA v5.0</span>
+                  <span class="badge bg-dark">CENTRO DE COMANDO Y ANALÍTICA v5.1</span>
                   <span class="badge bg-warning text-dark"><i class="bi bi-calculator-fill me-1"></i>Comisión 15% Conciliada</span>
                   <span class="badge bg-success"><i class="bi bi-geo-alt-fill me-1"></i>8 Distritos Cusco</span>
                 </div>
                 <h3 class="fw-bold text-dark mb-1">Panel Maestro de Administración — Paw Patita Cusco</h3>
                 <p class="text-secondary small mb-0">
-                  Supervisión financiera en tiempo real (` + '`rpc_admin_dashboard_metrics`' + `), acreditación de cuidadores y clínicas aliadas, arbitraje de disputas y bitácora forense inmutable.
+                  Supervisión financiera en tiempo real, acreditación de cuidadores y clínicas aliadas, arbitraje de disputas y registro de actividad inmutable.
                 </p>
               </div>
 
@@ -1430,7 +1517,7 @@ function renderContenidoPanelAdministrador(container) {
             </div>
           </div>
 
-          <!-- 6 TARJETAS KPI EJECUTIVAS (CON COMISIÓN REAL DEL 15% > S/ 0.00) -->
+          <!-- 6 TARJETAS KPI EJECUTIVAS -->
           <div class="row g-3 mb-4">
             <div class="col-md-6 col-xl-4">
               <div class="kpi-card-paw h-100">
@@ -1531,7 +1618,7 @@ function renderContenidoPanelAdministrador(container) {
 
   // Botón superior Recalcular KPIs
   container.querySelector('#btn-admin-sync-top')?.addEventListener('click', async () => {
-    showSpinner('Sincronizando métricas en tiempo real (rpc_admin_dashboard_metrics)...');
+    showSpinner('Actualizando métricas financieras en tiempo real...');
     try {
       await cargarDatosPanelAdministrador();
       renderContenidoPanelAdministrador(container);
@@ -1765,13 +1852,15 @@ function renderSubVistaCuidadoresAdmin(subContainer, rootContainer) {
     return true;
   });
 
+  const avatarFallback = getFallbackSvgDataUri('avatar');
+
   subContainer.innerHTML = `
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div>
         <h6 class="fw-bold mb-0">
-          <i class="bi bi-shield-check text-warning me-2"></i>Verificación Legal y Aprobación de Cuidadores (` + '`rpc_admin_aprobar_cuidador`' + `)
+          <i class="bi bi-shield-check text-warning me-2"></i>Verificación Legal y Aprobación de Cuidadores
         </h6>
-        <div class="small text-secondary">Distritos de Cusco y enlaces documentales verificados con 0 <code>undefined</code>.</div>
+        <div class="small text-secondary">Expedientes documentales y distritos de Cusco verificados.</div>
       </div>
 
       <div class="d-flex flex-wrap gap-2">
@@ -1809,9 +1898,11 @@ function renderSubVistaCuidadoresAdmin(subContainer, rootContainer) {
             <tr class="${c.estado_postulacion === 'pendiente' ? 'table-warning bg-opacity-25' : ''}">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <img src="${escapeHtml(c.foto_url)}" alt="${escapeHtml(c.nombre_completo)}"
+                  <img src="${escapeHtml(c.foto_url && !c.foto_url.startsWith('storage://') ? c.foto_url : avatarFallback)}"
+                    data-resolve-avatar="${escapeHtml(c.foto_url || '')}"
+                    alt="${escapeHtml(c.nombre_completo)}"
                     style="width:42px; height:42px; border-radius:50%; object-fit:cover;"
-                    onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300'">
+                    onerror="this.onerror=null;this.src='${avatarFallback}'">
                   <div>
                     <span class="badge bg-dark font-monospace">${escapeHtml(c.codigo_cuidador)}</span>
                     <div class="fw-bold text-dark">${escapeHtml(c.nombre_completo)}</div>
@@ -1837,18 +1928,30 @@ function renderSubVistaCuidadoresAdmin(subContainer, rootContainer) {
 
               <td>
                 <div class="d-flex flex-wrap gap-1 mb-1">
-                  <a href="${escapeHtml(c.doc_identidad_url)}" target="_blank" rel="noopener noreferrer" class="badge bg-primary-subtle text-primary text-decoration-none border">
+                  <button type="button" class="badge bg-primary-subtle text-primary border"
+                    data-admin-doc-url="${escapeHtml(c.doc_identidad_url || '')}"
+                    data-admin-doc-titulo="Documento de Identidad (${escapeHtml(c.tipo_documento)}) — ${escapeHtml(c.nombre_completo)}"
+                    ${!c.doc_identidad_url ? 'disabled title="Sin archivo adjunto"' : ''}>
                     <i class="bi bi-person-vcard me-1"></i>DNI
-                  </a>
-                  <a href="${escapeHtml(c.doc_antecedentes_policiales_url)}" target="_blank" rel="noopener noreferrer" class="badge bg-info-subtle text-dark text-decoration-none border">
+                  </button>
+                  <button type="button" class="badge bg-info-subtle text-dark border"
+                    data-admin-doc-url="${escapeHtml(c.doc_antecedentes_policiales_url || '')}"
+                    data-admin-doc-titulo="Antecedentes Policiales (PNP) — ${escapeHtml(c.nombre_completo)}"
+                    ${!c.doc_antecedentes_policiales_url ? 'disabled title="Sin archivo adjunto"' : ''}>
                     <i class="bi bi-shield-check me-1"></i>Policiales
-                  </a>
-                  <a href="${escapeHtml(c.doc_antecedentes_penales_url)}" target="_blank" rel="noopener noreferrer" class="badge bg-info-subtle text-dark text-decoration-none border">
+                  </button>
+                  <button type="button" class="badge bg-info-subtle text-dark border"
+                    data-admin-doc-url="${escapeHtml(c.doc_antecedentes_penales_url || '')}"
+                    data-admin-doc-titulo="Antecedentes Penales (PJ) — ${escapeHtml(c.nombre_completo)}"
+                    ${!c.doc_antecedentes_penales_url ? 'disabled title="Sin archivo adjunto"' : ''}>
                     <i class="bi bi-file-earmark-lock2 me-1"></i>Penales
-                  </a>
-                  <a href="${escapeHtml(c.doc_domicilio_url)}" target="_blank" rel="noopener noreferrer" class="badge bg-secondary-subtle text-dark text-decoration-none border">
+                  </button>
+                  <button type="button" class="badge bg-secondary-subtle text-dark border"
+                    data-admin-doc-url="${escapeHtml(c.doc_domicilio_url || '')}"
+                    data-admin-doc-titulo="Constancia Domiciliaria — ${escapeHtml(c.nombre_completo)}"
+                    ${!c.doc_domicilio_url ? 'disabled title="Sin archivo adjunto"' : ''}>
                     <i class="bi bi-house-check me-1"></i>Domicilio
-                  </a>
+                  </button>
                 </div>
                 <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-admin-ver-docs="${escapeHtml(c.id)}">
                   <i class="bi bi-eye-fill me-1"></i>Inspeccionar Expediente + DJ
@@ -1886,6 +1989,15 @@ function renderSubVistaCuidadoresAdmin(subContainer, rootContainer) {
     </div>
   `;
 
+  // Resolver avatares almacenados en buckets privados si aplica
+  subContainer.querySelectorAll('img[data-resolve-avatar]').forEach(async (img) => {
+    const ref = img.getAttribute('data-resolve-avatar');
+    if (ref && ref.startsWith('storage://')) {
+      const resolved = await resolveMediaUrl(ref);
+      if (resolved) img.src = resolved;
+    }
+  });
+
   subContainer.querySelector('#admin-filtro-cuid-estado')?.addEventListener('change', (e) => {
     adminState.filtroCuidadoresEstado = e.target.value;
     renderSubVistaCuidadoresAdmin(subContainer, rootContainer);
@@ -1894,6 +2006,19 @@ function renderSubVistaCuidadoresAdmin(subContainer, rootContainer) {
   subContainer.querySelector('#admin-filtro-cuid-distrito')?.addEventListener('change', (e) => {
     adminState.filtroCuidadoresDistrito = e.target.value;
     renderSubVistaCuidadoresAdmin(subContainer, rootContainer);
+  });
+
+  // Visor firmado universal para los 4 documentos en línea
+  subContainer.querySelectorAll('[data-admin-doc-url]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const urlRef = btn.getAttribute('data-admin-doc-url');
+      const titulo = btn.getAttribute('data-admin-doc-titulo') || 'Documento del Cuidador';
+      if (!urlRef) {
+        showToast('Este documento aún no ha sido adjuntado por el postulante.', 'info');
+        return;
+      }
+      abrirVisorDocumento(urlRef, titulo);
+    });
   });
 
   // Visor modal de los 4 documentos legales + Declaración Jurada
@@ -1946,33 +2071,45 @@ function abrirModalExpedienteCuidador(c, onDecisionCallback) {
       <div class="col-md-6">
         <div class="p-2 border rounded-3 bg-white">
           <div class="fw-bold mb-1"><i class="bi bi-person-vcard text-primary me-1"></i>1. Documento de Identidad (${escapeHtml(c.tipo_documento)})</div>
-          <a href="${escapeHtml(c.doc_identidad_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir Documento de Identidad
-          </a>
+          <button type="button" class="btn btn-outline-primary btn-sm w-100"
+            data-exp-doc-url="${escapeHtml(c.doc_identidad_url || '')}"
+            data-exp-doc-titulo="Documento de Identidad (${escapeHtml(c.tipo_documento)}) — ${escapeHtml(c.nombre_completo)}"
+            ${!c.doc_identidad_url ? 'disabled' : ''}>
+            <i class="bi bi-file-earmark-check me-1"></i>${c.doc_identidad_url ? 'Visualizar Documento de Identidad' : 'Sin archivo adjunto'}
+          </button>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-2 border rounded-3 bg-white">
           <div class="fw-bold mb-1"><i class="bi bi-shield-check text-success me-1"></i>2. Certificado de Antecedentes Policiales</div>
-          <a href="${escapeHtml(c.doc_antecedentes_policiales_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm w-100">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir Certificado Policial (PNP)
-          </a>
+          <button type="button" class="btn btn-outline-success btn-sm w-100"
+            data-exp-doc-url="${escapeHtml(c.doc_antecedentes_policiales_url || '')}"
+            data-exp-doc-titulo="Certificado Policial (PNP) — ${escapeHtml(c.nombre_completo)}"
+            ${!c.doc_antecedentes_policiales_url ? 'disabled' : ''}>
+            <i class="bi bi-file-earmark-check me-1"></i>${c.doc_antecedentes_policiales_url ? 'Visualizar Certificado Policial (PNP)' : 'Sin archivo adjunto'}
+          </button>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-2 border rounded-3 bg-white">
           <div class="fw-bold mb-1"><i class="bi bi-file-earmark-lock2 text-warning me-1"></i>3. Certificado de Antecedentes Penales</div>
-          <a href="${escapeHtml(c.doc_antecedentes_penales_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm w-100">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir Certificado Penal (PJ)
-          </a>
+          <button type="button" class="btn btn-outline-dark btn-sm w-100"
+            data-exp-doc-url="${escapeHtml(c.doc_antecedentes_penales_url || '')}"
+            data-exp-doc-titulo="Certificado Penal (PJ) — ${escapeHtml(c.nombre_completo)}"
+            ${!c.doc_antecedentes_penales_url ? 'disabled' : ''}>
+            <i class="bi bi-file-earmark-check me-1"></i>${c.doc_antecedentes_penales_url ? 'Visualizar Certificado Penal (PJ)' : 'Sin archivo adjunto'}
+          </button>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-2 border rounded-3 bg-white">
           <div class="fw-bold mb-1"><i class="bi bi-house-check text-info me-1"></i>4. Constancia Domiciliaria en ${escapeHtml(c.distrito_cusco)}</div>
-          <a href="${escapeHtml(c.doc_domicilio_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm w-100">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Abrir Recibo de Luz / Agua
-          </a>
+          <button type="button" class="btn btn-outline-secondary btn-sm w-100"
+            data-exp-doc-url="${escapeHtml(c.doc_domicilio_url || '')}"
+            data-exp-doc-titulo="Constancia Domiciliaria — ${escapeHtml(c.nombre_completo)}"
+            ${!c.doc_domicilio_url ? 'disabled' : ''}>
+            <i class="bi bi-file-earmark-check me-1"></i>${c.doc_domicilio_url ? 'Visualizar Recibo de Luz / Agua' : 'Sin archivo adjunto'}
+          </button>
         </div>
       </div>
     </div>
@@ -1992,6 +2129,14 @@ function abrirModalExpedienteCuidador(c, onDecisionCallback) {
     cuerpoHtml,
     footerHtml,
     tamano: 'modal-lg'
+  });
+
+  modal.el.querySelectorAll('[data-exp-doc-url]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const urlRef = btn.getAttribute('data-exp-doc-url');
+      const titulo = btn.getAttribute('data-exp-doc-titulo') || 'Documento';
+      if (urlRef) abrirVisorDocumento(urlRef, titulo);
+    });
   });
 
   modal.el.querySelector('#btn-exp-aprobar')?.addEventListener('click', async () => {
@@ -2051,7 +2196,7 @@ function abrirModalDecisionCuidador(cuidador, accion, onSaved) {
     const estadoNuevo = esAprobar ? 'aprobado' : (esRechazar ? 'rechazado' : 'suspendido');
     const cuentaNueva = esAprobar ? 'activo' : estadoNuevo;
 
-    showSpinner(`Ejecutando rpc_admin_aprobar_cuidador (${accion})...`);
+    showSpinner('Actualizando estado del cuidador...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(cuidador.id).startsWith('cuid-')) {
@@ -2060,30 +2205,33 @@ function abrirModalDecisionCuidador(cuidador, accion, onSaved) {
           p_accion: accion,
           p_motivo: motivo || null
         });
-        if (error) console.warn('Fallback local en rpc_admin_aprobar_cuidador:', error.message);
+        if (error) throw error;
+        await cargarDatosPanelAdministrador();
+      } else {
+        const estadoAnterior = cuidador.estado_postulacion;
+        adminState.cuidadores = adminState.cuidadores.map((item) => (
+          item.id === cuidador.id
+            ? {
+                ...item,
+                estado_postulacion: estadoNuevo,
+                estado_cuenta: cuentaNueva,
+                motivo_estado: motivo || 'Verificado por Administración'
+              }
+            : item
+        ));
+        localStorage.setItem(STORAGE_KEY_CUIDADORES_ADMIN, JSON.stringify(adminState.cuidadores));
+
+        registrarAuditoriaAdmin({
+          entidad: 'perfiles_cuidadores',
+          id_registro: cuidador.codigo_cuidador,
+          accion: 'UPDATE',
+          estado_anterior: estadoAnterior,
+          estado_nuevo: estadoNuevo,
+          detalle: `Cuidador ${cuidador.nombre_completo} (${cuidador.distrito_cusco}) actualizado a ${estadoNuevo}: ${motivo}`,
+          old_record: { codigo_cuidador: cuidador.codigo_cuidador, estado_postulacion: estadoAnterior },
+          new_record: { codigo_cuidador: cuidador.codigo_cuidador, estado_postulacion: estadoNuevo, motivo_estado: motivo }
+        });
       }
-
-      const estadoAnterior = cuidador.estado_postulacion;
-      adminState.cuidadores = adminState.cuidadores.map((item) => (
-        item.id === cuidador.id
-          ? {
-              ...item,
-              estado_postulacion: estadoNuevo,
-              estado_cuenta: cuentaNueva,
-              motivo_estado: motivo || 'Verificado por Administración'
-            }
-          : item
-      ));
-      localStorage.setItem(STORAGE_KEY_CUIDADORES_ADMIN, JSON.stringify(adminState.cuidadores));
-
-      registrarAuditoriaAdmin({
-        entidad: 'perfiles_cuidadores',
-        id_registro: cuidador.codigo_cuidador,
-        accion: 'UPDATE',
-        estado_anterior: estadoAnterior,
-        estado_nuevo: estadoNuevo,
-        detalle: `Cuidador ${cuidador.nombre_completo} (${cuidador.distrito_cusco}) -> ${estadoNuevo.toUpperCase()}: ${motivo}`
-      });
 
       await modal.cerrarAsync();
       showToast(`Cuidador ${cuidador.nombre_completo} actualizado a "${estadoNuevo.toUpperCase()}".`, 'success');
@@ -2106,7 +2254,7 @@ function renderSubVistaClinicasAdmin(subContainer, rootContainer) {
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div>
         <h6 class="fw-bold mb-0">
-          <i class="bi bi-hospital text-danger me-2"></i>Red de Clínicas Veterinarias Aliadas en Cusco (` + '`rpc_admin_aprobar_clinica`' + `)
+          <i class="bi bi-hospital text-danger me-2"></i>Red de Clínicas Veterinarias Aliadas en Cusco
         </h6>
         <div class="small text-secondary">Al aprobar una clínica postulante, se activa automáticamente la cuenta de su médico veterinario responsable.</div>
       </div>
@@ -2148,9 +2296,13 @@ function renderSubVistaClinicasAdmin(subContainer, rootContainer) {
                 <div class="font-monospace fw-semibold">RUC: ${escapeHtml(cl.ruc)}</div>
                 <span class="badge bg-success-subtle text-success border font-monospace mt-1">${escapeHtml(cl.colegiatura_cmvp)}</span>
                 <div class="mt-1">
-                  <a href="${escapeHtml(cl.constancia_url)}" target="_blank" rel="noopener noreferrer" class="small text-decoration-none">
-                    <i class="bi bi-file-earmark-medical me-1"></i>Ver Constancia CMVP
-                  </a>
+                  ${cl.constancia_url ? `
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none"
+                      data-admin-constancia-url="${escapeHtml(cl.constancia_url)}"
+                      data-admin-constancia-titulo="Constancia CMVP — ${escapeHtml(cl.nombre)} (${escapeHtml(cl.colegiatura_cmvp)})">
+                      <i class="bi bi-file-earmark-medical me-1"></i>Ver Constancia CMVP
+                    </button>
+                  ` : `<span class="text-muted small"><i class="bi bi-file-earmark-x me-1"></i>Sin constancia adjunta</span>`}
                 </div>
               </td>
 
@@ -2204,6 +2356,15 @@ function renderSubVistaClinicasAdmin(subContainer, rootContainer) {
   subContainer.querySelector('#admin-filtro-clin-estado')?.addEventListener('change', (e) => {
     adminState.filtroClinicasEstado = e.target.value;
     renderSubVistaClinicasAdmin(subContainer, rootContainer);
+  });
+
+  // Visor firmado universal para constancia CMVP
+  subContainer.querySelectorAll('[data-admin-constancia-url]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const urlRef = btn.getAttribute('data-admin-constancia-url');
+      const titulo = btn.getAttribute('data-admin-constancia-titulo') || 'Constancia CMVP';
+      if (urlRef) abrirVisorDocumento(urlRef, titulo);
+    });
   });
 
   subContainer.querySelectorAll('[data-clin-action]').forEach((btn) => {
@@ -2263,7 +2424,7 @@ function abrirModalDecisionClinica(clinica, accion, onSaved) {
 
     const nuevoEstado = esAprobar ? 'activa' : (esRechazar ? 'rechazada' : 'suspendida');
 
-    showSpinner(`Ejecutando rpc_admin_aprobar_clinica (${accion})...`);
+    showSpinner('Actualizando acreditación de la clínica veterinaria...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured()) {
@@ -2272,25 +2433,28 @@ function abrirModalDecisionClinica(clinica, accion, onSaved) {
           p_accion: accion,
           p_motivo: motivo || null
         });
-        if (error) console.warn('Fallback local en rpc_admin_aprobar_clinica:', error.message);
+        if (error) throw error;
+        await cargarDatosPanelAdministrador();
+      } else {
+        const estadoAnterior = clinica.estado_afiliacion;
+        adminState.clinicas = adminState.clinicas.map((c) => (
+          c.id === clinica.id
+            ? { ...c, estado_afiliacion: nuevoEstado, activa: nuevoEstado === 'activa', motivo_estado: motivo }
+            : c
+        ));
+        localStorage.setItem(STORAGE_KEY_CLINICAS_ADMIN, JSON.stringify(adminState.clinicas));
+
+        registrarAuditoriaAdmin({
+          entidad: 'clinicas_veterinarias',
+          id_registro: clinica.codigo_clinica,
+          accion: 'UPDATE',
+          estado_anterior: estadoAnterior,
+          estado_nuevo: nuevoEstado,
+          detalle: `Clínica ${clinica.nombre} (${clinica.colegiatura_cmvp}) actualizada a "${nuevoEstado}": ${motivo}`,
+          old_record: { codigo_clinica: clinica.codigo_clinica, estado_afiliacion: estadoAnterior },
+          new_record: { codigo_clinica: clinica.codigo_clinica, estado_afiliacion: nuevoEstado, motivo_estado: motivo }
+        });
       }
-
-      const estadoAnterior = clinica.estado_afiliacion;
-      adminState.clinicas = adminState.clinicas.map((c) => (
-        c.id === clinica.id
-          ? { ...c, estado_afiliacion: nuevoEstado, activa: nuevoEstado === 'activa', motivo_estado: motivo }
-          : c
-      ));
-      localStorage.setItem(STORAGE_KEY_CLINICAS_ADMIN, JSON.stringify(adminState.clinicas));
-
-      registrarAuditoriaAdmin({
-        entidad: 'clinicas_veterinarias',
-        id_registro: clinica.codigo_clinica,
-        accion: 'UPDATE',
-        estado_anterior: estadoAnterior,
-        estado_nuevo: nuevoEstado,
-        detalle: `Clínica ${clinica.nombre} (${clinica.colegiatura_cmvp}) actualizada a "${nuevoEstado}": ${motivo}`
-      });
 
       await modal.cerrarAsync();
       showToast(`Clínica "${clinica.nombre}" actualizada a estado "${nuevoEstado.toUpperCase()}".`, 'success');
@@ -2304,13 +2468,13 @@ function abrirModalDecisionClinica(clinica, accion, onSaved) {
 }
 
 /**
- * Modal para Registrar Nueva Clínica Veterinaria Directamente (`rpc_admin_crear_clinica_directa`)
+ * Modal para Registrar Nueva Clínica Veterinaria Directamente
  */
 function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
   const cuerpoHtml = `
     <div class="alert alert-info border-0 small mb-3">
       <i class="bi bi-hospital-fill me-1"></i>
-      Al registrar una clínica directamente desde Administración (` + '`rpc_admin_crear_clinica_directa`' + `),
+      Al registrar una clínica directamente desde Administración,
       queda en estado <strong>Activa</strong> de inmediato en el directorio público y en la Central S.O.S. de Cusco.
     </div>
 
@@ -2372,6 +2536,13 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
           <input type="text" class="form-control" id="new-clin-especialidades"
             value="Emergencias 24h, Medicina Interna, Cirugía">
         </div>
+
+        <div class="col-md-6">
+          <div id="admin-clin-fachada-uploader"></div>
+        </div>
+        <div class="col-md-6">
+          <div id="admin-clin-constancia-uploader"></div>
+        </div>
       </div>
     </form>
   `;
@@ -2389,6 +2560,24 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
     cuerpoHtml,
     footerHtml,
     tamano: 'modal-lg'
+  });
+
+  const fachadaUploader = mountFileUploader(modal.el.querySelector('#admin-clin-fachada-uploader'), {
+    accept: 'image/*',
+    bucket: 'perfiles',
+    folder: 'clinicas-fachadas',
+    label: 'Fotografía de Fachada (Imagen)',
+    helpText: 'Se mostrará en el directorio público y en la Central S.O.S.',
+    compact: true
+  });
+
+  const constanciaUploader = mountFileUploader(modal.el.querySelector('#admin-clin-constancia-uploader'), {
+    accept: 'image/*,application/pdf',
+    bucket: 'documentos-verificacion',
+    folder: 'clinicas-constancias',
+    label: 'Constancia CMVP / Ficha RUC (Imagen o PDF)',
+    helpText: 'Documento privado resguardado con acceso firmado.',
+    compact: true
   });
 
   modal.el.querySelector('#btn-guardar-nueva-clinica-rpc')?.addEventListener('click', async () => {
@@ -2411,55 +2600,64 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
       return;
     }
 
-    const payload = {
-      ruc,
-      nombre,
-      email_institucional: email_institucional || 'contacto@vetcusco.pe',
-      direccion,
-      distrito_cusco,
-      telefono_emergencia,
-      horario_atencion,
-      especialidades,
-      tarifa_consulta_emergencia,
-      colegiatura_cmvp
-    };
-
-    showSpinner('Creando y activando Clínica Veterinaria (rpc_admin_crear_clinica_directa)...');
+    showSpinner('Registrando y activando clínica aliada...');
     try {
+      const fotoFachadaUrl = await fachadaUploader.uploadIfPending();
+      const constanciaUrl = await constanciaUploader.uploadIfPending();
+
+      const payload = {
+        ruc,
+        nombre,
+        email_institucional: email_institucional || 'contacto@vetcusco.pe',
+        direccion,
+        distrito_cusco,
+        telefono_emergencia,
+        horario_atencion,
+        especialidades,
+        tarifa_consulta_emergencia,
+        colegiatura_cmvp,
+        foto_fachada_url: fotoFachadaUrl || null,
+        constancia_url: constanciaUrl || null
+      };
+
       const supabase = getSupabase();
       let rpcRes = null;
       if (supabase && isSupabaseConfigured()) {
         const { data, error } = await supabase.rpc('rpc_admin_crear_clinica_directa', { p_payload: payload });
-        if (error) console.warn('Fallback local en rpc_admin_crear_clinica_directa:', error.message);
-        else rpcRes = data;
+        if (error) throw error;
+        rpcRes = data;
+        await cargarDatosPanelAdministrador();
+      } else {
+        const nextNum = adminState.clinicas.length + 1;
+        const nuevaClinica = normalizarClinicaAdmin({
+          id: `40000000-0000-0000-0000-${String(Date.now()).slice(-12)}`,
+          codigo_clinica: `VET-00${nextNum}`,
+          ...payload,
+          estado_afiliacion: 'activa',
+          motivo_estado: 'Alta directa por Administración General Paw Patita Cusco.',
+          activa: true,
+          sos_atendidos: 0
+        });
+
+        adminState.clinicas.unshift(nuevaClinica);
+        localStorage.setItem(STORAGE_KEY_CLINICAS_ADMIN, JSON.stringify(adminState.clinicas));
+
+        registrarAuditoriaAdmin({
+          entidad: 'clinicas_veterinarias',
+          id_registro: nuevaClinica.codigo_clinica,
+          accion: 'INSERT',
+          estado_anterior: '—',
+          estado_nuevo: 'activa',
+          detalle: `Alta directa de clínica ${nuevaClinica.nombre} (RUC: ${ruc}, CMVP: ${colegiatura_cmvp}) en ${distrito_cusco}.`,
+          old_record: {},
+          new_record: { codigo_clinica: nuevaClinica.codigo_clinica, estado_afiliacion: 'activa', colegiatura_cmvp }
+        });
       }
 
-      const nextNum = adminState.clinicas.length + 1;
-      const nuevaClinica = normalizarClinicaAdmin({
-        id: rpcRes?.id_clinica || `40000000-0000-0000-0000-${String(Date.now()).slice(-12)}`,
-        codigo_clinica: rpcRes?.codigo_clinica || `VET-00${nextNum}`,
-        ...payload,
-        estado_afiliacion: 'activa',
-        motivo_estado: 'Alta directa por Administración General Paw Patita Cusco.',
-        activa: true,
-        sos_atendidos: 0
-      });
-
-      adminState.clinicas.unshift(nuevaClinica);
-      localStorage.setItem(STORAGE_KEY_CLINICAS_ADMIN, JSON.stringify(adminState.clinicas));
-
-      registrarAuditoriaAdmin({
-        entidad: 'clinicas_veterinarias',
-        id_registro: nuevaClinica.codigo_clinica,
-        accion: 'INSERT',
-        estado_anterior: '—',
-        estado_nuevo: 'activa',
-        detalle: `Alta directa de clínica ${nuevaClinica.nombre} (RUC: ${ruc}, CMVP: ${colegiatura_cmvp}) en ${distrito_cusco}.`
-      });
-
+      const codigoFinal = rpcRes?.codigo_clinica || adminState.clinicas[0]?.codigo_clinica || 'VET';
       await modal.cerrarAsync();
-      showToast(`Clínica "${nuevaClinica.nombre}" (${nuevaClinica.codigo_clinica}) creada y activada.`, 'success');
-      if (typeof onCreatedCallback === 'function') onCreatedCallback(nuevaClinica);
+      showToast(`Clínica "${nombre}" (${codigoFinal}) creada y activada.`, 'success');
+      if (typeof onCreatedCallback === 'function') onCreatedCallback();
     } catch (err) {
       handleSupabaseError(err, 'No se pudo registrar la clínica veterinaria.');
     } finally {
@@ -2469,7 +2667,7 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
 }
 
 /* ==========================================================================
-   SECCIÓN 3: CANCELACIONES, REEMBOLSOS Y ARBITRAJE DE DISPUTAS (`rpc_admin_resolver_caso`)
+   SECCIÓN 3: CANCELACIONES, REEMBOLSOS Y ARBITRAJE DE DISPUTAS
    ========================================================================== */
 
 function renderSeccionCancelacionesYDisputas(workspace, rootContainer) {
@@ -2484,12 +2682,12 @@ function renderSeccionCancelacionesYDisputas(workspace, rootContainer) {
     <div class="card card-paw p-4 border-0 shadow-sm">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 border-bottom mb-3">
         <div>
-          <span class="badge bg-warning text-dark fw-bold mb-1">TRIBUNAL DE ARBITRAJE & REEMBOLSOS ESCALONADOS</span>
+          <span class="badge bg-warning text-dark fw-bold mb-1">TRIBUNAL DE ARBITRAJE Y REEMBOLSOS ESCALONADOS</span>
           <h5 class="fw-bold mb-1">
-            <i class="bi bi-scales text-warning me-2"></i>Gestión de Cancelaciones, Reembolsos y Disputas (` + '`rpc_admin_resolver_caso`' + `)
+            <i class="bi bi-scales text-warning me-2"></i>Gestión de Cancelaciones, Reembolsos y Disputas
           </h5>
           <p class="text-secondary small mb-0">
-            Tabla auditada con 0 <code>undefined</code>. Ejecuta reembolsos bancarios o arbitra disputas asignando el % exacto entre propietario y cuidador.
+            Revisa solicitudes, ejecuta reembolsos o define porcentajes de conciliación entre propietario y cuidador.
           </p>
         </div>
 
@@ -2627,7 +2825,7 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
         <div>
           <span class="badge bg-dark font-monospace me-1">${escapeHtml(c.codigo_cancelacion)}</span>
           <span class="badge bg-secondary font-monospace me-1">${escapeHtml(c.codigo_reserva)}</span>
-          <strong>Monto Bruto en Custodia Escrow: ${formatMoneda(bruto, moneda)}</strong>
+          <strong>Monto Bruto Protegido en Garantía: ${formatMoneda(bruto, moneda)}</strong>
         </div>
         <span class="badge bg-danger text-uppercase">${escapeHtml(c.tipo_caso)}</span>
       </div>
@@ -2756,7 +2954,7 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
 
     const resolucionFinal = numOp ? `${resolucionRaw} [N° Op: ${numOp}]` : resolucionRaw;
 
-    showSpinner('Ejecutando laudo arbitral y actualizando saldos (rpc_admin_resolver_caso)...');
+    showSpinner('Registrando resolución y actualizando saldos...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(c.id).startsWith('can-')) {
@@ -2766,52 +2964,55 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
           p_pct_reembolso: pct,
           p_resolucion: resolucionFinal
         });
-        if (error) console.warn('Fallback local en rpc_admin_resolver_caso:', error.message);
+        if (error) throw error;
+        await cargarDatosPanelAdministrador();
+      } else {
+        const ahoraIso = new Date().toISOString();
+        const nuevoEstado = accion === 'rechazar' ? 'rechazado' : 'procesado';
+
+        adminState.cancelaciones = adminState.cancelaciones.map((item) => (
+          item.id === c.id
+            ? {
+                ...item,
+                porcentaje_reembolso: pct,
+                monto_reembolso: montoReemb,
+                monto_penalidad_plataforma: comPlat,
+                monto_compensacion_cuidador: netoCuid,
+                estado_tramite: nuevoEstado,
+                resolucion_admin: resolucionFinal,
+                fecha_resolucion: ahoraIso
+              }
+            : item
+        ));
+        localStorage.setItem(STORAGE_KEY_CANCELACIONES_ADMIN, JSON.stringify(adminState.cancelaciones));
+
+        // Actualizar también la liquidación asociada a esa reserva (pasa de en_garantia a disponible o anulado)
+        adminState.liquidaciones = adminState.liquidaciones.map((liq) => {
+          if (liq.id_reserva === c.id_reserva || liq.codigo_reserva === c.codigo_reserva) {
+            return normalizarLiquidacionAdmin({
+              ...liq,
+              tipo_concepto: 'Resolución de Arbitraje Administrativo',
+              monto_liquidado: netoCuid,
+              comision_plataforma: comPlat,
+              estado_liquidacion: netoCuid > 0 ? 'disponible' : 'anulado',
+              fecha_disponible: ahoraIso
+            });
+          }
+          return liq;
+        });
+        guardarLiquidacionesSincronizadasAdmin(adminState.liquidaciones);
+
+        registrarAuditoriaAdmin({
+          entidad: 'cancelaciones_reembolsos',
+          id_registro: c.codigo_cancelacion,
+          accion: 'UPDATE',
+          estado_anterior: c.estado_tramite,
+          estado_nuevo: nuevoEstado,
+          detalle: `Arbitraje ${c.codigo_reserva}: Reembolso ${pct}% (S/ ${montoReemb.toFixed(2)}) | Cuidador S/ ${netoCuid.toFixed(2)} | ${resolucionFinal}`,
+          old_record: { codigo_cancelacion: c.codigo_cancelacion, estado_tramite: c.estado_tramite },
+          new_record: { codigo_cancelacion: c.codigo_cancelacion, estado_tramite: nuevoEstado, porcentaje_reembolso: pct, monto_reembolso: montoReemb }
+        });
       }
-
-      const ahoraIso = new Date().toISOString();
-      const nuevoEstado = accion === 'rechazar' ? 'rechazado' : 'procesado';
-
-      adminState.cancelaciones = adminState.cancelaciones.map((item) => (
-        item.id === c.id
-          ? {
-              ...item,
-              porcentaje_reembolso: pct,
-              monto_reembolso: montoReemb,
-              monto_penalidad_plataforma: comPlat,
-              monto_compensacion_cuidador: netoCuid,
-              estado_tramite: nuevoEstado,
-              resolucion_admin: resolucionFinal,
-              fecha_resolucion: ahoraIso
-            }
-          : item
-      ));
-      localStorage.setItem(STORAGE_KEY_CANCELACIONES_ADMIN, JSON.stringify(adminState.cancelaciones));
-
-      // Actualizar también la liquidación asociada a esa reserva (pasa de en_garantia a disponible o anulado)
-      adminState.liquidaciones = adminState.liquidaciones.map((liq) => {
-        if (liq.id_reserva === c.id_reserva || liq.codigo_reserva === c.codigo_reserva) {
-          return normalizarLiquidacionAdmin({
-            ...liq,
-            tipo_concepto: 'Resolución de Arbitraje Administrativo',
-            monto_liquidado: netoCuid,
-            comision_plataforma: comPlat,
-            estado_liquidacion: netoCuid > 0 ? 'disponible' : 'anulado',
-            fecha_disponible: ahoraIso
-          });
-        }
-        return liq;
-      });
-      guardarLiquidacionesSincronizadasAdmin(adminState.liquidaciones);
-
-      registrarAuditoriaAdmin({
-        entidad: 'cancelaciones_reembolsos',
-        id_registro: c.codigo_cancelacion,
-        accion: 'UPDATE',
-        estado_anterior: c.estado_tramite,
-        estado_nuevo: nuevoEstado,
-        detalle: `Arbitraje ${c.codigo_reserva}: Reembolso ${pct}% (S/ ${montoReemb.toFixed(2)}) | Cuidador S/ ${netoCuid.toFixed(2)} | ${resolucionFinal}`
-      });
 
       await modal.cerrarAsync();
       showToast(
@@ -2829,7 +3030,7 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
 }
 
 /* ==========================================================================
-   SECCIÓN 4: LIQUIDACIONES Y DESEMBOLSOS A CUIDADORES (`rpc_admin_procesar_liquidacion`)
+   SECCIÓN 4: LIQUIDACIONES Y DESEMBOLSOS A CUIDADORES
    ========================================================================== */
 
 function renderSeccionLiquidacionesCuidadores(workspace, rootContainer) {
@@ -2842,11 +3043,11 @@ function renderSeccionLiquidacionesCuidadores(workspace, rootContainer) {
   ));
 
   workspace.innerHTML = `
-    <!-- 4 Bloques Financieros Conectados a liquidaciones_cuidadores -->
+    <!-- 4 Bloques Financieros de Tesorería -->
     <div class="row g-3 mb-4">
       <div class="col-md-6 col-xl-3">
         <div class="wallet-balance-card wallet-card-garantia h-100">
-          <div class="small fw-bold text-uppercase text-secondary mb-1">1. Fondos en Garantía Escrow</div>
+          <div class="small fw-bold text-uppercase text-secondary mb-1">1. Fondos Protegidos en Garantía</div>
           <div class="fs-4 fw-bold text-dark">${formatMoneda(k.fondos_en_garantia, moneda)}</div>
           <div class="small text-secondary">Servicios en curso o confirmados</div>
         </div>
@@ -2878,12 +3079,12 @@ function renderSeccionLiquidacionesCuidadores(workspace, rootContainer) {
     <div class="card card-paw p-4 border-0 shadow-sm">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 border-bottom mb-3">
         <div>
-          <span class="badge bg-success-subtle text-success fw-bold mb-1">TESORERÍA & DESEMBOLSOS BANCARIOS (85% CUIDADOR)</span>
+          <span class="badge bg-success-subtle text-success fw-bold mb-1">TESORERÍA Y DESEMBOLSOS BANCARIOS (85% CUIDADOR)</span>
           <h5 class="fw-bold mb-1">
-            <i class="bi bi-bank2 text-success me-2"></i>Liquidaciones a Cuidadores (` + '`rpc_admin_procesar_liquidacion`' + `)
+            <i class="bi bi-bank2 text-success me-2"></i>Liquidaciones a Cuidadores
           </h5>
           <p class="text-secondary small mb-0">
-            Al registrar el <strong>N° de Operación Bancaria</strong>, la partida pasa a <code>pagado</code> e incrementa automáticamente el <em>Total Histórico Cobrado</em> en la billetera del cuidador.
+            Al registrar el <strong>N° de Operación Bancaria</strong>, la partida pasa a <strong>Pagado</strong> e incrementa automáticamente el <em>Total Histórico Cobrado</em> en la billetera del cuidador.
           </p>
         </div>
 
@@ -2892,7 +3093,7 @@ function renderSeccionLiquidacionesCuidadores(workspace, rootContainer) {
             <option value="todos" ${adminState.filtroLiquidacionesEstado === 'todos' ? 'selected' : ''}>Todas las liquidaciones (${adminState.liquidaciones.length})</option>
             <option value="solicitado" ${adminState.filtroLiquidacionesEstado === 'solicitado' ? 'selected' : ''}>Solicitadas por Pagar</option>
             <option value="disponible" ${adminState.filtroLiquidacionesEstado === 'disponible' ? 'selected' : ''}>Disponibles en Billetera</option>
-            <option value="en_garantia" ${adminState.filtroLiquidacionesEstado === 'en_garantia' ? 'selected' : ''}>En Garantía Escrow</option>
+            <option value="en_garantia" ${adminState.filtroLiquidacionesEstado === 'en_garantia' ? 'selected' : ''}>Protegidas en Garantía</option>
             <option value="pagado" ${adminState.filtroLiquidacionesEstado === 'pagado' ? 'selected' : ''}>Pagadas / Desembolsadas</option>
           </select>
 
@@ -3080,7 +3281,7 @@ function abrirModalProcesarLiquidacion(liq, accion = 'pagar', onProcessed) {
       return;
     }
 
-    showSpinner(`Procesando liquidación en Supabase (rpc_admin_procesar_liquidacion)...`);
+    showSpinner('Registrando pago bancario de liquidación...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(liq.id).startsWith('liq-')) {
@@ -3090,36 +3291,39 @@ function abrirModalProcesarLiquidacion(liq, accion = 'pagar', onProcessed) {
           p_num_operacion: numOp,
           p_motivo: motivo
         });
-        if (error) console.warn('Fallback local en rpc_admin_procesar_liquidacion:', error.message);
+        if (error) throw error;
+        await cargarDatosPanelAdministrador();
+      } else {
+        const ahoraIso = new Date().toISOString();
+        const estadoAnterior = liq.estado_liquidacion;
+        const nuevoEstado = esPagar ? 'pagado' : 'disponible';
+
+        adminState.liquidaciones = adminState.liquidaciones.map((item) => (
+          item.id === liq.id || item.codigo_liquidacion === liq.codigo_liquidacion
+            ? normalizarLiquidacionAdmin({
+                ...item,
+                estado_liquidacion: nuevoEstado,
+                num_operacion_desembolso: esPagar ? numOp : null,
+                motivo_rechazo: esPagar ? null : motivo,
+                fecha_liquidacion: esPagar ? ahoraIso : null
+              })
+            : item
+        ));
+        guardarLiquidacionesSincronizadasAdmin(adminState.liquidaciones);
+
+        registrarAuditoriaAdmin({
+          entidad: 'liquidaciones_cuidadores',
+          id_registro: liq.codigo_liquidacion,
+          accion: 'UPDATE',
+          estado_anterior: estadoAnterior,
+          estado_nuevo: nuevoEstado,
+          detalle: esPagar
+            ? `Liquidación ${liq.codigo_liquidacion} (${liq.cuidador_nombre}) PAGADA por S/ ${liq.monto_liquidado.toFixed(2)} — N° Operación: ${numOp}`
+            : `Liquidación ${liq.codigo_liquidacion} devuelta a disponible: ${motivo}`,
+          old_record: { codigo_liquidacion: liq.codigo_liquidacion, estado_liquidacion: estadoAnterior },
+          new_record: { codigo_liquidacion: liq.codigo_liquidacion, estado_liquidacion: nuevoEstado, num_operacion_desembolso: esPagar ? numOp : null }
+        });
       }
-
-      const ahoraIso = new Date().toISOString();
-      const estadoAnterior = liq.estado_liquidacion;
-      const nuevoEstado = esPagar ? 'pagado' : 'disponible';
-
-      adminState.liquidaciones = adminState.liquidaciones.map((item) => (
-        item.id === liq.id || item.codigo_liquidacion === liq.codigo_liquidacion
-          ? normalizarLiquidacionAdmin({
-              ...item,
-              estado_liquidacion: nuevoEstado,
-              num_operacion_desembolso: esPagar ? numOp : null,
-              motivo_rechazo: esPagar ? null : motivo,
-              fecha_liquidacion: esPagar ? ahoraIso : null
-            })
-          : item
-      ));
-      guardarLiquidacionesSincronizadasAdmin(adminState.liquidaciones);
-
-      registrarAuditoriaAdmin({
-        entidad: 'liquidaciones_cuidadores',
-        id_registro: liq.codigo_liquidacion,
-        accion: 'UPDATE',
-        estado_anterior: estadoAnterior,
-        estado_nuevo: nuevoEstado,
-        detalle: esPagar
-          ? `Liquidación ${liq.codigo_liquidacion} (${liq.cuidador_nombre}) PAGADA por S/ ${liq.monto_liquidado.toFixed(2)} — N° Operación: ${numOp}`
-          : `Liquidación ${liq.codigo_liquidacion} devuelta a disponible: ${motivo}`
-      });
 
       await modal.cerrarAsync();
       showToast(
@@ -3145,7 +3349,10 @@ function abrirModalProcesarLiquidacion(liq, accion = 'pagar', onProcessed) {
 function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
   if (!workspace) return;
   const clinicasActivas = adminState.clinicas.filter((c) => c.estado_afiliacion === 'activa');
-  const gob = adminState.gobernanza || CONFIG_GOBERNANZA_SEED;
+  const gob = adminState.gobernanza || {
+    parametros: { ...CONFIG_GOBERNANZA_SEED.parametros },
+    temporadas: CONFIG_GOBERNANZA_SEED.temporadas.map(normalizarTemporadaAdmin)
+  };
 
   workspace.innerHTML = `
     <!-- Monitor Global S.O.S. con Reasignación de Clínica -->
@@ -3154,7 +3361,7 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
         <div>
           <span class="badge bg-danger text-white fw-bold mb-1">SUPERVISIÓN MÉDICA 24H — CUSCO</span>
           <h5 class="fw-bold mb-0">
-            <i class="bi bi-broadcast-pin text-danger me-2"></i>Central Global S.O.S. & Reasignación de Clínicas (` + '`rpc_admin_reasignar_sos`' + `)
+            <i class="bi bi-broadcast-pin text-danger me-2"></i>Central Global S.O.S. y Reasignación de Clínicas
           </h5>
         </div>
         <span class="badge bg-light text-dark border">${adminState.alertasSos.length} incidencia(s) registrada(s)</span>
@@ -3173,26 +3380,33 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
             </tr>
           </thead>
           <tbody>
-            ${adminState.alertasSos.map((s) => `
+            ${adminState.alertasSos.length === 0 ? `
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
+                  No hay alertas S.O.S. registradas en este momento.
+                </td>
+              </tr>
+            ` : adminState.alertasSos.map((s) => `
               <tr>
                 <td>
-                  <div class="fw-bold font-monospace">${escapeHtml(s.codigo_sos)}</div>
-                  <span class="badge ${s.nivel_severidad === 'critica' ? 'bg-danger' : 'bg-warning text-dark'} text-uppercase">${escapeHtml(s.nivel_severidad)}</span>
+                  <div class="fw-bold font-monospace">${escapeHtml(s.codigo_sos || 'SOS')}</div>
+                  <span class="badge ${s.nivel_severidad === 'critica' ? 'bg-danger' : 'bg-warning text-dark'} text-uppercase">${escapeHtml(s.nivel_severidad || 'alta')}</span>
                 </td>
                 <td>
-                  <div class="fw-bold text-dark">${escapeHtml(s.mascota_nombre || 'Inti')} (${escapeHtml(s.mascota_paw_id || 'PAW-6858')})</div>
-                  <span class="badge bg-secondary font-monospace">${escapeHtml(s.codigo_reserva || 'RES-2026-0102')}</span>
+                  <div class="fw-bold text-dark">${escapeHtml(s.mascota_nombre || 'Mascota')} (${escapeHtml(s.mascota_paw_id || 'PAW-ID')})</div>
+                  <span class="badge bg-secondary font-monospace">${escapeHtml(s.codigo_reserva || '—')}</span>
                 </td>
                 <td style="max-width: 240px;">
-                  <div class="fw-semibold">${escapeHtml(s.tipo_incidencia)}</div>
+                  <div class="fw-semibold">${escapeHtml(s.tipo_incidencia || 'Emergencia Veterinaria')}</div>
                   <div class="text-danger" style="font-size:0.74rem;"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(s.ubicacion_emergencia || 'Cusco')}</div>
                 </td>
                 <td>
-                  <div class="fw-bold text-dark"><i class="bi bi-hospital text-danger me-1"></i>${escapeHtml(s.clinica_nombre || 'Clínica San Francisco 24h')}</div>
+                  <div class="fw-bold text-dark"><i class="bi bi-hospital text-danger me-1"></i>${escapeHtml(s.clinica_nombre || 'Clínica Aliada 24h')}</div>
                   <div class="text-muted" style="font-size:0.73rem;">${escapeHtml(s.clinica_telefono || '+51 984 711 222')}</div>
                 </td>
                 <td>
-                  <span class="badge ${s.estado_sos === 'resuelta' ? 'bg-success' : 'bg-danger'} text-uppercase">${escapeHtml(s.estado_sos)}</span>
+                  <span class="badge ${s.estado_sos === 'resuelta' ? 'bg-success' : (s.estado_sos === 'estabilizada' ? 'bg-info text-dark' : 'bg-danger')}">${escapeHtml(traducirEstadoHumano(s.estado_sos))}</span>
                 </td>
                 <td class="text-end">
                   <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-admin-reasignar-sos="${escapeHtml(s.id)}">
@@ -3206,14 +3420,20 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
       </div>
     </div>
 
-    <!-- Parámetros Financieros Globales + Cupones Promocionales + Temporadas Cusco -->
+    <!-- Gobernanza en 2 Tarjetas Limpias: Parámetros Financieros Globales + Temporadas Turísticas Oficiales de Cusco -->
     <div class="row g-4">
-      <!-- Parámetros Globales -->
+      <!-- Tarjeta 1: Parámetros Financieros Globales -->
       <div class="col-lg-5">
         <div class="card card-paw p-4 border-0 shadow-sm h-100">
-          <h6 class="fw-bold mb-3">
-            <i class="bi bi-sliders text-warning me-2"></i>Parámetros Globales (` + '`configuracion_plataforma`' + `)
-          </h6>
+          <div class="mb-3">
+            <span class="badge bg-warning-subtle text-dark border fw-bold mb-1">GOBERNANZA ECONÓMICA</span>
+            <h6 class="fw-bold mb-0">
+              <i class="bi bi-sliders text-warning me-2"></i>Parámetros Financieros Globales
+            </h6>
+            <div class="small text-secondary mt-1">
+              Los cambios se aplican de inmediato en las cotizaciones y liquidaciones de toda la red Cusco.
+            </div>
+          </div>
           <form id="form-admin-parametros">
             <div class="mb-2">
               <label class="form-label small fw-bold">Comisión Plataforma Paw Patita (%)</label>
@@ -3227,11 +3447,11 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
             </div>
             <div class="mb-2">
               <label class="form-label small fw-bold">Tarifa Extra Baño Higiénico (S/)</label>
-              <input type="number" step="1" class="form-control form-control-sm" id="param-bano"
+              <input type="number" step="1" min="0" max="200" class="form-control form-control-sm" id="param-bano"
                 value="${escapeHtml(gob.parametros.tarifa_bano_extra)}">
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-bold">Número Oficial Yape/Plin Escrow</label>
+              <label class="form-label small fw-bold">Número Oficial Yape/Plin de Garantía</label>
               <input type="text" class="form-control form-control-sm font-monospace" id="param-yape"
                 value="${escapeHtml(gob.parametros.yape_oficial)}">
             </div>
@@ -3242,56 +3462,58 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
         </div>
       </div>
 
-      <!-- Gestor de Cupones Promocionales y Temporadas Turísticas de Cusco -->
+      <!-- Tarjeta 2: Temporadas Turísticas Oficiales de Cusco -->
       <div class="col-lg-7">
         <div class="card card-paw p-4 border-0 shadow-sm h-100">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="fw-bold mb-0">
-              <i class="bi bi-ticket-perforated-fill text-success me-2"></i>Cupones Promocionales Activos en Cusco
-            </h6>
-            <button type="button" class="btn btn-outline-success btn-sm" id="btn-admin-nuevo-cupon">
-              <i class="bi bi-plus-lg me-1"></i>Nuevo Cupón
-            </button>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+              <span class="badge bg-success-subtle text-success border fw-bold mb-1">CALENDARIO TARIFARIO CUSCO</span>
+              <h6 class="fw-bold mb-0">
+                <i class="bi bi-calendar-range-fill text-warning me-2"></i>Temporadas Turísticas Oficiales de Cusco
+              </h6>
+            </div>
+            <span class="badge bg-light text-dark border">${gob.temporadas.length} temporada(s)</span>
           </div>
 
-          <div class="table-responsive mb-3">
-            <table class="table table-sm table-bordered align-middle mb-0 small">
+          <p class="small text-secondary mb-3">
+            Recargos estacionales transparentes aplicados automáticamente durante festividades de alta demanda en la ciudad del Cusco.
+          </p>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
               <thead class="table-light">
                 <tr>
-                  <th>Código</th>
-                  <th>Beneficio</th>
-                  <th>Segmento</th>
-                  <th>Usos</th>
-                  <th>Estado</th>
+                  <th>Temporada Oficial</th>
+                  <th>Fechas</th>
+                  <th class="text-center">Recargo</th>
+                  <th class="text-end">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                ${gob.cupones.map((cup) => `
+                ${gob.temporadas.map((t) => `
                   <tr>
-                    <td class="fw-bold font-monospace">${escapeHtml(cup.codigo)}</td>
-                    <td>${cup.tipo_descuento === 'porcentaje' ? `${cup.valor_descuento}% dscto.` : `S/ ${cup.valor_descuento} fijo`}</td>
-                    <td><span class="badge bg-light text-dark border text-uppercase">${escapeHtml(cup.segmento_objetivo)}</span></td>
-                    <td>${cup.usos_actuales} / ${cup.usos_maximos}</td>
                     <td>
-                      <button type="button" class="btn btn-sm ${cup.activo ? 'btn-success' : 'btn-secondary'} py-0 px-2" data-toggle-cupon="${escapeHtml(cup.codigo)}">
-                        ${cup.activo ? 'Activo' : 'Pausado'}
+                      <div class="fw-bold text-dark">
+                        <i class="bi bi-sun-fill text-warning me-1"></i>${escapeHtml(t.nombre)}
+                      </div>
+                      ${t.descripcion ? `<div class="text-muted" style="font-size:0.74rem;">${escapeHtml(t.descripcion)}</div>` : ''}
+                    </td>
+                    <td class="text-nowrap">
+                      <span class="badge bg-light text-dark border">${escapeHtml(t.rango)}</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-warning-subtle text-dark border fw-bold">+${Number(t.recargo_porcentaje).toFixed(0)}%</span>
+                    </td>
+                    <td class="text-end">
+                      <button type="button" class="btn btn-sm ${t.activa ? 'btn-success' : 'btn-outline-secondary'} py-0 px-2"
+                        data-toggle-temporada="${escapeHtml(t.id)}">
+                        ${t.activa ? 'Activa' : 'Inactiva'}
                       </button>
                     </td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
-          </div>
-
-          <h6 class="fw-bold mb-2">
-            <i class="bi bi-calendar-range-fill text-warning me-2"></i>Temporadas Turísticas Oficiales de Cusco (` + '`temporadas_tarifas`' + `)
-          </h6>
-          <div class="d-flex flex-wrap gap-2 small">
-            ${gob.temporadas.map((t) => `
-              <span class="badge bg-warning-subtle text-dark border px-2 py-1">
-                <i class="bi bi-sun-fill text-warning me-1"></i><strong>${escapeHtml(t.nombre)}</strong> (${escapeHtml(t.rango)}): +${t.recargo_porcentaje}%
-              </span>
-            `).join('')}
           </div>
         </div>
       </div>
@@ -3309,7 +3531,7 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
         titulo: `Reasignar Clínica Veterinaria — ${inc.codigo_sos}`,
         icono: 'bi-hospital-fill',
         cuerpoHtml: `
-          <p class="small text-secondary">Selecciona la nueva Clínica Veterinaria Aliada activa en Cusco para derivar de inmediato el caso <strong>${escapeHtml(inc.codigo_sos)}</strong> (${escapeHtml(inc.mascota_nombre || 'Inti')}):</p>
+          <p class="small text-secondary">Selecciona la nueva Clínica Veterinaria Aliada activa en Cusco para derivar de inmediato el caso <strong>${escapeHtml(inc.codigo_sos)}</strong> (${escapeHtml(inc.mascota_nombre || 'Mascota')}):</p>
           <select class="form-select" id="select-reasignar-clinica">
             ${clinicasActivas.map((c) => `
               <option value="${escapeHtml(c.id)}" ${c.id === inc.id_clinica_derivada ? 'selected' : ''}>
@@ -3327,43 +3549,53 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
       modal.el.querySelector('#btn-confirmar-reasignar-sos')?.addEventListener('click', async () => {
         const nuevaClinicaId = modal.el.querySelector('#select-reasignar-clinica').value;
         const nuevaClinica = clinicasActivas.find((c) => c.id === nuevaClinicaId) || clinicasActivas[0];
+        if (!nuevaClinica) {
+          showToast('No hay clínicas activas disponibles para reasignación.', 'warning');
+          return;
+        }
 
-        showSpinner('Reasignando emergencia S.O.S. (rpc_admin_reasignar_sos)...');
+        showSpinner('Reasignando clínica veterinaria de emergencia...');
         try {
           const supabase = getSupabase();
-          if (supabase && isSupabaseConfigured()) {
-            await supabase.rpc('rpc_admin_reasignar_sos', {
+          if (supabase && isSupabaseConfigured() && !String(inc.id).startsWith('sos-')) {
+            const { error } = await supabase.rpc('rpc_admin_reasignar_sos', {
               p_id_incidencia: inc.id,
               p_nueva_clinica: nuevaClinica.id
             });
+            if (error) throw error;
+            await cargarDatosPanelAdministrador();
+          } else {
+            const clinicaAnterior = inc.clinica_nombre || 'Clínica Anterior';
+            adminState.alertasSos = adminState.alertasSos.map((item) => (
+              item.id === inc.id
+                ? {
+                    ...item,
+                    id_clinica_derivada: nuevaClinica.id,
+                    clinica_nombre: nuevaClinica.nombre,
+                    clinica_telefono: nuevaClinica.telefono_emergencia,
+                    clinica_direccion: nuevaClinica.direccion
+                  }
+                : item
+            ));
+            localStorage.setItem(STORAGE_KEY_SOS, JSON.stringify(adminState.alertasSos));
+
+            registrarAuditoriaAdmin({
+              entidad: 'incidencias_emergencias',
+              id_registro: inc.codigo_sos,
+              accion: 'UPDATE',
+              estado_anterior: clinicaAnterior,
+              estado_nuevo: nuevaClinica.nombre,
+              detalle: `Reasignación administrativa de S.O.S. ${inc.codigo_sos} hacia ${nuevaClinica.nombre} (${nuevaClinica.distrito_cusco}).`,
+              old_record: { codigo_sos: inc.codigo_sos, id_clinica_derivada: clinicaAnterior },
+              new_record: { codigo_sos: inc.codigo_sos, id_clinica_derivada: nuevaClinica.nombre }
+            });
           }
 
-          const clinicaAnterior = inc.clinica_nombre || 'VET-001';
-          adminState.alertasSos = adminState.alertasSos.map((item) => (
-            item.id === inc.id
-              ? {
-                  ...item,
-                  id_clinica_derivada: nuevaClinica.id,
-                  clinica_nombre: nuevaClinica.nombre,
-                  clinica_telefono: nuevaClinica.telefono_emergencia,
-                  clinica_direccion: nuevaClinica.direccion
-                }
-              : item
-          ));
-          localStorage.setItem(STORAGE_KEY_SOS, JSON.stringify(adminState.alertasSos));
-
-          registrarAuditoriaAdmin({
-            entidad: 'incidencias_emergencias',
-            id_registro: inc.codigo_sos,
-            accion: 'UPDATE',
-            estado_anterior: clinicaAnterior,
-            estado_nuevo: nuevaClinica.nombre,
-            detalle: `Reasignación administrativa de S.O.S. ${inc.codigo_sos} hacia ${nuevaClinica.nombre} (${nuevaClinica.distrito_cusco}).`
-          });
-
           await modal.cerrarAsync();
-          renderSeccionCentralSosYGobernanza(workspace, rootContainer);
+          renderContenidoPanelAdministrador(rootContainer);
           showToast(`Alerta ${inc.codigo_sos} reasignada a ${nuevaClinica.nombre}.`, 'success');
+        } catch (err) {
+          handleSupabaseError(err, 'No se pudo reasignar la emergencia S.O.S.');
         } finally {
           hideSpinner();
         }
@@ -3371,109 +3603,386 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
     });
   });
 
-  // Guardar parámetros globales
-  workspace.querySelector('#form-admin-parametros')?.addEventListener('submit', (e) => {
+  // Guardar parámetros financieros globales (persistencia real en BD)
+  workspace.querySelector('#form-admin-parametros')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    gob.parametros.comision_plataforma_pct = parseFloat(workspace.querySelector('#param-comision').value) || 15;
-    gob.parametros.tipo_cambio_usd = parseFloat(workspace.querySelector('#param-tc').value) || 3.75;
-    gob.parametros.tarifa_bano_extra = parseFloat(workspace.querySelector('#param-bano').value) || 25;
-    gob.parametros.yape_oficial = workspace.querySelector('#param-yape').value.trim() || '984-000-111';
+    const comisionPct = parseFloat(workspace.querySelector('#param-comision').value) || 15;
+    const tcUsd = parseFloat(workspace.querySelector('#param-tc').value) || 3.75;
+    const tarifaBano = parseFloat(workspace.querySelector('#param-bano').value) || 25;
+    const yapeOficial = workspace.querySelector('#param-yape').value.trim() || '984-000-111';
 
-    localStorage.setItem(STORAGE_KEY_CONFIG_ADMIN, JSON.stringify(gob));
-    registrarAuditoriaAdmin({
-      entidad: 'configuracion_plataforma',
-      id_registro: 'PARAMS-GLOBAL',
-      accion: 'UPDATE',
-      estado_anterior: 'v5.0',
-      estado_nuevo: `Comisión ${gob.parametros.comision_plataforma_pct}% | TC ${gob.parametros.tipo_cambio_usd}`,
-      detalle: 'Actualización de parámetros financieros globales de la plataforma.'
-    });
-    showToast('Parámetros globales actualizados y auditados.', 'success');
-  });
+    const anterior = { ...gob.parametros };
 
-  // Activar/Pausar cupón
-  workspace.querySelectorAll('[data-toggle-cupon]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const cod = btn.getAttribute('data-toggle-cupon');
-      gob.cupones = gob.cupones.map((c) => (c.codigo === cod ? { ...c, activo: !c.activo } : c));
-      localStorage.setItem(STORAGE_KEY_CONFIG_ADMIN, JSON.stringify(gob));
-      renderSeccionCentralSosYGobernanza(workspace, rootContainer);
-      showToast(`Estado del cupón ${cod} actualizado.`, 'info');
-    });
-  });
+    showSpinner('Guardando parámetros financieros globales...');
+    try {
+      const supabase = getSupabase();
+      if (supabase && isSupabaseConfigured()) {
+        const comisionDecimal = Number((comisionPct / 100).toFixed(4));
+        const updates = [
+          supabase
+            .from('configuracion_plataforma')
+            .update({ valor_numerico: comisionDecimal, valor_texto: `${comisionPct}%`, updated_at: new Date().toISOString() })
+            .eq('clave', 'comision_plataforma_pct'),
+          supabase
+            .from('configuracion_plataforma')
+            .update({ valor_numerico: tcUsd, valor_texto: 'PEN/USD', updated_at: new Date().toISOString() })
+            .eq('clave', 'tipo_cambio_usd'),
+          supabase
+            .from('configuracion_plataforma')
+            .update({ valor_numerico: tarifaBano, valor_texto: `S/ ${tarifaBano.toFixed(2)}`, updated_at: new Date().toISOString() })
+            .eq('clave', 'tarifa_bano_extra'),
+          supabase
+            .from('configuracion_plataforma')
+            .update({ valor_texto: yapeOficial, updated_at: new Date().toISOString() })
+            .eq('clave', 'yape_oficial')
+        ];
 
-  // Crear nuevo cupón
-  workspace.querySelector('#btn-admin-nuevo-cupon')?.addEventListener('click', () => {
-    const modal = crearModalDinamico({
-      titulo: 'Crear Nuevo Cupón Promocional Cusco',
-      icono: 'bi-ticket-perforated-fill',
-      cuerpoHtml: `
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Código del Cupón *</label>
-            <input type="text" class="form-control font-monospace text-uppercase" id="new-cup-codigo" placeholder="Ej. INTIRAYMI20">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Segmento Objetivo</label>
-            <select class="form-select" id="new-cup-seg">
-              <option value="todos">Todos (Locales y Turistas)</option>
-              <option value="turista">Solo Turistas</option>
-              <option value="local">Solo Locales Cusco</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Tipo de Descuento</label>
-            <select class="form-select" id="new-cup-tipo">
-              <option value="porcentaje">Porcentaje (%)</option>
-              <option value="monto_fijo">Monto Fijo (S/)</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small fw-bold">Valor del Descuento *</label>
-            <input type="number" class="form-control" id="new-cup-valor" value="15" min="1" max="90">
-          </div>
-        </div>
-      `,
-      footerHtml: `
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-paw fw-bold" id="btn-guardar-cupon">Crear Cupón</button>
-      `
-    });
+        const resultados = await Promise.all(updates);
+        const fallo = resultados.find((r) => r.error);
+        if (fallo?.error) throw fallo.error;
 
-    modal.el.querySelector('#btn-guardar-cupon')?.addEventListener('click', async () => {
-      const codigo = modal.el.querySelector('#new-cup-codigo').value.trim().toUpperCase();
-      const segmento_objetivo = modal.el.querySelector('#new-cup-seg').value;
-      const tipo_descuento = modal.el.querySelector('#new-cup-tipo').value;
-      const valor_descuento = parseFloat(modal.el.querySelector('#new-cup-valor').value) || 10;
+        await cargarDatosPanelAdministrador();
+      } else {
+        gob.parametros.comision_plataforma_pct = comisionPct;
+        gob.parametros.tipo_cambio_usd = tcUsd;
+        gob.parametros.tarifa_bano_extra = tarifaBano;
+        gob.parametros.yape_oficial = yapeOficial;
 
-      if (!codigo) {
-        showToast('Ingresa un código para el cupón.', 'warning');
-        return;
+        registrarAuditoriaAdmin({
+          entidad: 'configuracion_plataforma',
+          id_registro: 'PARAMS-GLOBAL',
+          accion: 'UPDATE',
+          estado_anterior: `Comisión ${anterior.comision_plataforma_pct}%`,
+          estado_nuevo: `Comisión ${comisionPct}%`,
+          detalle: `Parámetros actualizados: Comisión ${comisionPct}%, Tipo de cambio S/ ${tcUsd.toFixed(2)}, Baño S/ ${tarifaBano.toFixed(2)}.`,
+          old_record: anterior,
+          new_record: { ...gob.parametros }
+        });
       }
 
-      gob.cupones.unshift({
-        id: `cup-${Date.now()}`,
-        codigo,
-        descripcion: 'Promoción creada desde el Panel de Administración',
-        tipo_descuento,
-        valor_descuento,
-        segmento_objetivo,
-        monto_minimo: 50,
-        usos_actuales: 0,
-        usos_maximos: 200,
-        activo: true
-      });
-      localStorage.setItem(STORAGE_KEY_CONFIG_ADMIN, JSON.stringify(gob));
-      await modal.cerrarAsync();
-      renderSeccionCentralSosYGobernanza(workspace, rootContainer);
-      showToast(`Cupón promocional ${codigo} creado y activado.`, 'success');
+      localStorage.setItem(STORAGE_KEY_CONFIG_ADMIN, JSON.stringify(adminState.gobernanza));
+      renderContenidoPanelAdministrador(rootContainer);
+      showToast('Parámetros financieros globales guardados y sincronizados.', 'success');
+    } catch (err) {
+      handleSupabaseError(err, 'No se pudieron guardar los parámetros globales.');
+    } finally {
+      hideSpinner();
+    }
+  });
+
+  // Activar/Desactivar temporada turística oficial de Cusco
+  workspace.querySelectorAll('[data-toggle-temporada]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const idTemp = btn.getAttribute('data-toggle-temporada');
+      const temp = gob.temporadas.find((t) => String(t.id) === String(idTemp));
+      if (!temp) return;
+
+      const nuevoEstado = !temp.activa;
+      showSpinner('Actualizando estado de temporada turística...');
+      try {
+        const supabase = getSupabase();
+        if (supabase && isSupabaseConfigured() && !String(temp.id).startsWith('temp-')) {
+          const { error } = await supabase
+            .from('temporadas_tarifas')
+            .update({ activa: nuevoEstado })
+            .eq('id', temp.id);
+          if (error) throw error;
+          await cargarDatosPanelAdministrador();
+        } else {
+          gob.temporadas = gob.temporadas.map((t) => (
+            String(t.id) === String(idTemp) ? { ...t, activa: nuevoEstado } : t
+          ));
+          localStorage.setItem(STORAGE_KEY_CONFIG_ADMIN, JSON.stringify(gob));
+        }
+
+        renderSeccionCentralSosYGobernanza(workspace, rootContainer);
+        showToast(`Temporada "${temp.nombre}" marcada como ${nuevoEstado ? 'Activa' : 'Inactiva'}.`, 'info');
+      } catch (err) {
+        handleSupabaseError(err, 'No se pudo actualizar el estado de la temporada.');
+      } finally {
+        hideSpinner();
+      }
     });
   });
 }
 
 /* ==========================================================================
-   SECCIÓN 6: BITÁCORA GLOBAL DE AUDITORÍA EN TIEMPO REAL (`auditoria_estados`)
+   SECCIÓN 6: BITÁCORA GLOBAL DE AUDITORÍA EN LENGUAJE HUMANO
    ========================================================================== */
+
+const ENTIDAD_LABELS = {
+  reservas: 'Reservas',
+  pagos: 'Pagos',
+  liquidaciones_cuidadores: 'Liquidaciones',
+  cancelaciones_reembolsos: 'Cancelaciones y Disputas',
+  perfiles_cuidadores: 'Cuidadores',
+  clinicas_veterinarias: 'Clínicas Veterinarias',
+  mascotas: 'Mascotas (PAW-ID)',
+  incidencias_emergencias: 'Emergencias S.O.S.',
+  configuracion_plataforma: 'Parámetros Globales',
+  temporadas_tarifas: 'Temporadas Cusco',
+  perfiles_usuarios: 'Usuarios',
+  validaciones_veterinarias: 'Dictámenes Veterinarios',
+  reportes_seguimiento: 'Muro Fotográfico'
+};
+
+const ESTADO_LABELS = {
+  pendiente_confirmacion: 'Pendiente de Confirmación',
+  confirmada: 'Confirmada',
+  en_curso: 'En Curso',
+  finalizada: 'Finalizada',
+  cancelada: 'Cancelada',
+  en_disputa: 'En Disputa',
+  pendiente: 'Pendiente',
+  pendiente_revision: 'Pendiente de Revisión',
+  aprobado: 'Aprobado',
+  aprobada: 'Aprobada',
+  activo: 'Activo',
+  activa: 'Activa',
+  rechazado: 'Rechazado',
+  rechazada: 'Rechazada',
+  suspendido: 'Suspendido',
+  suspendida: 'Suspendida',
+  en_garantia: 'En Garantía',
+  disponible: 'Disponible',
+  solicitado: 'Retiro Solicitado',
+  pagado: 'Pagado',
+  anulado: 'Anulado',
+  procesado: 'Procesado',
+  emitida: 'Alerta Emitida',
+  en_atencion: 'En Atención Médica',
+  estabilizada: 'Estabilizada',
+  resuelta: 'Resuelta',
+  validado: 'Validado',
+  observado: 'Observado',
+  vencido: 'Vencido',
+  inactivo: 'Inactivo',
+  inactiva: 'Inactiva'
+};
+
+const ROL_LABELS = {
+  administrador: 'Administrador',
+  veterinaria: 'Clínica Veterinaria',
+  cuidador: 'Cuidador',
+  propietario: 'Propietario',
+  sistema: 'Sistema'
+};
+
+const CAMPO_LABELS = {
+  estado_reserva: 'Estado de la Reserva',
+  estado_pago: 'Estado del Pago',
+  estado_sos: 'Estado de la Emergencia',
+  estado_liquidacion: 'Estado de Liquidación',
+  estado_postulacion: 'Estado de Postulación',
+  estado_cuenta: 'Estado de Cuenta',
+  estado_afiliacion: 'Estado de Afiliación',
+  estado_tramite: 'Estado del Trámite',
+  estado_validacion_vet: 'Dictamen Veterinario',
+  diagnostico_clinico: 'Diagnóstico Clínico',
+  tratamiento_aplicado: 'Tratamiento Aplicado',
+  costo_emergencia: 'Costo de Emergencia',
+  num_operacion_desembolso: 'N° de Operación Bancaria',
+  cuenta_destino: 'Cuenta de Destino',
+  monto_liquidado: 'Monto a Liquidar',
+  monto_total: 'Monto Total',
+  monto_reembolso: 'Monto de Reembolso',
+  porcentaje_reembolso: 'Porcentaje de Reembolso',
+  porcentaje_reembolso_solicitado: 'Reembolso Solicitado (%)',
+  resolucion_admin: 'Resolución Administrativa',
+  motivo_estado: 'Observación / Motivo',
+  motivo_rechazo: 'Motivo de Observación',
+  clinica_cmvp: 'Colegiatura CMVP',
+  colegiatura_cmvp: 'Colegiatura CMVP',
+  id_clinica_derivada: 'Clínica Derivada',
+  comision_plataforma_pct: 'Comisión Plataforma (%)',
+  tipo_cambio_usd: 'Tipo de Cambio USD',
+  tarifa_bano_extra: 'Tarifa Baño Higiénico',
+  yape_oficial: 'Cuenta Oficial Yape/Plin',
+  activa: 'Estado Activo',
+  nivel_severidad: 'Nivel de Severidad',
+  ubicacion_emergencia: 'Ubicación de Emergencia',
+  detalle: 'Detalle del Evento',
+  estado: 'Estado',
+  codigo_reserva: 'Código de Reserva',
+  codigo_sos: 'Código S.O.S.',
+  codigo_liquidacion: 'Código de Liquidación',
+  codigo_cancelacion: 'Código de Expediente',
+  codigo_cuidador: 'Código de Cuidador',
+  codigo_clinica: 'Código de Clínica',
+  paw_id: 'Carné PAW-ID'
+};
+
+const CAMPOS_RUIDO_AUDITORIA = new Set([
+  'id',
+  'created_at',
+  'updated_at',
+  'id_usuario',
+  'id_reserva',
+  'id_mascota',
+  'id_cuidador',
+  'id_propietario',
+  'id_servicio',
+  'id_pago',
+  'id_cupon',
+  'aprobado_por',
+  'resuelto_por',
+  'validado_por',
+  'id_clinica_asociada',
+  'id_usuario_responsable'
+]);
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function traducirEstadoHumano(valor) {
+  if (valor === null || valor === undefined || valor === '' || valor === '—') return '—';
+  const str = String(valor).trim();
+  const key = str.toLowerCase();
+  return ESTADO_LABELS[key] || str.replace(/_/g, ' ');
+}
+
+function formatearValorCampoHumano(clave, valor) {
+  if (valor === null || valor === undefined || valor === '') return 'Sin registro';
+  if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
+  if (Array.isArray(valor)) return valor.length > 0 ? valor.join(', ') : 'Ninguno';
+  if (typeof valor === 'object') {
+    const pares = Object.entries(valor)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .slice(0, 4)
+      .map(([k, v]) => `${CAMPO_LABELS[k] || k.replace(/_/g, ' ')}: ${v}`);
+    return pares.length > 0 ? pares.join(' • ') : 'Registrado';
+  }
+  const str = String(valor).trim();
+  if (ESTADO_LABELS[str.toLowerCase()]) return ESTADO_LABELS[str.toLowerCase()];
+  if (clave.startsWith('monto_') || clave === 'costo_emergencia' || clave === 'tarifa_bano_extra') {
+    const num = Number(str);
+    if (!Number.isNaN(num)) return `S/ ${num.toFixed(2)}`;
+  }
+  if (clave.includes('porcentaje') || clave === 'comision_plataforma_pct') {
+    const num = Number(str);
+    if (!Number.isNaN(num)) return `${num <= 1 && clave === 'comision_plataforma_pct' ? (num * 100).toFixed(0) : num}%`;
+  }
+  if (clave === 'id_clinica_derivada' && UUID_REGEX.test(str)) {
+    const cl = adminState.clinicas.find((c) => c.id === str);
+    return cl ? cl.nombre : `Sede #${str.slice(0, 8).toUpperCase()}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+    return formatFechaEs(str, true);
+  }
+  if (UUID_REGEX.test(str)) return `Ref. #${str.slice(0, 8).toUpperCase()}`;
+  return str;
+}
+
+function extraerCodigoLegibleAuditoria(item) {
+  const newRec = item?.new_record && typeof item.new_record === 'object' ? item.new_record : {};
+  const oldRec = item?.old_record && typeof item.old_record === 'object' ? item.old_record : {};
+  const codigo =
+    newRec.codigo_reserva || oldRec.codigo_reserva ||
+    newRec.codigo_sos || oldRec.codigo_sos ||
+    newRec.codigo_liquidacion || oldRec.codigo_liquidacion ||
+    newRec.codigo_cancelacion || oldRec.codigo_cancelacion ||
+    newRec.paw_id || oldRec.paw_id ||
+    newRec.codigo_cuidador || oldRec.codigo_cuidador ||
+    newRec.codigo_clinica || oldRec.codigo_clinica ||
+    newRec.clave || oldRec.clave ||
+    newRec.nombre || oldRec.nombre ||
+    item.id_registro || item.id || '';
+
+  const str = String(codigo).trim();
+  if (!str) return 'Registro General';
+  if (UUID_REGEX.test(str)) return `Registro #${str.slice(0, 8).toUpperCase()}`;
+  return str;
+}
+
+function limpiarDetalleAuditoria(detalleRaw) {
+  if (!detalleRaw || typeof detalleRaw !== 'string') return '';
+  const lower = detalleRaw.toLowerCase();
+  if (lower.includes('fn_auditar') || lower.includes('trigger') || lower.includes('postgresql')) {
+    return '';
+  }
+  let texto = detalleRaw.trim();
+  Object.entries(ENTIDAD_LABELS).forEach(([tabla, etiqueta]) => {
+    const rx = new RegExp(`\\b${tabla}\\b`, 'gi');
+    texto = texto.replace(rx, etiqueta);
+  });
+  return texto;
+}
+
+/**
+ * Transforma un registro de auditoría en etiquetas, resumen conciso y tabla comparativa humana
+ */
+function formatearResumenCambioAuditoria(item) {
+  const entidadKey = (item?.entidad || 'sistema').toLowerCase();
+  const entidadLabel = ENTIDAD_LABELS[entidadKey] || entidadKey.replace(/_/g, ' ');
+  const codigoLegible = extraerCodigoLegibleAuditoria(item);
+
+  const estadoAnteriorLabel = traducirEstadoHumano(item?.estado_anterior);
+  const estadoNuevoLabel = traducirEstadoHumano(item?.estado_nuevo);
+
+  let actorNombre = (item?.actor_nombre || '').trim();
+  if (!actorNombre || actorNombre.toLowerCase().includes('trigger') || actorNombre.toLowerCase().includes('postgresql')) {
+    actorNombre = 'Sistema Automático';
+  }
+  const actorRolKey = (item?.actor_rol || 'sistema').toLowerCase();
+  const actorRolLabel = ROL_LABELS[actorRolKey] || actorRolKey;
+
+  const oldRec = item?.old_record && typeof item.old_record === 'object' ? item.old_record : {};
+  const newRec = item?.new_record && typeof item.new_record === 'object' ? item.new_record : {};
+
+  const claves = Array.from(new Set([...Object.keys(oldRec), ...Object.keys(newRec)]))
+    .filter((k) => !CAMPOS_RUIDO_AUDITORIA.has(k));
+
+  const cambiosTabla = [];
+  claves.forEach((clave) => {
+    const valOld = oldRec[clave];
+    const valNew = newRec[clave];
+    const same = JSON.stringify(valOld ?? null) === JSON.stringify(valNew ?? null);
+    if (same && claves.length > 2) return;
+
+    cambiosTabla.push({
+      clave,
+      campo: CAMPO_LABELS[clave] || clave.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      anterior: formatearValorCampoHumano(clave, valOld),
+      nuevo: formatearValorCampoHumano(clave, valNew),
+      modificado: !same
+    });
+  });
+
+  if (cambiosTabla.length === 0) {
+    cambiosTabla.push({
+      clave: 'estado',
+      campo: 'Estado del Registro',
+      anterior: estadoAnteriorLabel,
+      nuevo: estadoNuevoLabel,
+      modificado: estadoAnteriorLabel !== estadoNuevoLabel
+    });
+  }
+
+  const detalleLimpio = limpiarDetalleAuditoria(item?.detalle);
+  let resumenFila = detalleLimpio;
+  if (!resumenFila) {
+    const partes = [];
+    if (estadoAnteriorLabel !== '—' || estadoNuevoLabel !== '—') {
+      partes.push(`Estado: ${estadoAnteriorLabel} → ${estadoNuevoLabel}`);
+    }
+    const extras = cambiosTabla
+      .filter((c) => c.modificado && !c.clave.startsWith('estado'))
+      .slice(0, 2)
+      .map((c) => `${c.campo}: ${c.nuevo}`);
+    partes.push(...extras);
+    resumenFila = partes.join(' • ') || 'Actualización registrada automáticamente.';
+  }
+
+  return {
+    entidadLabel,
+    codigoLegible,
+    estadoAnteriorLabel,
+    estadoNuevoLabel,
+    actorNombre,
+    actorRolLabel,
+    resumenFila,
+    cambiosTabla
+  };
+}
 
 function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
   if (!workspace) return;
@@ -3491,7 +4000,8 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
     if (hasta && fechaIso && fechaIso > hasta) return false;
 
     if (query) {
-      const str = `${a.entidad} ${a.id_registro} ${a.estado_anterior} ${a.estado_nuevo} ${a.actor_nombre} ${a.actor_rol} ${a.detalle}`.toLowerCase();
+      const info = formatearResumenCambioAuditoria(a);
+      const str = `${info.entidadLabel} ${info.codigoLegible} ${info.estadoAnteriorLabel} ${info.estadoNuevoLabel} ${info.actorNombre} ${info.actorRolLabel} ${info.resumenFila}`.toLowerCase();
       return str.includes(query);
     }
     return true;
@@ -3501,12 +4011,12 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
     <div class="card card-paw p-4 border-0 shadow-sm">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 border-bottom mb-3">
         <div>
-          <span class="badge bg-dark text-warning fw-bold mb-1">TRAZABILIDAD FORENSE INMUTABLE • TRIGGERS POSTGRESQL</span>
+          <span class="badge bg-dark text-warning fw-bold mb-1">TRAZABILIDAD INMUTABLE EN TIEMPO REAL</span>
           <h5 class="fw-bold mb-1">
-            <i class="bi bi-journal-code text-warning me-2"></i>Bitácora Global de Auditoría en Tiempo Real (` + '`auditoria_estados`' + `) (${filtrados.length})
+            <i class="bi bi-journal-check text-warning me-2"></i>Bitácora Global de Auditoría (${filtrados.length})
           </h5>
           <p class="text-secondary small mb-0">
-            Registro automático de transiciones de estado con instantáneas JSONB (<code>old_record</code> vs <code>new_record</code>).
+            Historial automático de todos los cambios de estado, aprobaciones, emergencias y movimientos financieros de la red Cusco.
           </p>
         </div>
 
@@ -3515,20 +4025,21 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
         </button>
       </div>
 
-      <!-- Filtros Combinados: Entidad, Actor/Rol, Fecha Desde, Fecha Hasta y Buscador -->
+      <!-- Filtros Combinados: Módulo, Rol del Actor, Fechas y Buscador -->
       <div class="row g-2 mb-3">
         <div class="col-md-3">
-          <label class="form-label small fw-bold mb-1">Entidad Auditada</label>
+          <label class="form-label small fw-bold mb-1">Módulo / Área</label>
           <select class="form-select form-select-sm" id="aud-filtro-entidad">
-            <option value="todas" ${adminState.filtroAuditoriaEntidad === 'todas' ? 'selected' : ''}>Todas las entidades</option>
-            <option value="reservas" ${adminState.filtroAuditoriaEntidad === 'reservas' ? 'selected' : ''}>reservas</option>
-            <option value="pagos" ${adminState.filtroAuditoriaEntidad === 'pagos' ? 'selected' : ''}>pagos</option>
-            <option value="liquidaciones_cuidadores" ${adminState.filtroAuditoriaEntidad === 'liquidaciones_cuidadores' ? 'selected' : ''}>liquidaciones_cuidadores</option>
-            <option value="cancelaciones_reembolsos" ${adminState.filtroAuditoriaEntidad === 'cancelaciones_reembolsos' ? 'selected' : ''}>cancelaciones_reembolsos</option>
-            <option value="perfiles_cuidadores" ${adminState.filtroAuditoriaEntidad === 'perfiles_cuidadores' ? 'selected' : ''}>perfiles_cuidadores</option>
-            <option value="clinicas_veterinarias" ${adminState.filtroAuditoriaEntidad === 'clinicas_veterinarias' ? 'selected' : ''}>clinicas_veterinarias</option>
-            <option value="mascotas" ${adminState.filtroAuditoriaEntidad === 'mascotas' ? 'selected' : ''}>mascotas (PAW-ID)</option>
-            <option value="incidencias_emergencias" ${adminState.filtroAuditoriaEntidad === 'incidencias_emergencias' ? 'selected' : ''}>incidencias_emergencias (S.O.S.)</option>
+            <option value="todas" ${adminState.filtroAuditoriaEntidad === 'todas' ? 'selected' : ''}>Todos los módulos</option>
+            <option value="reservas" ${adminState.filtroAuditoriaEntidad === 'reservas' ? 'selected' : ''}>Reservas</option>
+            <option value="pagos" ${adminState.filtroAuditoriaEntidad === 'pagos' ? 'selected' : ''}>Pagos</option>
+            <option value="liquidaciones_cuidadores" ${adminState.filtroAuditoriaEntidad === 'liquidaciones_cuidadores' ? 'selected' : ''}>Liquidaciones</option>
+            <option value="cancelaciones_reembolsos" ${adminState.filtroAuditoriaEntidad === 'cancelaciones_reembolsos' ? 'selected' : ''}>Cancelaciones y Disputas</option>
+            <option value="perfiles_cuidadores" ${adminState.filtroAuditoriaEntidad === 'perfiles_cuidadores' ? 'selected' : ''}>Cuidadores</option>
+            <option value="clinicas_veterinarias" ${adminState.filtroAuditoriaEntidad === 'clinicas_veterinarias' ? 'selected' : ''}>Clínicas Veterinarias</option>
+            <option value="mascotas" ${adminState.filtroAuditoriaEntidad === 'mascotas' ? 'selected' : ''}>Mascotas (PAW-ID)</option>
+            <option value="incidencias_emergencias" ${adminState.filtroAuditoriaEntidad === 'incidencias_emergencias' ? 'selected' : ''}>Emergencias S.O.S.</option>
+            <option value="configuracion_plataforma" ${adminState.filtroAuditoriaEntidad === 'configuracion_plataforma' ? 'selected' : ''}>Parámetros Globales</option>
           </select>
         </div>
 
@@ -3557,7 +4068,7 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
           <label class="form-label small fw-bold mb-1">Búsqueda Textual</label>
           <input type="text" class="form-control form-control-sm" id="aud-filtro-texto"
             value="${escapeHtml(adminState.filtroAuditoriaTexto)}"
-            placeholder="Código, actor o detalle...">
+            placeholder="Código, responsable o resumen...">
         </div>
       </div>
 
@@ -3565,39 +4076,49 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
         <table class="table table-hover align-middle mb-0 small">
           <thead class="table-light">
             <tr>
-              <th>Fecha & Hora (Lima/Cusco)</th>
-              <th>Entidad & Registro</th>
-              <th>Transición de Estado</th>
-              <th>Actor & Rol</th>
-              <th>Detalle / Motivo Auditado</th>
-              <th class="text-end">JSONB</th>
+              <th>Fecha & Hora (Cusco)</th>
+              <th>Módulo & Código</th>
+              <th>Cambio de Estado</th>
+              <th>Responsable</th>
+              <th>Resumen del Cambio</th>
+              <th class="text-end">Detalle</th>
             </tr>
           </thead>
           <tbody>
-            ${filtrados.map((a, idx) => `
+            ${filtrados.length === 0 ? `
               <tr>
-                <td class="text-muted text-nowrap">${formatFechaEs(a.created_at, true)}</td>
-                <td>
-                  <span class="badge bg-light text-dark border font-monospace">${escapeHtml(a.entidad || 'sistema')}</span>
-                  <div class="fw-bold font-monospace text-dark mt-1">${escapeHtml(a.id_registro || a.id)}</div>
-                </td>
-                <td>
-                  <span class="badge bg-secondary-subtle text-secondary border">${escapeHtml(a.estado_anterior || '—')}</span>
-                  <i class="bi bi-arrow-right mx-1 text-warning"></i>
-                  <span class="badge bg-success-subtle text-success border fw-bold">${escapeHtml(a.estado_nuevo || 'activo')}</span>
-                </td>
-                <td>
-                  <div class="fw-semibold text-dark">${escapeHtml(a.actor_nombre || 'Trigger PostgreSQL')}</div>
-                  <span class="badge bg-dark text-uppercase" style="font-size:0.68rem;">${escapeHtml(a.actor_rol || 'sistema')}</span>
-                </td>
-                <td style="max-width: 320px;">${escapeHtml(a.detalle || 'Transición registrada por trigger fn_auditar_cambio_estado.')}</td>
-                <td class="text-end">
-                  <button type="button" class="btn btn-outline-dark btn-sm" data-aud-inspect="${idx}" title="Ver Instantánea JSONB">
-                    <i class="bi bi-braces"></i>
-                  </button>
+                <td colspan="6" class="text-center text-muted py-4">
+                  <i class="bi bi-journal-x fs-4 d-block mb-1"></i>
+                  No se encontraron registros con los filtros seleccionados.
                 </td>
               </tr>
-            `).join('')}
+            ` : filtrados.map((a, idx) => {
+              const info = formatearResumenCambioAuditoria(a);
+              return `
+                <tr>
+                  <td class="text-muted text-nowrap">${formatFechaEs(a.created_at, true)}</td>
+                  <td>
+                    <span class="badge bg-light text-dark border">${escapeHtml(info.entidadLabel)}</span>
+                    <div class="fw-bold font-monospace text-dark mt-1">${escapeHtml(info.codigoLegible)}</div>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary-subtle text-secondary border">${escapeHtml(info.estadoAnteriorLabel)}</span>
+                    <i class="bi bi-arrow-right mx-1 text-warning"></i>
+                    <span class="badge bg-success-subtle text-success border fw-bold">${escapeHtml(info.estadoNuevoLabel)}</span>
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">${escapeHtml(info.actorNombre)}</div>
+                    <span class="badge bg-dark" style="font-size:0.68rem;">${escapeHtml(info.actorRolLabel)}</span>
+                  </td>
+                  <td style="max-width: 320px;">${escapeHtml(info.resumenFila)}</td>
+                  <td class="text-end text-nowrap">
+                    <button type="button" class="btn btn-outline-dark btn-sm" data-aud-inspect="${idx}" title="Ver Detalle del Cambio">
+                      <i class="bi bi-card-list me-1"></i>Ver Detalle
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -3634,48 +4155,74 @@ function renderSeccionBitacoraAuditoria(workspace, rootContainer) {
     }
   });
 
-  // Exportar Bitácora a CSV
+  // Exportar Bitácora a CSV con etiquetas legibles
   workspace.querySelector('#btn-admin-exportar-auditoria-csv')?.addEventListener('click', () => {
-    const rows = filtrados.map((a) => ({
-      fecha_hora: a.created_at,
-      entidad: a.entidad,
-      id_registro: a.id_registro,
-      accion: a.accion || 'UPDATE',
-      estado_anterior: a.estado_anterior || '',
-      estado_nuevo: a.estado_nuevo || '',
-      actor_nombre: a.actor_nombre || '',
-      actor_rol: a.actor_rol || '',
-      detalle: a.detalle || ''
-    }));
+    const rows = filtrados.map((a) => {
+      const info = formatearResumenCambioAuditoria(a);
+      return {
+        fecha_hora: a.created_at,
+        modulo: info.entidadLabel,
+        codigo: info.codigoLegible,
+        estado_anterior: info.estadoAnteriorLabel,
+        estado_nuevo: info.estadoNuevoLabel,
+        responsable: info.actorNombre,
+        rol: info.actorRolLabel,
+        resumen: info.resumenFila
+      };
+    });
     exportarCsv(rows, `bitacora_auditoria_pawpatita_${getHoyIso()}.csv`);
     showToast('Bitácora de auditoría exportada a CSV.', 'info');
   });
 
-  // Inspector modal de JSONB (old_record vs new_record)
+  // Modal de Detalle Humano: Tabla comparativa Campo | Valor Anterior | Valor Nuevo
   workspace.querySelectorAll('[data-aud-inspect]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.getAttribute('data-aud-inspect'), 10);
       const item = filtrados[idx];
       if (!item) return;
 
+      const info = formatearResumenCambioAuditoria(item);
+
       crearModalDinamico({
-        titulo: `Evidencia Forense JSONB — ${item.entidad} (${item.id_registro})`,
-        icono: 'bi-braces-asterisk',
+        titulo: `Detalle del Cambio — ${info.entidadLabel} (${info.codigoLegible})`,
+        icono: 'bi-card-list',
+        tamano: 'modal-lg',
         cuerpoHtml: `
-          <div class="p-2 bg-light rounded border mb-3 small">
-            <strong>Actor:</strong> ${escapeHtml(item.actor_nombre)} (${escapeHtml(item.actor_rol)}) •
-            <strong>Fecha:</strong> ${formatFechaEs(item.created_at, true)}<br>
-            <strong>Detalle:</strong> ${escapeHtml(item.detalle)}
+          <div class="p-3 bg-light rounded-3 border mb-3 small">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <strong>Módulo:</strong> ${escapeHtml(info.entidadLabel)}<br>
+                <strong>Referencia:</strong> <span class="font-monospace fw-bold">${escapeHtml(info.codigoLegible)}</span>
+              </div>
+              <div class="col-md-6">
+                <strong>Responsable:</strong> ${escapeHtml(info.actorNombre)} (${escapeHtml(info.actorRolLabel)})<br>
+                <strong>Fecha y Hora:</strong> ${formatFechaEs(item.created_at, true)}
+              </div>
+              <div class="col-12 pt-2 border-top mt-2">
+                <strong>Resumen del Evento:</strong> ${escapeHtml(info.resumenFila)}
+              </div>
+            </div>
           </div>
-          <div class="row g-3 small">
-            <div class="col-md-6">
-              <div class="fw-bold text-secondary mb-1">OLD_RECORD (Estado Anterior)</div>
-              <pre class="p-3 bg-dark text-warning rounded-3 mb-0" style="font-size:0.76rem; overflow:auto;">${escapeHtml(JSON.stringify(item.old_record || { estado: item.estado_anterior }, null, 2))}</pre>
-            </div>
-            <div class="col-md-6">
-              <div class="fw-bold text-success mb-1">NEW_RECORD (Estado Nuevo)</div>
-              <pre class="p-3 bg-dark text-info rounded-3 mb-0" style="font-size:0.76rem; overflow:auto;">${escapeHtml(JSON.stringify(item.new_record || { estado: item.estado_nuevo, detalle: item.detalle }, null, 2))}</pre>
-            </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 30%;">Campo</th>
+                  <th style="width: 35%;">Valor Anterior</th>
+                  <th style="width: 35%;">Valor Nuevo</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${info.cambiosTabla.map((fila) => `
+                  <tr class="${fila.modificado ? 'table-warning bg-opacity-10' : ''}">
+                    <td class="fw-semibold text-dark text-break">${escapeHtml(fila.campo)}</td>
+                    <td class="text-secondary text-break">${escapeHtml(fila.anterior)}</td>
+                    <td class="fw-semibold text-success text-break">${escapeHtml(fila.nuevo)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
         `,
         footerHtml: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`

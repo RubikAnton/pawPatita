@@ -47,10 +47,10 @@ ON CONFLICT (nombre) DO NOTHING;
 
 INSERT INTO public.cupones_promocionales (id, codigo, descripcion, tipo_descuento, valor_descuento, segmento_objetivo, monto_minimo, fecha_inicio, fecha_fin, usos_maximos, usos_actuales, activo)
 VALUES
-    ('20000000-0000-0000-0000-000000000001', 'BIENVENIDO10', '10% de descuento en tu primera reserva en Paw Patita Cusco', 'porcentaje', 10.00, 'todos', 40.00, '2026-01-01', '2027-12-31', 500, 14, true),
-    ('20000000-0000-0000-0000-000000000002', 'MACHUPICCHU15', '15% de descuento especial para turistas que visitan Machu Picchu', 'porcentaje', 15.00, 'turista', 70.00, '2026-01-01', '2027-12-31', 300, 8, true),
-    ('20000000-0000-0000-0000-000000000003', 'CUSCO20', 'S/ 20.00 de descuento directo en hospedajes de 3 días o más', 'monto_fijo', 20.00, 'local', 120.00, '2026-01-01', '2027-12-31', 200, 5, true)
-ON CONFLICT (codigo) DO NOTHING;
+    ('20000000-0000-0000-0000-000000000001', 'BIENVENIDO10', '10% de descuento en tu primera reserva en Paw Patita Cusco (inactivo en v5.1)', 'porcentaje', 10.00, 'todos', 40.00, '2026-01-01', '2027-12-31', 500, 14, false),
+    ('20000000-0000-0000-0000-000000000002', 'MACHUPICCHU15', '15% de descuento especial para turistas que visitan Machu Picchu (inactivo en v5.1)', 'porcentaje', 15.00, 'turista', 70.00, '2026-01-01', '2027-12-31', 300, 8, false),
+    ('20000000-0000-0000-0000-000000000003', 'CUSCO20', 'S/ 20.00 de descuento directo en hospedajes de 3 días o más (inactivo en v5.1)', 'monto_fijo', 20.00, 'local', 120.00, '2026-01-01', '2027-12-31', 200, 5, false)
+ON CONFLICT (codigo) DO UPDATE SET activo = false;
 
 -- =============================================================================
 -- 3. TÉRMINOS Y CONDICIONES LEGALES v5.0
@@ -82,7 +82,7 @@ VALUES
         'Av. de la Cultura 1420, frente a UNSAAC', 'Wanchaq',
         -13.522600, -71.961200, '+51 984 711 222', '24 Horas',
         ARRAY['Emergencias 24h', 'Traumatología', 'UCI Canina', 'Laboratorio Clínico'],
-        60.00, 'https://i.postimg.cc/8cZ7xK2p/vet-cusco-1.jpg', 'https://i.postimg.cc/8cZ7xK2p/cmvp-cert-1.jpg',
+        60.00, 'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=900&q=80', NULL,
         'CMVP-CUSCO-4821', 'activa', 'Sede principal acreditada 24h en Wanchaq', true
     ),
     (
@@ -91,7 +91,7 @@ VALUES
         'Av. El Sol 815, Centro Histórico', 'Cusco Centro',
         -13.519200, -71.975400, '+51 984 822 333', '24 Horas',
         ARRAY['Emergencias 24h', 'Medicina Interna', 'Oxigenoterapia de Altura', 'Ecografía'],
-        65.00, 'https://i.postimg.cc/8cZ7xK2p/vet-cusco-2.jpg', 'https://i.postimg.cc/8cZ7xK2p/cmvp-cert-2.jpg',
+        65.00, 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=900&q=80', NULL,
         'CMVP-CUSCO-5104', 'activa', 'Acreditada para atención de turistas y locales en Cusco Centro', true
     ),
     (
@@ -100,7 +100,7 @@ VALUES
         'Av. Cusco 512, Paradero Enaco', 'San Sebastián',
         -13.531800, -71.936500, '+51 984 933 444', 'Extendido',
         ARRAY['Cirugía General', 'Vacunación Internacional', 'Dermatología'],
-        50.00, 'https://i.postimg.cc/8cZ7xK2p/vet-cusco-3.jpg', 'https://i.postimg.cc/8cZ7xK2p/cmvp-cert-3.jpg',
+        50.00, 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=900&q=80', NULL,
         'CMVP-CUSCO-5390', 'activa', 'Sede aliada zona sur San Sebastián', true
     ),
     (
@@ -109,7 +109,7 @@ VALUES
         'Av. Manco Cápac 310, Plaza San Jerónimo', 'San Jerónimo',
         -13.544900, -71.884200, '+51 984 644 555', '24 Horas',
         ARRAY['Emergencias 24h', 'Hospitalización', 'Cardiología'],
-        55.00, 'https://i.postimg.cc/8cZ7xK2p/vet-cusco-4.jpg', 'https://i.postimg.cc/8cZ7xK2p/cmvp-cert-4.jpg',
+        55.00, 'https://images.unsplash.com/photo-1599443015574-be5fe8a05783?auto=format&fit=crop&w=900&q=80', NULL,
         'CMVP-CUSCO-5612', 'activa', 'Sede aliada 24h en San Jerónimo', true
     ),
     (
@@ -118,7 +118,7 @@ VALUES
         'Calle Suecia 240, San Blas', 'San Blas',
         -13.514100, -71.976800, '+51 984 555 666', 'Diurno',
         ARRAY['Medicina General', 'Profilaxis Dental'],
-        45.00, 'https://i.postimg.cc/8cZ7xK2p/vet-cusco-5.jpg', 'https://i.postimg.cc/8cZ7xK2p/cmvp-cert-5.jpg',
+        45.00, 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=900&q=80', NULL,
         'CMVP-CUSCO-6019', 'pendiente', 'Solicitud de afiliación pendiente de revisión por Admin', false
     )
 ON CONFLICT (codigo_clinica) DO NOTHING;
@@ -405,7 +405,12 @@ VALUES
     )
 ON CONFLICT (codigo_cuidador) DO NOTHING;
 
--- Expedientes documentales en antecedentes_cuidadores
+-- Expedientes documentales en antecedentes_cuidadores (NULL limpio donde antes había postimg)
+ALTER TABLE public.antecedentes_cuidadores
+    ALTER COLUMN doc_identidad_url DROP NOT NULL,
+    ALTER COLUMN doc_antecedentes_policiales_url DROP NOT NULL,
+    ALTER COLUMN doc_antecedentes_penales_url DROP NOT NULL;
+
 INSERT INTO public.antecedentes_cuidadores (
     id_cuidador, doc_identidad_url, doc_antecedentes_policiales_url,
     doc_antecedentes_penales_url, doc_domicilio_url, declaracion_jurada,
@@ -413,10 +418,10 @@ INSERT INTO public.antecedentes_cuidadores (
 )
 SELECT
     pc.id,
-    'https://i.postimg.cc/8cZ7xK2p/dni-' || LOWER(pc.codigo_cuidador) || '.jpg',
-    'https://i.postimg.cc/8cZ7xK2p/policial-' || LOWER(pc.codigo_cuidador) || '.jpg',
-    'https://i.postimg.cc/8cZ7xK2p/penal-' || LOWER(pc.codigo_cuidador) || '.jpg',
-    'https://i.postimg.cc/8cZ7xK2p/recibo-luz-' || LOWER(pc.codigo_cuidador) || '.jpg',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     true,
     pc.estado_postulacion,
     CASE WHEN pc.estado_postulacion = 'aprobado' THEN 'Antecedentes policiales, penales y DNI verificados conforme.' ELSE 'Pendiente de validación por Administración.' END
@@ -498,7 +503,7 @@ VALUES
     (
         '80000000-0000-0000-0000-000000000001', 'PAW-6858', '50000000-0000-0000-0000-000000000002',
         'Inti', 'Golden Retriever', '2023-07-15', 'Grande', 'Macho', 28.50,
-        true, true, '2027-07-15', 'https://i.postimg.cc/8cZ7xK2p/cartilla-inti-paw6858.jpg',
+        true, true, '2027-07-15', NULL,
         'Alergia leve al pollo procesado (dar solo cordero o salmón)', 'Ninguna medicación permanente',
         '300g de croquetas de salmón (08:00 AM y 06:00 PM)', 'Muy cariñoso, sociable con otros perros y acostumbrado a paseos con arnés.',
         'https://images.unsplash.com/photo-1552053831-71594a27632d?w=500', 'validado',
@@ -509,7 +514,7 @@ VALUES
     (
         '80000000-0000-0000-0000-000000000002', 'PAW-1002', '50000000-0000-0000-0000-000000000002',
         'Killa', 'Beagle', '2026-04-10', 'Mediano', 'Hembra', 7.20,
-        false, true, '2027-04-10', 'https://i.postimg.cc/8cZ7xK2p/cartilla-killa-paw1002.jpg',
+        false, true, '2027-04-10', NULL,
         'Ninguna alergia conocida', 'Vitaminas de cachorro después del desayuno',
         'Croquetas Puppy 3 veces al día', 'Cachorra juguetona y curiosa.',
         'https://images.unsplash.com/photo-1505628346881-b72b27e84530?w=500', 'pendiente',
@@ -520,7 +525,7 @@ VALUES
     (
         '80000000-0000-0000-0000-000000000003', 'PAW-1003', '50000000-0000-0000-0000-000000000003',
         'Chaska', 'French Poodle', '2022-03-20', 'Pequeño', 'Hembra', 5.80,
-        true, true, '2027-05-20', 'https://i.postimg.cc/8cZ7xK2p/cartilla-chaska-paw1003.jpg',
+        true, true, '2027-05-20', NULL,
         'Sensible al frío nocturno (usar abrigo en noches de Cusco)', 'Gotas oftálmicas lubricantes cada noche',
         'Alimento hipoalergénico 120g diarios', 'Tranquila, acostumbrada a viajar en cabina y hoteles.',
         'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=500', 'validado',
@@ -531,7 +536,7 @@ VALUES
     (
         '80000000-0000-0000-0000-000000000004', 'PAW-1004', '50000000-0000-0000-0000-000000000002',
         'Wayra', 'Schnauzer Miniatura', '2021-11-02', 'Pequeño', 'Macho', 8.10,
-        true, false, '2025-10-01', 'https://i.postimg.cc/8cZ7xK2p/cartilla-wayra-paw1004.jpg',
+        true, false, '2025-10-01', NULL,
         'Ninguna', 'Ninguna', 'Croquetas Adult Small Breed', 'Alerta y guardián.',
         'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=500', 'observado',
         '40000000-0000-0000-0000-000000000001', 'Observación Clínica: El refuerzo anual de vacuna Antirrábica figura vencido. Subir foto del sello actualizado.',
@@ -543,9 +548,9 @@ INSERT INTO public.validaciones_veterinarias (
     id_mascota, id_clinica, id_usuario_vet, resultado, vacunas_verificadas, vigencia_hasta, observaciones_medicas, cartilla_evaluada_url
 )
 VALUES
-    ('80000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000004', 'validado', 'Séxtuple, Antirrábica, Bordetella y Desparasitación Interna/Externa', '2027-07-15', 'Paciente en excelente condición clínica. Sello CMVP verificado.', 'https://i.postimg.cc/8cZ7xK2p/cartilla-inti-paw6858.jpg'),
-    ('80000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000004', 'validado', 'Pasaporte Europeo + Antirrábica Vigente + Antiparasitario', '2027-05-20', 'Apto para custodia turística en Cusco.', 'https://i.postimg.cc/8cZ7xK2p/cartilla-chaska-paw1003.jpg'),
-    ('80000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000004', 'observado', 'Séxtuple presente; falta sello de refuerzo Antirrábico 2026', NULL, 'El refuerzo anual de vacuna Antirrábica figura vencido. Actualizar cartilla.', 'https://i.postimg.cc/8cZ7xK2p/cartilla-wayra-paw1004.jpg');
+    ('80000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000004', 'validado', 'Séxtuple, Antirrábica, Bordetella y Desparasitación Interna/Externa', '2027-07-15', 'Paciente en excelente condición clínica. Sello CMVP verificado.', NULL),
+    ('80000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000004', 'validado', 'Pasaporte Europeo + Antirrábica Vigente + Antiparasitario', '2027-05-20', 'Apto para custodia turística en Cusco.', NULL),
+    ('80000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000004', 'observado', 'Séxtuple presente; falta sello de refuerzo Antirrábico 2026', NULL, 'El refuerzo anual de vacuna Antirrábica figura vencido. Actualizar cartilla.', NULL);
 
 -- =============================================================================
 -- 9. RESERVAS EN TODOS LOS ESTADOS + PAGOS (15% COMISIÓN) + LIQUIDACIONES
@@ -643,8 +648,11 @@ VALUES (
 ON CONFLICT (codigo_cancelacion) DO NOTHING;
 
 -- =============================================================================
--- 10. MURO DE FOTOS EN VIVO (REPORTES + FOTOS POSTIMG/UNSPLASH)
+-- 10. MURO DE FOTOS EN VIVO (REPORTES + FOTOS VERIFICADAS)
 -- =============================================================================
+
+-- Deshabilitar temporalmente el trigger de validación de Muro durante la carga de reportes históricos de semilla
+ALTER TABLE public.reportes_seguimiento DISABLE TRIGGER trg_validar_reporte_en_curso;
 
 INSERT INTO public.reportes_seguimiento (
     id, id_reserva, id_cuidador, tipo_evento, estado_animo_mascota,
@@ -664,12 +672,14 @@ VALUES
      'Comió toda su ración de croquetas de salmón (sin pollo) y descansó tranquilo.', true, now() - INTERVAL '9 days')
 ON CONFLICT (id) DO NOTHING;
 
+ALTER TABLE public.reportes_seguimiento ENABLE TRIGGER trg_validar_reporte_en_curso;
+
 INSERT INTO public.fotos_reporte (id_reporte, foto_url, origen_almacenamiento, descripcion_foto, orden)
 VALUES
-    ('94000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=700', 'postimg', 'Inti en el jardín al momento del Check-In', 1),
-    ('94000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=700', 'postimg', 'Paseo matutino en Wanchaq bajo el sol cusqueño', 1),
-    ('94000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=700', 'postimg', 'Descanso e hidratación en sombra', 2),
-    ('94000000-0000-0000-0000-000000000003', 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=700', 'postimg', 'Hora de su comida hipoalergénica', 1);
+    ('94000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=700', 'externo', 'Inti en el jardín al momento del Check-In', 1),
+    ('94000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=700', 'externo', 'Paseo matutino en Wanchaq bajo el sol cusqueño', 1),
+    ('94000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=700', 'externo', 'Descanso e hidratación en sombra', 2),
+    ('94000000-0000-0000-0000-000000000003', 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=700', 'externo', 'Hora de su comida hipoalergénica', 1);
 
 -- =============================================================================
 -- 11. ALERTAS S.O.S. VETERINARIAS (1 ACTIVA EN ATENCIÓN + 1 HISTÓRICA RESUELTA)

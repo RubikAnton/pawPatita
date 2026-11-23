@@ -8,14 +8,14 @@
 -- =============================================================================
 -- 1. rpc_cotizar_reserva
 -- Cotización en tiempo real con desglose completo (15% plataforma, 85% cuidador,
--- extras, recargo cachorro, temporada turística Cusco y descuento de cupón).
+-- extras, recargo cachorro y temporada turística Cusco — sin cupones en v5.1).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.rpc_cotizar_reserva(
     p_id_oferta uuid,
     p_fecha_inicio date,
     p_fecha_fin date,
-    p_bloque_horario bloque_horario_enum DEFAULT 'todo_el_dia',
+    p_bloque_horario public.bloque_horario_enum DEFAULT 'todo_el_dia',
     p_extras jsonb DEFAULT '{}'::jsonb,
     p_codigo_cupon text DEFAULT NULL,
     p_id_mascota uuid DEFAULT NULL
@@ -28,6 +28,7 @@ AS $$
 DECLARE
     v_srv record;
     v_dias integer;
+    v_bloque_efectivo public.bloque_horario_enum;
     v_comision_pct numeric(5,4) := 0.15;
     v_tc_usd numeric(10,4) := 3.75;
     v_tarifa_bano numeric(10,2) := 25.00;
@@ -39,10 +40,6 @@ DECLARE
     v_es_cachorro boolean := false;
     v_recargo_cachorro numeric(10,2) := 0.00;
     v_extras_monto numeric(10,2) := 0.00;
-    v_id_cupon uuid := NULL;
-    v_codigo_cupon_aplicado text := NULL;
-    v_descuento_cupon numeric(10,2) := 0.00;
-    v_cupon record;
     v_monto_total numeric(10,2);
     v_comision_plataforma numeric(10,2);
     v_monto_neto_cuidador numeric(10,2);
@@ -61,6 +58,13 @@ BEGIN
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'La oferta de servicio seleccionada no existe o no está disponible.';
+    END IF;
+
+    -- En Hospedaje el bloque es siempre 'todo_el_dia' (24h)
+    IF v_srv.categoria = 'Hospedaje' THEN
+        v_bloque_efectivo := 'todo_el_dia';
+    ELSE
+        v_bloque_efectivo := COALESCE(p_bloque_horario, 'todo_el_dia');
     END IF;
 
     -- Leer parámetros vivos desde configuracion_plataforma
@@ -115,35 +119,8 @@ BEGIN
         END IF;
     END IF;
 
-    -- Validar y aplicar cupón promocional si existe
-    IF p_codigo_cupon IS NOT NULL AND TRIM(p_codigo_cupon) != '' THEN
-        SELECT *
-        INTO v_cupon
-        FROM public.cupones_promocionales
-        WHERE UPPER(codigo) = UPPER(TRIM(p_codigo_cupon))
-          AND activo = true
-          AND CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin
-          AND usos_actuales < usos_maximos;
-
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'El cupón "%" no es válido, ha expirado o agotó sus usos.', TRIM(p_codigo_cupon);
-        END IF;
-
-        IF (v_subtotal_base + v_ajuste_temporada + v_recargo_cachorro + v_extras_monto) < v_cupon.monto_minimo THEN
-            RAISE EXCEPTION 'El cupón "%" requiere un monto mínimo de S/ %.', v_cupon.codigo, v_cupon.monto_minimo;
-        END IF;
-
-        v_id_cupon := v_cupon.id;
-        v_codigo_cupon_aplicado := v_cupon.codigo;
-
-        IF v_cupon.tipo_descuento = 'porcentaje' THEN
-            v_descuento_cupon := ROUND((v_subtotal_base + v_ajuste_temporada) * (v_cupon.valor_descuento / 100.0), 2);
-        ELSE
-            v_descuento_cupon := LEAST(v_cupon.valor_descuento, v_subtotal_base);
-        END IF;
-    END IF;
-
-    v_monto_total := GREATEST(ROUND(v_subtotal_base + v_ajuste_temporada + v_recargo_cachorro + v_extras_monto - v_descuento_cupon, 2), 1.00);
+    -- v5.1: Cupones deshabilitados por regla de negocio (cotización transparente sin cupones)
+    v_monto_total := GREATEST(ROUND(v_subtotal_base + v_ajuste_temporada + v_recargo_cachorro + v_extras_monto, 2), 1.00);
     v_comision_plataforma := ROUND(v_monto_total * v_comision_pct, 2);
     v_monto_neto_cuidador := ROUND(v_monto_total - v_comision_plataforma, 2);
 
@@ -156,7 +133,7 @@ BEGIN
         'tipo_servicio', v_srv.tipo_servicio,
         'fecha_inicio', p_fecha_inicio,
         'fecha_fin', p_fecha_fin,
-        'bloque_horario', p_bloque_horario,
+        'bloque_horario', v_bloque_efectivo,
         'dias_calculados', v_dias,
         'tarifa_unitaria', v_srv.tarifa_diaria_por_perro,
         'subtotal_base', v_subtotal_base,
@@ -166,9 +143,10 @@ BEGIN
         'es_cachorro', COALESCE(v_es_cachorro, false),
         'recargo_cachorro', v_recargo_cachorro,
         'extras_monto', v_extras_monto,
-        'id_cupon', v_id_cupon,
-        'codigo_cupon', v_codigo_cupon_aplicado,
-        'descuento_cupon', v_descuento_cupon,
+        'id_cupon', NULL,
+        'codigo_cupon', NULL,
+        'descuento_cupon', 0,
+        'cupon_valido', false,
         'monto_total_pen', v_monto_total,
         'monto_total_usd', ROUND(v_monto_total / v_tc_usd, 2),
         'tipo_cambio_usd', v_tc_usd,
@@ -182,7 +160,8 @@ $$;
 -- =============================================================================
 -- 2. rpc_crear_reserva
 -- Creación transaccional atómica con bloqueo FOR UPDATE anti-overbooking por
--- fecha y bloque horario, pago (15%/85%), garantía en billetera, TyC y notificación.
+-- fecha y bloque horario, exigencia 24h en Hospedaje, pago (15%/85%), garantía
+-- en billetera, TyC y notificación.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.rpc_crear_reserva(p_payload jsonb)
@@ -197,18 +176,18 @@ DECLARE
     v_id_mascota uuid;
     v_fecha_inicio date;
     v_fecha_fin date;
-    v_bloque_horario bloque_horario_enum;
+    v_bloque_horario public.bloque_horario_enum;
     v_hora_inicio time;
     v_hora_fin time;
     v_extras jsonb;
-    v_codigo_cupon text;
-    v_metodo_pago metodo_pago_enum;
+    v_metodo_pago public.metodo_pago_enum;
     v_num_operacion text;
     v_ultimos_4 text;
     v_tipo_comprobante text;
     v_notas text;
     v_moneda text;
     v_acepta_tyc boolean;
+    v_servicio record;
     v_cotizacion jsonb;
     v_mascota record;
     v_cuidador record;
@@ -230,10 +209,9 @@ BEGIN
     v_id_mascota := (p_payload->>'id_mascota')::uuid;
     v_fecha_inicio := (p_payload->>'fecha_inicio')::date;
     v_fecha_fin := COALESCE((p_payload->>'fecha_fin')::date, v_fecha_inicio);
-    v_bloque_horario := COALESCE((p_payload->>'bloque_horario')::bloque_horario_enum, 'todo_el_dia');
+    v_bloque_horario := COALESCE(NULLIF(TRIM(p_payload->>'bloque_horario'), '')::public.bloque_horario_enum, 'todo_el_dia');
     v_extras := COALESCE(p_payload->'extras', '{}'::jsonb);
-    v_codigo_cupon := NULLIF(TRIM(COALESCE(p_payload->>'codigo_cupon', '')), '');
-    v_metodo_pago := COALESCE((p_payload->>'metodo_pago')::metodo_pago_enum, 'Yape');
+    v_metodo_pago := COALESCE((p_payload->>'metodo_pago')::public.metodo_pago_enum, 'Yape');
     v_num_operacion := COALESCE(NULLIF(TRIM(p_payload->>'num_operacion'), ''), 'OP-' || floor(random() * 900000 + 100000)::text);
     v_ultimos_4 := NULLIF(TRIM(COALESCE(p_payload->>'ultimos_4_digitos', '')), '');
     v_tipo_comprobante := COALESCE(NULLIF(TRIM(p_payload->>'tipo_comprobante'), ''), 'Boleta Electrónica');
@@ -242,7 +220,26 @@ BEGIN
     v_acepta_tyc := COALESCE((p_payload->>'acepta_tyc')::boolean, true);
 
     IF NOT v_acepta_tyc THEN
-        RAISE EXCEPTION 'Es obligatorio aceptar los Términos y Condiciones de Custodia v5.0.';
+        RAISE EXCEPTION 'Es obligatorio aceptar los Términos y Condiciones de Custodia.';
+    END IF;
+
+    IF v_fecha_fin < v_fecha_inicio THEN
+        RAISE EXCEPTION 'La fecha de fin (%) no puede ser anterior a la fecha de inicio (%).',
+            to_char(v_fecha_fin, 'DD/MM/YYYY'), to_char(v_fecha_inicio, 'DD/MM/YYYY');
+    END IF;
+
+    -- Verificar categoría del servicio y exigir bloque 'todo_el_dia' cuando es 'Hospedaje'
+    SELECT * INTO v_servicio
+    FROM public.servicios
+    WHERE id = v_id_oferta
+      AND disponible = true;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'La oferta de servicio seleccionada no existe o no está disponible.';
+    END IF;
+
+    IF v_servicio.categoria = 'Hospedaje' AND v_bloque_horario != 'todo_el_dia' THEN
+        RAISE EXCEPTION 'El servicio de Hospedaje requiere obligatoriamente la modalidad de Estadía Completa 24 Horas (bloque todo_el_dia).';
     END IF;
 
     -- Determinar horas exactas según bloque horario
@@ -271,14 +268,14 @@ BEGIN
         RAISE EXCEPTION 'La ficha PAW-ID (%) de % tiene observaciones médicas pendientes de subsanar.', v_mascota.paw_id, v_mascota.nombre;
     END IF;
 
-    -- Cotizar de forma autoritativa en servidor
+    -- Cotizar de forma autoritativa en servidor (sin cupones)
     v_cotizacion := public.rpc_cotizar_reserva(
         v_id_oferta,
         v_fecha_inicio,
         v_fecha_fin,
         v_bloque_horario,
         v_extras,
-        v_codigo_cupon,
+        NULL,
         v_id_mascota
     );
 
@@ -291,9 +288,20 @@ BEGIN
         RAISE EXCEPTION 'El cuidador seleccionado no se encuentra activo para recibir reservas.';
     END IF;
 
-    -- CONTROL ANTI-OVERBOOKING ATÓMICO POR FECHA Y BLOQUE HORARIO (FOR UPDATE)
+    -- CONTROL ANTI-OVERBOOKING ATÓMICO POR CADA DÍA DEL RANGO [v_fecha_inicio..v_fecha_fin] Y BLOQUE HORARIO (FOR UPDATE)
     v_dia := v_fecha_inicio;
     WHILE v_dia <= v_fecha_fin LOOP
+        IF EXISTS (
+            SELECT 1 FROM public.disponibilidad_cuidadores
+            WHERE id_cuidador = v_cuidador.id
+              AND fecha = v_dia
+              AND estado_bloque = 'bloqueado'
+              AND (bloque_horario = 'todo_el_dia' OR bloque_horario = v_bloque_horario)
+        ) THEN
+            RAISE EXCEPTION 'El cuidador ha bloqueado su agenda el día % (%).',
+                to_char(v_dia, 'DD/MM/YYYY'), v_bloque_horario;
+        END IF;
+
         SELECT * INTO v_disp
         FROM public.disponibilidad_cuidadores
         WHERE id_cuidador = v_cuidador.id
@@ -305,27 +313,18 @@ BEGIN
 
         IF FOUND THEN
             IF v_disp.estado_bloque = 'bloqueado' THEN
-                RAISE EXCEPTION 'El cuidador ha bloqueado su agenda el día % para el bloque %.', v_dia, v_bloque_horario;
+                RAISE EXCEPTION 'El cuidador ha bloqueado su agenda el día % para el bloque %.',
+                    to_char(v_dia, 'DD/MM/YYYY'), v_bloque_horario;
             END IF;
             IF v_disp.cupos_reservados >= v_disp.cupo_maximo THEN
-                RAISE EXCEPTION 'Sin cupos disponibles para el día % en el bloque % (Ocupados: %/%).', v_dia, v_bloque_horario, v_disp.cupos_reservados, v_disp.cupo_maximo;
+                RAISE EXCEPTION 'Sin cupos disponibles para el día % en el bloque % (Ocupados: %/%).',
+                    to_char(v_dia, 'DD/MM/YYYY'), v_bloque_horario, v_disp.cupos_reservados, v_disp.cupo_maximo;
             END IF;
 
             UPDATE public.disponibilidad_cuidadores
             SET cupos_reservados = cupos_reservados + 1
             WHERE id = v_disp.id;
         ELSE
-            -- Verificar si el día completo está bloqueado
-            IF EXISTS (
-                SELECT 1 FROM public.disponibilidad_cuidadores
-                WHERE id_cuidador = v_cuidador.id
-                  AND fecha = v_dia
-                  AND estado_bloque = 'bloqueado'
-                  AND bloque_horario = 'todo_el_dia'
-            ) THEN
-                RAISE EXCEPTION 'El cuidador no tiene disponibilidad el día %.', v_dia;
-            END IF;
-
             -- Crear bloque con 1 cupo reservado respetando la capacidad máxima del cuidador
             INSERT INTO public.disponibilidad_cuidadores (
                 id_cuidador,
@@ -350,7 +349,7 @@ BEGIN
         v_dia := v_dia + 1;
     END LOOP;
 
-    -- Insertar Reserva
+    -- Insertar Reserva (forzando id_cupon = NULL y descuento_cupon = 0)
     INSERT INTO public.reservas (
         id_propietario,
         id_cuidador,
@@ -392,8 +391,8 @@ BEGIN
         NULLIF(v_cotizacion->>'id_temporada', '')::uuid,
         (v_cotizacion->>'ajuste_temporada')::numeric,
         (v_cotizacion->>'recargo_cachorro')::numeric,
-        NULLIF(v_cotizacion->>'id_cupon', '')::uuid,
-        (v_cotizacion->>'descuento_cupon')::numeric,
+        NULL,
+        0.00,
         v_extras,
         (v_cotizacion->>'extras_monto')::numeric,
         (v_cotizacion->>'monto_total_pen')::numeric,
@@ -402,13 +401,6 @@ BEGIN
         v_notas
     )
     RETURNING id, codigo_reserva INTO v_id_reserva, v_codigo_reserva;
-
-    -- Incrementar uso del cupón si se aplicó
-    IF (v_cotizacion->>'id_cupon') IS NOT NULL THEN
-        UPDATE public.cupones_promocionales
-        SET usos_actuales = usos_actuales + 1
-        WHERE id = (v_cotizacion->>'id_cupon')::uuid;
-    END IF;
 
     -- Insertar Pago (15% comisión plataforma, 85% neto cuidador)
     INSERT INTO public.pagos (
@@ -466,7 +458,7 @@ BEGIN
     )
     VALUES (
         v_id_propietario,
-        'v5.0-RESERVA',
+        'v5.1-RESERVA',
         'Reserva ' || v_codigo_reserva
     );
 
@@ -486,7 +478,7 @@ BEGIN
         v_id_propietario,
         'pago',
         'Reserva y Pago Confirmados (' || v_codigo_reserva || ')',
-        format('Tu pago de S/ %s (%s) está en garantía segura hasta finalizar el servicio.',
+        format('Tu pago de S/ %s (%s) está protegido en garantía hasta finalizar el servicio.',
                v_cotizacion->>'monto_total_pen', v_num_comprobante),
         'reservas',
         v_id_reserva::text
@@ -747,6 +739,13 @@ BEGIN
 
     IF v_res.estado_reserva != 'en_curso' THEN
         RAISE EXCEPTION 'Solo se puede realizar Check-Out de reservas que estén En Curso.';
+    END IF;
+
+    -- Validación temporal estricta en hora oficial de Cusco (America/Lima, UTC-5)
+    IF ((v_res.fecha_inicio::text || ' ' || COALESCE(v_res.hora_inicio, '08:00:00')::text)::timestamp AT TIME ZONE 'America/Lima') > now() THEN
+        RAISE EXCEPTION 'No puedes registrar el Check-Out antes de la fecha y hora de inicio programada (% %).',
+            to_char(v_res.fecha_inicio, 'DD/MM/YYYY'),
+            to_char(COALESCE(v_res.hora_inicio, '08:00:00'::time), 'HH24:MI');
     END IF;
 
     UPDATE public.reservas
@@ -1371,10 +1370,11 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.rpc_emitir_sos(
     p_id_reserva uuid,
-    p_severidad nivel_severidad_sos_enum,
+    p_severidad public.nivel_severidad_sos_enum,
     p_tipo text,
     p_descripcion text,
-    p_id_clinica uuid DEFAULT NULL
+    p_id_clinica uuid DEFAULT NULL,
+    p_ubicacion text DEFAULT 'Cusco'
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1387,6 +1387,7 @@ DECLARE
     v_nombre_clinica text;
     v_id_sos uuid;
     v_codigo_sos text;
+    v_ubicacion_final text;
 BEGIN
     IF p_descripcion IS NULL OR LENGTH(TRIM(p_descripcion)) < 5 THEN
         RAISE EXCEPTION 'Describa los síntomas o la emergencia veterinaria.';
@@ -1422,6 +1423,8 @@ BEGIN
         RAISE EXCEPTION 'No hay clínicas veterinarias activas disponibles para derivar la emergencia.';
     END IF;
 
+    v_ubicacion_final := COALESCE(NULLIF(TRIM(p_ubicacion), ''), 'Cusco');
+
     INSERT INTO public.incidencias_emergencias (
         id_reserva,
         id_mascota,
@@ -1430,6 +1433,7 @@ BEGIN
         nivel_severidad,
         tipo_incidencia,
         descripcion,
+        ubicacion_emergencia,
         estado_sos
     )
     VALUES (
@@ -1440,6 +1444,7 @@ BEGIN
         COALESCE(p_severidad, 'critica'),
         COALESCE(NULLIF(TRIM(p_tipo), ''), 'Urgencia Veterinaria S.O.S.'),
         TRIM(p_descripcion),
+        v_ubicacion_final,
         'emitida'
     )
     RETURNING id, codigo_sos INTO v_id_sos, v_codigo_sos;
@@ -1449,7 +1454,7 @@ BEGIN
     SELECT DISTINCT u.id,
            'sos',
            '🚨 ALERTA S.O.S. ' || v_codigo_sos || ' (' || UPPER(p_severidad::text) || ')',
-           format('Emergencia para %s derivada a %s: %s', v_res.mascota_nombre, v_nombre_clinica, TRIM(p_descripcion)),
+           format('Emergencia para %s en %s derivada a %s: %s', v_res.mascota_nombre, v_ubicacion_final, v_nombre_clinica, TRIM(p_descripcion)),
            'incidencias_emergencias',
            v_id_sos::text
     FROM public.perfiles_usuarios u
@@ -1458,11 +1463,13 @@ BEGIN
        OR u.rol = 'administrador';
 
     RETURN jsonb_build_object(
+        'ok', true,
         'exito', true,
         'id_incidencia', v_id_sos,
         'codigo_sos', v_codigo_sos,
         'id_clinica_derivada', v_id_clinica,
         'clinica_nombre', v_nombre_clinica,
+        'ubicacion_emergencia', v_ubicacion_final,
         'estado_sos', 'emitida',
         'mensaje', format('Alerta S.O.S. %s emitida y derivada en tiempo real a %s.', v_codigo_sos, v_nombre_clinica)
     );
@@ -1479,8 +1486,8 @@ CREATE OR REPLACE FUNCTION public.rpc_vet_actualizar_sos(
     p_accion text,
     p_diagnostico text DEFAULT NULL,
     p_tratamiento text DEFAULT NULL,
-    p_informe text DEFAULT NULL,
-    p_costo numeric DEFAULT 0.00
+    p_costo numeric DEFAULT NULL,
+    p_informe text DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1489,75 +1496,166 @@ SET search_path = public, auth
 AS $$
 DECLARE
     v_sos record;
-    v_nuevo_estado estado_sos_enum;
-    v_accion text := LOWER(TRIM(p_accion));
+    v_updated record;
+    v_rol text;
+    v_mi_clinica uuid;
+    v_clinica_tiene_responsable boolean := false;
+    v_propietario_id uuid;
+    v_cuidador_usuario_id uuid;
+    v_nuevo_estado public.estado_sos_enum;
+    v_accion text := LOWER(TRIM(COALESCE(p_accion, '')));
 BEGIN
-    SELECT i.*, r.id_propietario
+    v_rol := public.get_my_role();
+    IF v_rol IS DISTINCT FROM 'veterinaria' AND v_rol IS DISTINCT FROM 'administrador' THEN
+        RAISE EXCEPTION 'Acceso denegado: solo una Clínica Veterinaria Aliada o un Administrador pueden actualizar el estado clínico S.O.S.';
+    END IF;
+
+    -- Bloquear únicamente la fila de incidencias_emergencias (FOR UPDATE OF i)
+    SELECT
+        i.*,
+        r.id_propietario AS reserva_propietario_id,
+        r.id_cuidador AS reserva_cuidador_id,
+        m.id_propietario AS mascota_propietario_id,
+        m.nombre AS mascota_nombre
     INTO v_sos
     FROM public.incidencias_emergencias i
     LEFT JOIN public.reservas r ON r.id = i.id_reserva
+    LEFT JOIN public.mascotas m ON m.id = i.id_mascota
     WHERE i.id = p_id_incidencia
-    FOR UPDATE;
+    FOR UPDATE OF i;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Incidencia S.O.S. no encontrada.';
+        RAISE EXCEPTION 'Incidencia S.O.S. (%) no encontrada.', p_id_incidencia;
+    END IF;
+
+    IF v_rol = 'veterinaria' THEN
+        v_mi_clinica := public.get_my_clinica_id();
+
+        SELECT EXISTS (
+            SELECT 1
+            FROM public.perfiles_usuarios pu
+            WHERE pu.id_clinica_asociada = v_sos.id_clinica_derivada
+              AND pu.estado_cuenta = 'activo'
+        )
+        INTO v_clinica_tiene_responsable;
+
+        IF v_clinica_tiene_responsable
+           AND v_mi_clinica IS NOT NULL
+           AND v_sos.id_clinica_derivada IS NOT NULL
+           AND v_mi_clinica != v_sos.id_clinica_derivada THEN
+            RAISE EXCEPTION 'Esta alerta S.O.S. está derivada a otra clínica veterinaria.';
+        END IF;
+    END IF;
+
+    v_propietario_id := COALESCE(v_sos.reserva_propietario_id, v_sos.mascota_propietario_id);
+
+    IF v_sos.reserva_cuidador_id IS NOT NULL THEN
+        SELECT pc.id_usuario
+        INTO v_cuidador_usuario_id
+        FROM public.perfiles_cuidadores pc
+        WHERE pc.id = v_sos.reserva_cuidador_id;
     END IF;
 
     IF v_accion IN ('tomar', 'en_atencion') THEN
         v_nuevo_estado := 'en_atencion';
-        UPDATE public.incidencias_emergencias
-        SET estado_sos = v_nuevo_estado,
-            atendido_por_vet = COALESCE(auth.uid(), atendido_por_vet),
-            fecha_atencion = COALESCE(fecha_atencion, now())
-        WHERE id = p_id_incidencia;
-
     ELSIF v_accion IN ('estabilizar', 'estabilizada') THEN
         v_nuevo_estado := 'estabilizada';
-        UPDATE public.incidencias_emergencias
-        SET estado_sos = v_nuevo_estado,
-            atendido_por_vet = COALESCE(auth.uid(), atendido_por_vet),
-            diagnostico_clinico = COALESCE(NULLIF(TRIM(p_diagnostico), ''), diagnostico_clinico, 'Paciente en estabilización clínica'),
-            tratamiento_aplicado = COALESCE(NULLIF(TRIM(p_tratamiento), ''), tratamiento_aplicado),
-            fecha_atencion = COALESCE(fecha_atencion, now()),
-            fecha_estabilizacion = now()
-        WHERE id = p_id_incidencia;
-
     ELSIF v_accion IN ('resolver', 'alta', 'resuelta') THEN
-        IF p_diagnostico IS NULL OR LENGTH(TRIM(p_diagnostico)) < 4 THEN
+        IF COALESCE(NULLIF(TRIM(p_diagnostico), ''), NULLIF(TRIM(v_sos.diagnostico_clinico), '')) IS NULL THEN
             RAISE EXCEPTION 'Para dar de alta un caso S.O.S. es obligatorio registrar el diagnóstico clínico.';
         END IF;
-
         v_nuevo_estado := 'resuelta';
-        UPDATE public.incidencias_emergencias
-        SET estado_sos = v_nuevo_estado,
-            atendido_por_vet = COALESCE(auth.uid(), atendido_por_vet),
-            diagnostico_clinico = TRIM(p_diagnostico),
-            tratamiento_aplicado = COALESCE(NULLIF(TRIM(p_tratamiento), ''), 'Tratamiento ambulatorio completado'),
-            informe_resolucion = COALESCE(NULLIF(TRIM(p_informe), ''), 'Alta médica veterinaria sin complicaciones'),
-            costo_atencion_ref = GREATEST(COALESCE(p_costo, 0.00), 0.00),
-            fecha_resolucion = now()
-        WHERE id = p_id_incidencia;
     ELSE
         RAISE EXCEPTION 'Acción clínica "%" no reconocida. Use "en_atencion", "estabilizada" o "resuelta".', p_accion;
     END IF;
 
-    IF v_sos.id_propietario IS NOT NULL THEN
-        INSERT INTO public.notificaciones (id_usuario_destino, tipo, titulo, mensaje, referencia_entidad, referencia_id)
-        VALUES (
-            v_sos.id_propietario,
-            'sos',
-            format('Actualización Médica S.O.S. %s: %s', v_sos.codigo_sos, UPPER(v_nuevo_estado::text)),
-            COALESCE(NULLIF(TRIM(p_diagnostico), ''), 'La clínica veterinaria actualizó el estado de atención de tu mascota.'),
-            'incidencias_emergencias',
-            p_id_incidencia::text
-        );
-    END IF;
+    UPDATE public.incidencias_emergencias i
+    SET
+        estado_sos = v_nuevo_estado,
+        atendido_por_vet = COALESCE(auth.uid(), i.atendido_por_vet),
+        diagnostico_clinico = COALESCE(
+            NULLIF(TRIM(p_diagnostico), ''),
+            i.diagnostico_clinico,
+            CASE
+                WHEN v_nuevo_estado = 'estabilizada' THEN 'Paciente en estabilización clínica'
+                WHEN v_nuevo_estado = 'en_atencion' THEN 'Paciente en evaluación veterinaria'
+                ELSE i.diagnostico_clinico
+            END
+        ),
+        tratamiento_aplicado = COALESCE(
+            NULLIF(TRIM(p_tratamiento), ''),
+            i.tratamiento_aplicado,
+            CASE
+                WHEN v_nuevo_estado = 'resuelta' THEN 'Tratamiento ambulatorio completado'
+                ELSE i.tratamiento_aplicado
+            END
+        ),
+        informe_resolucion = CASE
+            WHEN v_nuevo_estado = 'resuelta' THEN COALESCE(NULLIF(TRIM(p_informe), ''), i.informe_resolucion, 'Alta médica veterinaria sin complicaciones')
+            ELSE COALESCE(NULLIF(TRIM(p_informe), ''), i.informe_resolucion)
+        END,
+        costo_atencion_ref = COALESCE(p_costo, i.costo_atencion_ref, 0.00),
+        fecha_atencion = COALESCE(i.fecha_atencion, now()),
+        fecha_estabilizacion = CASE
+            WHEN v_nuevo_estado IN ('estabilizada', 'resuelta') THEN COALESCE(i.fecha_estabilizacion, now())
+            ELSE i.fecha_estabilizacion
+        END,
+        fecha_resolucion = CASE
+            WHEN v_nuevo_estado = 'resuelta' THEN now()
+            ELSE i.fecha_resolucion
+        END,
+        updated_at = now()
+    WHERE i.id = p_id_incidencia
+    RETURNING * INTO v_updated;
+
+    INSERT INTO public.notificaciones (
+        id_usuario_destino,
+        tipo,
+        titulo,
+        mensaje,
+        referencia_entidad,
+        referencia_id
+    )
+    SELECT DISTINCT
+        u.id,
+        'sos',
+        format('Actualización Médica S.O.S. %s: %s', v_updated.codigo_sos, UPPER(v_nuevo_estado::text)),
+        format(
+            'Mascota: %s • Estado: %s • Diagnóstico: %s%s',
+            COALESCE(v_sos.mascota_nombre, 'Paciente'),
+            UPPER(v_nuevo_estado::text),
+            COALESCE(NULLIF(TRIM(v_updated.diagnostico_clinico), ''), 'En evaluación clínica'),
+            CASE
+                WHEN COALESCE(v_updated.costo_atencion_ref, 0) > 0
+                THEN ' • Costo ref.: S/ ' || to_char(v_updated.costo_atencion_ref, 'FM999990.00')
+                ELSE ''
+            END
+        ),
+        'incidencias_emergencias',
+        p_id_incidencia::text
+    FROM public.perfiles_usuarios u
+    WHERE u.id = v_propietario_id
+       OR (v_cuidador_usuario_id IS NOT NULL AND u.id = v_cuidador_usuario_id)
+       OR u.rol = 'administrador';
 
     RETURN jsonb_build_object(
+        'ok', true,
         'exito', true,
-        'id_incidencia', p_id_incidencia,
-        'estado_nuevo', v_nuevo_estado,
-        'mensaje', format('Alerta S.O.S. actualizada a estado "%s".', v_nuevo_estado)
+        'id', v_updated.id,
+        'id_incidencia', v_updated.id,
+        'codigo_sos', v_updated.codigo_sos,
+        'estado_sos', v_updated.estado_sos,
+        'estado_nuevo', v_updated.estado_sos,
+        'diagnostico_clinico', v_updated.diagnostico_clinico,
+        'tratamiento_aplicado', v_updated.tratamiento_aplicado,
+        'informe_resolucion', v_updated.informe_resolucion,
+        'costo_emergencia', COALESCE(v_updated.costo_atencion_ref, 0.00),
+        'costo_atencion_ref', COALESCE(v_updated.costo_atencion_ref, 0.00),
+        'fecha_atencion', v_updated.fecha_atencion,
+        'fecha_estabilizacion', v_updated.fecha_estabilizacion,
+        'fecha_resolucion', v_updated.fecha_resolucion,
+        'updated_at', v_updated.updated_at,
+        'mensaje', format('Alerta S.O.S. %s actualizada a estado "%s".', v_updated.codigo_sos, v_updated.estado_sos)
     );
 END;
 $$;

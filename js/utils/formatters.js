@@ -33,12 +33,12 @@ export function calcularEdadDinamica(fechaNacimiento) {
     return { anios: 0, meses: 0, texto: 'Edad no registrada', esCachorro: false };
   }
 
-  const nacimiento = new Date(fechaNacimiento);
-  if (isNaN(nacimiento.getTime())) {
+  const nacimiento = parseFechaLocal(fechaNacimiento);
+  if (!nacimiento || isNaN(nacimiento.getTime())) {
     return { anios: 0, meses: 0, texto: 'Fecha no válida', esCachorro: false };
   }
 
-  const hoy = new Date();
+  const hoy = parseFechaLocal(getHoyIso()) || new Date();
   let anios = hoy.getFullYear() - nacimiento.getFullYear();
   let meses = hoy.getMonth() - nacimiento.getMonth();
 
@@ -119,14 +119,23 @@ export function formatFechaEs(fechaIso, incluirHora = false) {
 }
 
 /**
- * Retorna fecha actual en formato YYYY-MM-DD
+ * Retorna fecha actual en formato YYYY-MM-DD (zona horaria oficial America/Lima)
  */
 export function getHoyIso() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  } catch (_e) {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 }
 
 /**

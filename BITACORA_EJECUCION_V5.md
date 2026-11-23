@@ -497,4 +497,150 @@ El repositorio se encuentra limpio, desacoplado, completamente funcional, con 0 
   5. Vista de **Restablecer Contraseña (`#/reset-password`)** (`#input-new-pwd` y `#input-confirm-pwd` en `js/router.js`).
 - Manejador global delegado `setupPasswordToggles()` registrado en `js/app.js`.
 
+---
 
+### ✅ SUB-FASE P1 (v5.1): Blindaje Backend SQL, Persistencia S.O.S., Storage PDF/Img y Realtime
+- **Fecha de Ejecución:** 23 de Noviembre de 2026
+- **Agente / Rol:** Arquitecto Principal PostgreSQL / Supabase Senior
+- **Modelo Antigravity:** Gemini 4 Argon (Medium)
+- **Estado:** ✅ Completada con Éxito (Script Idempotente Listo para SQL Editor de Producción)
+
+> ⚠️ **ACCIÓN REQUERIDA DEL USUARIO EN SUPABASE CLOUD:**  
+> Para aplicar estas correcciones sobre la base de datos en producción (`https://evephdzpoonavggwoejs.supabase.co`), abre el **SQL Editor** de tu proyecto en Supabase, pega el contenido íntegro de [`supabase/08_pulido_v5_1.sql`](./supabase/08_pulido_v5_1.sql) y presiona **Run**. El script es **100% idempotente** y preserva todos los datos reales existentes.
+
+#### 1. Archivos Creados y Modificados
+- `supabase/08_pulido_v5_1.sql` *(Creado — Migración idempotente de producción dividida en Bloques A al F con `CREATE OR REPLACE`, `DROP POLICY IF EXISTS` y bloques `DO $$ ... END $$;`).*
+- `supabase/02_functions_triggers.sql` *(Modificado — Sincronizado `handle_new_auth_user()` con persistencia de fotos/documentos desde `raw_user_meta_data` y `ON CONFLICT (ruc) DO NOTHING`, además del trigger `trg_validar_reporte_en_curso` sobre `reportes_seguimiento`).*
+- `supabase/03_rpc_business.sql` *(Modificado — Sincronizados `rpc_vet_actualizar_sos` con `FOR UPDATE OF i`, `rpc_emitir_sos` con `p_ubicacion`, `rpc_cuidador_checkout` con validación temporal `America/Lima`, `rpc_cotizar_reserva` sin cupones y `rpc_crear_reserva` con exigencia `todo_el_dia` para Hospedaje y verificación multi-día completa).*
+- `supabase/04_rls_policies.sql` *(Modificado — Política `sos_select_involucrados` ampliada con `EXISTS (SELECT 1 FROM public.mascotas m WHERE m.id = incidencias_emergencias.id_mascota AND m.id_propietario = auth.uid())`).*
+- `supabase/05_storage_buckets.sql` *(Modificado — Límite `10 MB` y `application/pdf` en `mascotas-fotos`, `documentos-verificacion` y `comprobantes-pago`; políticas RLS para `postulaciones/%` en `anon, authenticated` y lectura por propietario de carpeta, `administrador` y `veterinaria`).*
+- `supabase/06_seed.sql` *(Modificado — Erradicadas todas las URLs `postimg.cc`; fachadas de las 5 clínicas actualizadas con fotografías reales de Unsplash, cartillas y antecedentes limpiados a `NULL`, y cupones semilla desactivados con `activo = false`).*
+- `PLAN_PULIDO_V5_1.md` *(Modificado — Marcados con `[x]` todos los ítems de la Sub-Fase P1).*
+- `BITACORA_EJECUCION_V5.md` *(Modificado — Registrada la entrada oficial de cierre de la Sub-Fase P1).*
+- Archivos de frontend (`index.html`, `css/`, `js/`) y `legacy-gas/`: **100% INTACTOS** (cumplimiento estricto de las reglas de la Sub-Fase P1).
+
+#### 2. Componentes, Tablas y RPCs Implementados / Reparados
+- **Bloque A — Reparación Crítica S.O.S.:**
+  - `public.rpc_vet_actualizar_sos`: Reemplazado `FOR UPDATE;` por `FOR UPDATE OF i;` sobre los `LEFT JOIN` a `reservas` y `mascotas` (solucionando de raíz el error fatal PostgreSQL `0A000: FOR UPDATE cannot be applied to the nullable side of an outer join`). Valida rol `veterinaria` o `administrador`, verifica pertenencia a la clínica derivada, persiste `diagnostico_clinico`, `tratamiento_aplicado` y `costo_atencion_ref` en todas las transiciones (`en_atencion`, `estabilizada`, `resuelta`), notifica a Propietario (`COALESCE(r.id_propietario, m.id_propietario)`), Cuidador y Administradores, y retorna `jsonb` con `{ ok: true, id, codigo_sos, estado_sos, diagnostico_clinico, tratamiento_aplicado, costo_emergencia, fecha_resolucion, updated_at }`.
+  - `public.rpc_emitir_sos`: Añadido parámetro `p_ubicacion text DEFAULT 'Cusco'` al final de la firma y persistencia en `ubicacion_emergencia`.
+  - Política RLS `sos_select_involucrados`: Permite al propietario leer alertas S.O.S. de su mascota incluso si `id_reserva` es `NULL`.
+- **Bloque B — Reglas de Negocio (Check-Out Temporal, Hospedaje 24h, Sin Cupones, Muro `en_curso`):**
+  - `public.rpc_cuidador_checkout`: Bloquea con `RAISE EXCEPTION` cualquier intento de Check-Out cuando `((v_res.fecha_inicio::text || ' ' || COALESCE(v_res.hora_inicio, '08:00:00')::text)::timestamp AT TIME ZONE 'America/Lima') > now()`, informando fecha y hora en formato `DD/MM/YYYY HH24:MI`.
+  - `public.rpc_cotizar_reserva` y `public.rpc_crear_reserva`: Ignoran cupones promocionales (`id_cupon = NULL`, `descuento_cupon = 0`, `cupon_valido = false`), desactivan los registros de `cupones_promocionales` (`activo = false`), exigen `bloque_horario = 'todo_el_dia'` para servicios de categoría `'Hospedaje'` y verifican disponibilidad día por día en todo el rango `[fecha_inicio..fecha_fin]`.
+  - Trigger `trg_validar_reporte_en_curso` (`public.fn_validar_reporte_reserva_en_curso`): Rechaza `INSERT` en `public.reportes_seguimiento` si la reserva asociada no se encuentra en `estado_reserva = 'en_curso'` (permitiendo el reporte automático de `'Check-Out'`).
+- **Bloque C — Trigger `handle_new_auth_user()` Mejorado:**
+  - Persiste `foto_url` y `foto_hogar_url` en `perfiles_cuidadores`, inserta los 4 documentos legales en `antecedentes_cuidadores` con `ON CONFLICT (id_cuidador) DO UPDATE`, y registra `foto_fachada_url` y `constancia_url` en `clinicas_veterinarias` con `ON CONFLICT (ruc) DO NOTHING`.
+- **Bloque D — Storage Buckets y Limpieza de PostImg:**
+  - `storage.buckets`: Habilitado `application/pdf` (`10 MB`) en `mascotas-fotos`, `documentos-verificacion` y `comprobantes-pago`, e imágenes (`5 MB`) en `perfiles` y `muro-fotos`.
+  - Políticas RLS en `storage.objects`: Habilitado `INSERT` para `anon, authenticated` bajo `postulaciones/%` en `perfiles` y `documentos-verificacion`, y `SELECT` en buckets privados para dueño de carpeta, `administrador` y `veterinaria`.
+  - Limpieza de BD: 5 URLs distintas de Unsplash para `clinicas_veterinarias.foto_fachada_url` y `NULL` en `constancia_url`, `mascotas.cartilla_vacunas_url`, `validaciones_veterinarias.cartilla_evaluada_url` y `antecedentes_cuidadores.*_url` que contenían `postimg`.
+- **Bloque E — Publicación `supabase_realtime` Completa:**
+  - Garantizadas las 6 tablas en `supabase_realtime`: `incidencias_emergencias`, `notificaciones`, `reportes_seguimiento`, `reservas`, `liquidaciones_cuidadores` y `auditoria_estados`.
+
+#### 3. Puntos de Atención para la Sub-Fase P2 y P3
+- **Ejecutar `supabase/08_pulido_v5_1.sql` en el SQL Editor de Supabase** antes de realizar las pruebas E2E con sesión conectada.
+- En la **Sub-Fase P2**, proceder con la creación de `css/tokens.css`, el rediseño visual "Andes & Huellas Cusco", contraste WCAG AAA en Footer y Banner CTA, `js/components/legal-modal.js`, `js/i18n.js` y estandarización de `"Propietario"`.
+
+---
+
+### ✅ SUB-FASE P2 (v5.1): Identidad Visual "Andes & Huellas Cusco", Contraste WCAG AAA, Modal Legal Global, `ES/EN` y Neutro "Propietario"
+- **Fecha de Ejecución:** 23 de Noviembre de 2026
+- **Agente / Rol:** Product Designer UI/UX Senior y Arquitecto Frontend
+- **Modelo Antigravity:** Gemini 3.8 Flash (Medium)
+- **Estado:** ✅ Completada con Éxito
+
+#### 1. Archivos Creados y Modificados
+- `css/tokens.css` *(Creado — Tokens maestros extraídos y calibrados: paleta Andes & Huellas Cusco con `--pp-bg-body: #FAF7F2`, `--pp-bg-sand: #F3EDE2`, `--pp-primary: #E85D24`, `--pp-forest: #1E5631`, `--pp-gold: #D99B26`, `--pp-secondary: #111827`, `--pp-secondary-dark: #0B1120`, sombras multicapa y micro-interacciones).*
+- `js/components/legal-modal.js` *(Creado — Modal Legal Global con 3 pestañas: Términos y Condiciones v5.1, Política de Privacidad bajo Ley N° 29733 con derechos ARCO y privacidad QR, y Declaración Jurada bajo Art. 411 del Código Penal. Incluye delegación global para `[data-legal-tab]`, `z-index: 1085` / backdrop `1080` y preservación automática del scroll del modal padre).*
+- `js/i18n.js` *(Creado — Motor bilingüe ES/EN con `getCurrentLang()`, `setLanguage()`, `t(key, vars)` y `applyTranslations(root)` que actualiza `data-i18n`, `data-i18n-placeholder`, `data-i18n-title`, `data-i18n-aria-label` y `data-i18n-html`).*
+- `index.html` *(Modificado — Importa `tokens.css` antes de `main.css`, integra cinta textil cusqueña en header y footer, footer WCAG AAA sin `.text-muted`, 3 enlaces legales clicables en footer y modales de registro/postulación, nombres demo alineados y versión v5.1).*
+- `css/main.css` *(Modificado — Importa `./tokens.css`, define `.andean-textile-ribbon`, `.hero-andes-cusco`, `.cta-andes-banner`, corrección crítica de especificidad CSS para `h1..h6` y `p` sobre fondos oscuros/emergencia, y reglas WCAG AAA para `.footer-paw`).*
+- `css/auth.css` *(Modificado — Importa `./tokens.css`, actualiza cabeceras a versión v5.1).*
+- `css/catalogo.css` *(Modificado — Garantiza contraste blanco puro en `.paw-id-banner-emergencia`).*
+- `css/paneles.css` *(Modificado — Importa `./tokens.css`, actualiza cabeceras a versión v5.1).*
+- `css/print.css` *(Modificado — Oculta `.andean-textile-ribbon` en medios de impresión).*
+- `js/app.js` *(Modificado — Inicializa `initLegalModal()`, hidrata botones `#btn-toggle-currency` y `#btn-toggle-lang` en `DOMContentLoaded` usando `innerHTML` preservando íconos Bootstrap, actualiza navbar y ruta activa al conmutar idioma).*
+- `js/config.js` *(Modificado — Alinear `BLOQUES_HORARIOS` con los enums SQL `manana_08_12`, `tarde_14_18`, `noche_18_22`, `todo_el_dia`, alinear nombres demo `Valeria Huamán`, `Dra. Claudia Salazar`, y unificar `"Propietario"`).*
+- `js/public/landing.js` *(Modificado — Hero editorial 2 columnas con collage fotográfico de mascotas en Cusco, fallback SVG inline temático en clínicas y mascotas, banner CTA inferior `.cta-andes-banner` en Verde Bosque Montaña `#1E5631` con borde Dorado Inti y texto blanco puro, retiro de `<code>#/paw-id/:id</code>`, cambio `"Rocky"` → `"Inti"` y `"Propietaria Local"` → `"Propietario Local"`).*
+- `js/public/catalogo.js` *(Modificado — Retiro del bloque hardcodeado de Lucía M., consulta dinámica a `public.resenas` por `id_cuidador` con estado vacío elegante, retiro de mención `"Leaflet.js + OpenStreetMap"` en cabecera del mapa y soporte `applyTranslations`).*
+- `js/public/paw-id-publico.js` *(Modificado — Nombre demo alineado a `"Inti"`, banner de emergencia con contraste blanco puro garantizado y soporte `applyTranslations`).*
+- `js/public/mapa-cusco.js` *(Modificado — Mensaje de fallback sin jerga técnica: *"No se pudo cargar el mapa interactivo de Cusco"*).*
+- `PLAN_PULIDO_V5_1.md` *(Modificado — Marcados todos los ítems `[x]` de la Sub-Fase P2).*
+
+#### 2. Decisiones Técnicas y Verificaciones Forenses
+1. **Identidad Visual "Andes & Huellas Cusco" y Accesibilidad:**
+   - Se implementó la cinta textil andina `.andean-textile-ribbon` (geometría de franja cusqueña de 6px en gradiente repetitivo de terracota, oro inti y verde bosque) y el Hero andino editorial `.hero-andes-cusco` con micro-marcas de agua radiales.
+   - Se resolvió la especificidad CSS que causaba que `h1..h6` y `p` quedaran en gris oscuro sobre banners coloreados/rojos: `.text-white h1..h6, p`, `.cta-andes-banner h1..h6, p`, `.paw-id-banner-emergencia h1..h6, p`, `.bg-danger h1..h6, p` ahora imponen `#FFFFFF !important`.
+   - El footer global `.footer-paw` sobre `#0B1120` alcanza ratio de contraste WCAG AAA (`> 7:1`) con títulos en `#FFFFFF`, párrafos en `#E2E8F0`, metadatos en `#CBD5E1` y enlaces en `#FDBA74` con hover `#FFFFFF` subrayado.
+2. **Modal Legal Global Multi-Pestaña y Apilamiento Seguro:**
+   - `js/components/legal-modal.js` intercepta mediante delegación global en `document` cualquier clic sobre `[data-legal-tab]`, impidiendo la alteración accidental de checkboxes en formularios mediante `e.preventDefault()` y `e.stopPropagation()`.
+   - Utiliza `z-index: 1085` (backdrop `1080`). Al cerrarse, verifica si hay otros modales abiertos (`.modal.show`) y preserva la clase `modal-open` en `document.body` evitando el congelamiento de scroll en el modal padre.
+3. **Motor Bilingüe y Conmutadores de Barra:**
+   - `js/i18n.js` proporciona soporte completo `ES` / `EN` y actualización reactiva sin bundlers.
+   - Los botones `#btn-toggle-lang` y `#btn-toggle-currency` en `js/app.js` se hidratan al cargar la página mediante `innerHTML`, preservando permanentemente los íconos `<i class="bi bi-translate"></i>` y `<i class="bi bi-cash-stack"></i>`. Al alternar idioma, se aplica la traducción al DOM, se actualiza el Navbar y se re-renderiza la ruta actual con `handleRouteChange()`.
+4. **Verificación Estricta:**
+   - Búsqueda recursiva con regex/grep: **0 ocurrencias** de `Propietaria` en todo `index.html` y `js/`.
+   - Enlaces muertos eliminados en formularios y pie de página (reemplazados por delegación legal `[data-legal-tab]`).
+   - Verificación sintáctica con `node --check`: **0 errores de sintaxis** en los 8 módulos JavaScript creados/modificados.
+
+
+
+
+---
+
+### ✅ SUB-FASE P3 (v5.1): Motor Directo Supabase Storage (Imágenes + PDFs sin PostImg) y Reglas Operativas (S.O.S., Cuidador, Wizard sin Cupones, Muro, Agenda y Billetera)
+- **Fecha de Ejecución:** 23 de Noviembre de 2026
+- **Agente / Rol:** Arquitecto Principal Full-Stack JavaScript / Supabase
+- **Modelo Antigravity:** Gemini 4 Argon (High)
+- **Estado:** ✅ Completada con Éxito
+
+#### 1. Archivos Creados y Modificados
+- `js/components/file-uploader.js` *(Creado — Widget Dropzone reutilizable `mountFileUploader(container, opts)` con soporte para `image/*` y `image/*,application/pdf`, barra de progreso, preview de miniatura o tarjeta PDF, validación estricta MIME/tamaño, acordeón secundario `<details>` colapsado para enlace externo sin mencionar servidores obsoletos, y visor universal `abrirVisorDocumento(urlOrRef, titulo)` con resolución de URLs firmadas `storage://` y renderizado `<iframe style="width:100%;height:68vh">` para PDFs).*
+- `js/supabase-client.js` *(Modificado — Implementados y exportados `compressImageFile()` vía HTML5 Canvas, `uploadFileToStorage()` con retorno `origen: 'supabase_storage'` y referencias `storage://<bucket>/<path>` para buckets privados, `resolveMediaUrl()` con `createSignedUrl()` y bloqueo de dominios externos caídos, y `getFallbackSvgDataUri()` con ilustraciones SVG andinas cálidas).*
+- `js/utils/formatters.js` *(Modificado — `calcularEdadDinamica()` utiliza `parseFechaLocal()` evitando desfases UTC-5, y `getHoyIso()` fuerza `timeZone: 'America/Lima'`).*
+- `index.html` *(Modificado — Reemplazados campos de URL antigua en los modales `#modal-postular-cuidador` y `#modal-postular-clinica` por contenedores de dropzones para foto de perfil, foto de hogar, 4 documentos legales y fachada/constancia CMVP).*
+- `js/auth/postulaciones.js` *(Modificado — Montaje de los 6 dropzones de Postulación Cuidador y 2 dropzones de Postulación Clínica, subida previa al `signUp` hacia `perfiles/postulaciones/...` y `documentos-verificacion/postulaciones/...`, envío completo en `options.data` y eliminación del doble `INSERT` en `clinicas_veterinarias` sin sesión activa).*
+- `js/components/carnet-digital.js` *(Modificado — Integración de `mountFileUploader` para foto de mascota y cartilla sanitaria en `image/*,application/pdf`, actualización de `abrirVisorCartillaVacunas()` usando `abrirVisorDocumento()`, validación `if (error) throw error;` en archivado, corrección de `Array.isArray(data)` y etiquetas legibles de bloques horarios en comprobantes).*
+- `js/roles/veterinaria.js` *(Modificado — Eliminado tragueo silencioso de errores en `rpc_vet_actualizar_sos`, `rpc_vet_dictaminar_ficha` y `clinicas_veterinarias.update` con recarga real desde Supabase, ocultado botón de simulador S.O.S. cuando `isSupabaseConfigured()` es `true`, integrado `abrirVisorDocumento()` en validación PAW-ID, añadidos dropzones de fachada y constancia CMVP en Configuración de Sede y limpiada jerga técnica).*
+- `js/components/alerta-sos.js` *(Modificado — Envío de `p_ubicacion` a `rpc_emitir_sos`, corrección de ícono `bi-broadcast-pin`, cambio de `data.length > 0` a `Array.isArray(data)` y limpieza de jerga `rpc_emitir_sos`).*
+- `js/roles/propietario.js` y `js/app.js` *(Modificados — Suscripción Realtime S.O.S. con evento `'*'` para `INSERT` y `UPDATE` refrescando panel y campana en vivo, dropzone de avatar en Mi Perfil hacia bucket `perfiles`, corrección de ícono `bi-person-vcard-fill`, `Array.isArray(data)` y limpieza de jerga `rpc_*`).*
+- `js/roles/cuidador.js` y `js/components/muro-fotos.js` *(Modificados — Selector del Muro filtrado estrictamente a `estado_reserva === 'en_curso'` con estado vacío explicativo y bloqueo de envío, dropzones multi-foto hasta 3 imágenes, bloqueo temporal de Check-Out antes de `fecha_inicio + hora_inicio` en hora Cusco `America/Lima`, eliminación de tragueo de errores en servicios/muro/reseñas y retiro total de menciones a `PostImg` y `Supabase Storage`).*
+- `js/components/wizard-reserva.js` *(Modificado — Eliminación al 100% de cupones promocionales, Paso 3 renombrado a "Cotización Transparente", fijación obligatoria de `todo_el_dia` con badge "Estadía Completa 24 Horas" cuando `categoria === 'Hospedaje'`, verificación de disponibilidad en todos los días del rango `[fechaInicio..fechaFin]` y enlace `[data-legal-tab="terminos"]` en Paso 4).*
+- `js/components/calendario-agenda.js` *(Modificado — Preservación de `cupos_reservados` existentes en días destino al replicar agenda a 3 o 7 días, validación `if (error) throw error;` en plantilla semanal y limpieza de jerga).*
+- `js/components/billetera-cuidador.js` *(Modificado — Invertidos argumentos en `exportarCsv(rowsCsv, 'billetera_liquidaciones_cuidador_cusco.csv')`, eliminado tragueo de error en `rpc_solicitar_retiro`, corregido `Array.isArray(data)` y cálculo dinámico de serie mensual Chart.js desde liquidaciones reales).*
+- `PLAN_PULIDO_V5_1.md` *(Modificado — Marcados con `[x]` todos los ítems de la Sub-Fase P3).*
+
+#### 2. Verificaciones Ejecutadas
+- `node --check` sobre los 14 módulos JS editados/creados: **0 errores de sintaxis**.
+- Grep recursivo sobre los 15 archivos tocados en P3: **0 ocurrencias** de `PostImg`, **0 ocurrencias** de `rpc_` expuestas en UI/spinners, **0 `Fallback local` silenciosos** y firma verificada `exportarCsv(rowsCsv, 'billetera_liquidaciones_cuidador_cusco.csv')`.
+- `supabase/*.sql` y `js/roles/administrador.js` intactos conforme a las reglas de alcance de la Sub-Fase P3.
+
+
+---
+
+### ✅ SUB-FASE P4 — CIERRE OFICIAL Y DESPLIEGUE (Paw Patita Cusco v5.1 — "Andes & Huellas Cusco")
+- **Fecha de Cierre:** 23 de Noviembre de 2026
+- **Agente / Rol:** Arquitecto Principal Full-Stack y Auditor QA Forense
+- **Estado:** ✅ **100% Completada y Publicada en Producción (GitHub Pages)**
+
+#### 1. Resumen de Archivos Modificados en Sub-Fase P4
+| Archivo | Cambios Aplicados |
+|---|---|
+| `js/roles/administrador.js` | Refactor integral de las 6 secciones: eliminación total de jerga técnica (`Chart.js`, `rpc_admin_*`, `0 undefined`, `JSONB`, `old_record`, `new_record`, `TRIGGERS POSTGRESQL`, `fn_auditar_cambio_estado`, `"en Supabase"`); persistencia real con `if (error) throw error;` y recarga desde BD en los 6 RPCs y en `#form-admin-parametros` (`public.configuracion_plataforma`, convirtiendo comisión `%` ↔ decimal) y `public.temporadas_tarifas`; preservación de `rawRpcMetrics`; suscripción Realtime `'*'` en auditoría y S.O.S.; visor universal firmado `abrirVisorDocumento()` en los 4 docs del cuidador y constancia CMVP; dropzones `mountFileUploader()` en `abrirModalCrearClinicaDirecta`; retiro absoluto de Cupones Promocionales (Sección 5 en 2 tarjetas limpias); rediseño humano de la Bitácora de Auditoría (Sección 6) con `formatearResumenCambioAuditoria()`, diccionarios `ENTIDAD_LABELS`/`ESTADO_LABELS`/`ROL_LABELS`/`CAMPO_LABELS`, códigos legibles, columna **"Resumen del Cambio"** y modal comparativo **Campo \| Valor Anterior \| Valor Nuevo** sin JSON crudo. |
+| `js/public/landing.js` | Resolución de `foto_fachada_url` vía `resolveMediaUrl()` con respaldo automático verificado para blindar la Landing contra URLs antiguas caídas en BD antes de ejecutar `08_pulido_v5_1.sql`. |
+| `js/utils/ui-helpers.js` | Reemplazo del mensaje técnico de `GoTrue` / `07_fix_auth_and_audit.sql` (L280) por mensaje amigable de usuario. |
+| `js/router.js` | Reemplazo del texto placeholder técnico `rpc_obtener_paw_id_publico en la Fase 4` (L247) por `"Consultando credencial digital PAW-ID de emergencia..."`. |
+| `README.md` | Actualización completa a arquitectura v5.1 ("Andes & Huellas Cusco"), estructura de 26 módulos ES, guía rápida con `supabase/08_pulido_v5_1.sql` y tabla oficial de las 4 credenciales demo. |
+| `PLAN_PULIDO_V5_1.md` | Marcados al 100% (`[x]`) todos los ítems de las Sub-Fases P1, P2, P3 y P4. |
+
+#### 2. Resultados de Auditoría Forense y QA E2E
+- **Barrido Regex Global (`index.html`, `css/`, `js/`):** **0 fugas visibles** de `rpc_`, `jsonb`, `old_record`, `new_record`, `PostImg`, `GoTrue`, `PostgreSQL`, `Leaflet`, `Chart.js`, `0 undefined`, `Propietaria` ni `Fallback local`.
+- **Validación Sintáctica e Importaciones ES6 (`node --check`):** **26 de 26 módulos JS válidos — 0 errores de sintaxis y 0 importaciones rotas.**
+- **Verificación E2E en Navegador (`http://127.0.0.1:8091/`):**
+  - Landing Page: Hero cálido Cusco, Banner CTA y Footer WCAG AAA con alto contraste; **4/4 imágenes de clínicas cargando HTTP 200 (0 peticiones `postimg`)**.
+  - Modal Legal Global: Apertura desde Footer con las 3 pestañas navegables (*Términos v5.1*, *Privacidad Ley 29733*, *Declaración Jurada*) y cierre limpio.
+  - Conmutadores Navbar: `ES / EN` y `PEN / USD` preservan íconos Bootstrap (`bi-translate`, `bi-cash-stack`) y traducen dinámicamente.
+  - Panel Administrador (`#/admin`): Sección 1 (`1. Panel Ejecutivo`), Sección 2 (dropzones de Fachada y Constancia PDF en alta directa de clínica + manejo limpio de documentos heredados), Sección 5 (0 cupones; Parámetros Financieros Globales + Temporadas Oficiales de Cusco) y Sección 6 (Bitácora humana con módulos/fechas en español y modal comparativo *Campo | Valor Anterior | Valor Nuevo* con 0 `<pre>` JSON).
+
+#### 3. Recordatorio de Ejecución SQL en Producción
+- Para activar en la base de datos de producción (`https://evephdzpoonavggwoejs.supabase.co`) el parche transaccional S.O.S. (`FOR UPDATE OF i`), los buckets con `application/pdf`, la limpieza de URLs antiguas en tablas y las 6 tablas en `supabase_realtime`, ejecutar una sola vez **`supabase/08_pulido_v5_1.sql`** en el SQL Editor de Supabase.

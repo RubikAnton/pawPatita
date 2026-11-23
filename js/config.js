@@ -58,9 +58,9 @@ export const CUSCO_CONFIG = {
     { id: 'Domicilio Turístico', nombre: 'Cuidado en Hotel / Alojamiento', icono: 'bi-building' }
   ],
   BLOQUES_HORARIOS: [
-    { id: '08:00-12:00', etiqueta: 'Mañana (08:00 - 12:00)', inicio: '08:00:00', fin: '12:00:00' },
-    { id: '14:00-18:00', etiqueta: 'Tarde (14:00 - 18:00)', inicio: '14:00:00', fin: '18:00:00' },
-    { id: '18:00-22:00', etiqueta: 'Noche (18:00 - 22:00)', inicio: '18:00:00', fin: '22:00:00' },
+    { id: 'manana_08_12', etiqueta: 'Mañana (08:00 - 12:00)', inicio: '08:00:00', fin: '12:00:00' },
+    { id: 'tarde_14_18', etiqueta: 'Tarde (14:00 - 18:00)', inicio: '14:00:00', fin: '18:00:00' },
+    { id: 'noche_18_22', etiqueta: 'Noche (18:00 - 22:00)', inicio: '18:00:00', fin: '22:00:00' },
     { id: 'todo_el_dia', etiqueta: 'Todo el Día (08:00 - 20:00)', inicio: '08:00:00', fin: '20:00:00' }
   ],
   TIPOS_DOCUMENTO: [
@@ -71,15 +71,15 @@ export const CUSCO_CONFIG = {
   CUENTAS_DEMO: [
     {
       rol: 'propietario',
-      nombre: 'Lucía Mendoza (Propietaria Local / Turista)',
+      nombre: 'Lucía Mendoza (Propietario Local / Turista)',
       email: 'lucia.mendoza@gmail.com',
       password: 'PawPatita2026!',
-      badge: 'Propietaria',
+      badge: 'Propietario',
       desc: 'Mascotas PAW-ID, Wizard Reserva y SOS'
     },
     {
       rol: 'cuidador',
-      nombre: 'Valeria Quispe (Cuidadora Aprobada)',
+      nombre: 'Valeria Huamán (Cuidadora Aprobada)',
       email: 'valeria.cuidadora@pawpatitacusco.pe',
       password: 'PawPatita2026!',
       badge: 'Cuidadora Activa',
@@ -87,7 +87,7 @@ export const CUSCO_CONFIG = {
     },
     {
       rol: 'veterinaria',
-      nombre: 'Dr. Marco Polo (Clínica San Francisco 24h)',
+      nombre: 'Dra. Claudia Salazar (Clínica San Francisco 24h)',
       email: 'vet.sanfrancisco@pawpatitacusco.pe',
       password: 'PawPatita2026!',
       badge: 'Veterinaria 24h',

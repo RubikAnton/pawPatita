@@ -277,7 +277,7 @@ export function handleSupabaseError(err, fallbackMsg = 'Ocurrió un error inespe
   if (mensaje.includes('Invalid login credentials')) {
     mensaje = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
   } else if (mensaje.includes('Database error querying schema')) {
-    mensaje = 'Error de esquema en Supabase Auth (GoTrue). Ejecuta el script supabase/07_fix_auth_and_audit.sql en el SQL Editor de Supabase.';
+    mensaje = 'Servicio de autenticación temporalmente no disponible. Intenta nuevamente en unos minutos.';
   } else if (mensaje.includes('Email not confirmed')) {
     mensaje = 'Por favor verifica tu correo electrónico antes de iniciar sesión.';
   } else if (mensaje.includes('User already registered')) {

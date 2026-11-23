@@ -7,8 +7,13 @@
  * temporadas turísticas y política escalonada de cancelaciones.
  */
 
-import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, resolveMediaUrl } from '../supabase-client.js';
 import { formatMoneda, escapeHtml } from '../utils/formatters.js';
+import { t, applyTranslations } from '../i18n.js';
+
+// Fallbacks SVG inline temáticos para clínicas y mascotas (cero fallos de red offline)
+const SVG_CLINICA_FALLBACK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250' fill='%23FAF7F2'><rect width='400' height='250' fill='%23F3EDE2'/><circle cx='200' cy='105' r='42' fill='%231E5631'/><path d='M193 82 h14 v46 h-14 z M177 98 h46 v14 h-46 z' fill='white'/><text x='200' y='180' font-family='sans-serif' font-size='15' font-weight='bold' fill='%23111827' text-anchor='middle'>Clínica Veterinaria Aliada 24h</text><text x='200' y='205' font-family='sans-serif' font-size='12' fill='%23E85D24' text-anchor='middle'>Paw Patita Cusco v5.1</text></svg>";
+const SVG_PET_FALLBACK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' fill='%23FAF7F2'><rect width='400' height='300' fill='%23F3EDE2'/><circle cx='200' cy='120' r='50' fill='%23E85D24'/><text x='200' y='138' font-size='42' text-anchor='middle'>🐾</text><text x='200' y='205' font-family='sans-serif' font-size='16' font-weight='bold' fill='%23111827' text-anchor='middle'>Mascota Feliz en Cusco</text><text x='200' y='230' font-family='sans-serif' font-size='12' fill='%231E5631' text-anchor='middle'>Paw Patita Cusco v5.1</text></svg>";
 
 // Datos semilla de clínicas aliadas para visualización garantizada y modo offline/demo
 const CLINICAS_SEED = [
@@ -69,7 +74,7 @@ const CLINICAS_SEED = [
 const TESTIMONIOS = [
   {
     autor: 'Lucía Mendoza Vargas',
-    origen: 'Propietaria Local • Wanchaq, Cusco',
+    origen: 'Propietario Local • Wanchaq, Cusco',
     mascota: 'Toby (Golden Retriever, 3 años)',
     texto: 'Dejar a Toby mientras trabajo en la universidad solía ser una preocupación constante. Con Valeria recibo fotos en tiempo real y el carné PAW-ID me dio total tranquilidad médica.',
     estrellas: 5,
@@ -130,37 +135,104 @@ export async function renderLanding(container) {
   const currentCurrency = localStorage.getItem('paw_currency') || 'PEN';
 
   container.innerHTML = `
-    <!-- HERO SECTION -->
-    <section class="hero-section py-5 text-center bg-white border-bottom">
+    <!-- HERO SECTION ANDINO EDITORIAL (2 COLUMNAS) -->
+    <section class="hero-andes-cusco py-5">
       <div class="container py-4">
-        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm">
-          <i class="bi bi-geo-alt-fill text-danger me-1"></i> Red de Cuidado Familiar & Central S.O.S. en Cusco
-        </span>
-        <h1 class="display-4 fw-bold text-dark mb-3">
-          Cuidado Familiar y Amor Real para tu Mascota en Cusco
-        </h1>
-        <p class="lead text-secondary mx-auto col-lg-8 mb-4">
-          Conectamos a cuidadores independientes verificados con propietarios locales y turistas.
-          Con carné digital <strong>PAW-ID</strong>, cobertura de emergencias con clínicas aliadas 24h y fotos en vivo durante todo el servicio.
-        </p>
-        <div class="d-flex justify-content-center gap-3 flex-wrap mb-4">
-          <a href="#/catalogo" class="btn btn-paw btn-lg shadow-sm">
-            <i class="bi bi-compass me-1"></i> Explorar Catálogo de Cuidadores
-          </a>
-          <button class="btn btn-paw-outline btn-lg" data-bs-toggle="modal" data-bs-target="#modal-postular-cuidador">
-            <i class="bi bi-heart-fill me-1"></i> Postular como Cuidador
-          </button>
-          <button class="btn btn-outline-secondary btn-lg" data-bs-toggle="modal" data-bs-target="#modal-postular-clinica">
-            <i class="bi bi-hospital me-1"></i> Afiliar Clínica Veterinaria
-          </button>
-        </div>
+        <div class="row align-items-center g-5">
+          <!-- Columna Izquierda: Propuesta de Valor y CTAs -->
+          <div class="col-lg-7">
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 shadow-sm d-inline-flex align-items-center">
+              <i class="bi bi-geo-alt-fill text-danger me-2"></i>
+              <span data-i18n="landing.badge_red">Red de Cuidado Familiar & Central S.O.S. en Cusco</span>
+            </span>
+            <h1 class="display-5 fw-bold text-dark mb-3" style="letter-spacing: -0.02em; line-height: 1.18;" data-i18n="landing.hero_title">
+              Cuidado Familiar y Amor Real para tu Mascota en Cusco
+            </h1>
+            <p class="lead text-secondary mb-4" data-i18n="landing.hero_lead">
+              Conectamos a cuidadores independientes verificados con propietarios locales y turistas.
+              Con carné digital <strong>PAW-ID</strong>, cobertura de emergencias con clínicas aliadas 24h y fotos en vivo durante todo el servicio.
+            </p>
+            <div class="d-flex gap-3 flex-wrap mb-4">
+              <a href="#/catalogo" class="btn btn-paw btn-lg shadow">
+                <i class="bi bi-compass me-1"></i> <span data-i18n="landing.btn_catalogo">Explorar Catálogo de Cuidadores</span>
+              </a>
+              <button class="btn btn-paw-outline btn-lg" data-bs-toggle="modal" data-bs-target="#modal-postular-cuidador">
+                <i class="bi bi-heart-fill me-1"></i> <span data-i18n="landing.btn_postular_cuid">Postular como Cuidador</span>
+              </button>
+              <button class="btn btn-outline-secondary btn-lg" data-bs-toggle="modal" data-bs-target="#modal-postular-clinica">
+                <i class="bi bi-hospital me-1"></i> <span data-i18n="landing.btn_afiliar_clinica">Afiliar Clínica Veterinaria</span>
+              </button>
+            </div>
 
-        <!-- Badges de Confianza -->
-        <div class="d-flex justify-content-center gap-4 flex-wrap text-muted small mt-2">
-          <span><i class="bi bi-shield-check text-success me-1"></i> Antecedentes Policiales Verificados</span>
-          <span><i class="bi bi-qr-code text-primary me-1"></i> Carné PAW-ID Escaneable</span>
-          <span><i class="bi bi-hospital text-danger me-1"></i> Red Médica 24h en Cusco</span>
-          <span><i class="bi bi-lock text-warning me-1"></i> Pago Escrow Seguro (15% / 85%)</span>
+            <!-- Badges de Confianza Andina -->
+            <div class="row g-2 pt-2 text-secondary small">
+              <div class="col-sm-6">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-shield-check text-success fs-5"></i>
+                  <span data-i18n="landing.trust_police">Antecedentes Policiales Verificados</span>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-qr-code text-primary fs-5"></i>
+                  <span data-i18n="landing.trust_pawid">Carné PAW-ID Escaneable</span>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-hospital text-danger fs-5"></i>
+                  <span data-i18n="landing.trust_vets">Red Médica 24h en Cusco</span>
+                </div>
+              </div>
+              <div class="col-sm-6">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-lock text-warning fs-5"></i>
+                  <span data-i18n="landing.trust_escrow">Pago Protegido en Garantía (15% / 85%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Composición Fotográfica Andes & Mascotas -->
+          <div class="col-lg-5">
+            <div class="position-relative p-2">
+              <div class="card border-0 shadow-xl overflow-hidden" style="border-radius: var(--pp-radius-xl, 24px); border: 3px solid var(--pp-border-warm, #E7DDD0);">
+                <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80"
+                     alt="Mascotas felices en Cusco"
+                     class="img-fluid w-100"
+                     style="height: 380px; object-fit: cover;"
+                     onerror="this.onerror=null; this.src='${SVG_PET_FALLBACK}';">
+                <div class="card-img-overlay d-flex flex-column justify-content-between p-3" style="background: linear-gradient(to top, rgba(11,17,32,0.7) 0%, transparent 60%);">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-light text-dark shadow-sm">
+                      <i class="bi bi-geo-alt-fill text-danger me-1"></i> Valle Sagrado & Cusco
+                    </span>
+                    <span class="badge bg-success shadow-sm">
+                      <i class="bi bi-check-circle-fill me-1"></i> 100% Amor Familiar
+                    </span>
+                  </div>
+                  <div class="text-white">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="badge bg-warning text-dark fw-bold">PAW-ID Activo</span>
+                      <small class="opacity-90">Custodia Verificada</small>
+                    </div>
+                    <h5 class="fw-bold mb-0 text-white">Inti & Toby en Cusco</h5>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tarjeta Flotante: Adaptación y Altura -->
+              <div class="position-absolute bottom-0 start-0 translate-middle-y bg-white p-3 rounded shadow-lg border d-none d-sm-flex align-items-center gap-3 ms-n3" style="border-radius: var(--pp-radius-md, 12px); max-width: 250px; z-index: 5;">
+                <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning fs-4">
+                  <i class="bi bi-heart-pulse-fill text-danger"></i>
+                </div>
+                <div>
+                  <strong class="d-block text-dark small">Oxigenación & Altura</strong>
+                  <span class="small text-muted" style="font-size: 0.75rem;">Protocolo veterinario Cusco 3,400 msnm</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -259,15 +331,15 @@ export async function renderLanding(container) {
               <div class="d-flex gap-3 align-items-start">
                 <i class="bi bi-qr-code-scan fs-3 text-primary"></i>
                 <div>
-                  <h6 class="fw-bold mb-1">Escaneo QR Inmediato</h6>
-                  <p class="small text-muted mb-0">Ruta pública segura (<code>#/paw-id/:id</code>) con foto, raza, alergias y botón directo a WhatsApp.</p>
+                  <h6 class="fw-bold mb-1" data-i18n="landing.qr_title">Escaneo QR Inmediato</h6>
+                  <p class="small text-muted mb-0" data-i18n="landing.qr_desc">Ruta pública segura por código QR con foto, raza, alergias y botón directo a WhatsApp.</p>
                 </div>
               </div>
               <div class="d-flex gap-3 align-items-start">
                 <i class="bi bi-hospital fs-3 text-danger"></i>
                 <div>
-                  <h6 class="fw-bold mb-1">Derivación S.O.S. a la Clínica más Cercana</h6>
-                  <p class="small text-muted mb-0">Geolocalización automática de clínicas 24h activas en Cusco para atención médica urgente.</p>
+                  <h6 class="fw-bold mb-1" data-i18n="landing.sos_title">Derivación S.O.S. a la Clínica más Cercana</h6>
+                  <p class="small text-muted mb-0" data-i18n="landing.sos_desc">Geolocalización automática de clínicas 24h activas en Cusco para atención médica urgente.</p>
                 </div>
               </div>
             </div>
@@ -276,12 +348,16 @@ export async function renderLanding(container) {
             <div class="card card-paw p-4 border-0 shadow-lg d-inline-block text-start" style="max-width: 440px;">
               <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                 <span class="fw-bold text-dark"><i class="bi bi-paw-fill text-warning me-1"></i> PAW-ID Digital</span>
-                <span class="badge bg-success">Sanitariamente Validado</span>
+                <span class="badge bg-success" data-i18n="paw_id.validado">Sanitariamente Validado</span>
               </div>
               <div class="d-flex gap-3 align-items-center mb-3">
-                <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=150&auto=format&fit=crop&q=80" alt="Rocky" class="rounded-circle border" style="width: 70px; height: 70px; object-fit: cover;">
+                <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=150&auto=format&fit=crop&q=80"
+                     alt="Inti"
+                     class="rounded-circle border"
+                     style="width: 70px; height: 70px; object-fit: cover;"
+                     onerror="this.onerror=null; this.src='${SVG_PET_FALLBACK}';">
                 <div>
-                  <h5 class="fw-bold mb-0">Rocky</h5>
+                  <h5 class="fw-bold mb-0">Inti</h5>
                   <div class="small text-muted">Golden Retriever • 3 años</div>
                   <code class="text-primary fw-bold">PAW-6858</code>
                 </div>
@@ -424,24 +500,27 @@ export async function renderLanding(container) {
       </div>
     </section>
 
-    <!-- CTA FINAL -->
-    <section class="py-5 text-center text-white" style="background: linear-gradient(135deg, #FF6B35 0%, #2E4057 100%);">
+    <!-- BANNER CTA INFERIOR ANDES & HUELLAS CUSCO -->
+    <section class="cta-andes-banner py-5 text-center text-white">
       <div class="container py-4">
-        <h2 class="display-6 fw-bold mb-3">¿Listo para encontrar al cuidador ideal para tu mascota?</h2>
-        <p class="lead mb-4 mx-auto col-lg-8 opacity-90">
+        <h2 class="display-6 fw-bold mb-3 text-white" data-i18n="landing.cta_title">¿Listo para encontrar al cuidador ideal para tu mascota?</h2>
+        <p class="lead mb-4 mx-auto col-lg-8" style="color: #E2F1E8 !important;" data-i18n="landing.cta_lead">
           Explora los perfiles aprobados en tu distrito o postula hoy para unirte a la red de cuidadores más confiable de Cusco.
         </p>
         <div class="d-flex justify-content-center gap-3 flex-wrap">
-          <a href="#/catalogo" class="btn btn-light btn-lg text-dark fw-bold shadow">
-            <i class="bi bi-compass me-1"></i> Ver Catálogo Completo
+          <a href="#/catalogo" class="btn btn-paw btn-lg shadow fw-bold">
+            <i class="bi bi-compass me-1"></i> <span data-i18n="landing.cta_btn_catalogo">Ver Catálogo Completo</span>
           </a>
           <button class="btn btn-outline-light btn-lg fw-bold" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario">
-            <i class="bi bi-person-plus-fill me-1"></i> Crear Cuenta de Propietario
+            <i class="bi bi-person-plus-fill me-1"></i> <span data-i18n="landing.cta_btn_register">Crear Cuenta de Propietario</span>
           </button>
         </div>
       </div>
     </section>
   `;
+
+  // Aplicar traducciones bilingües en landing
+  applyTranslations(container);
 
   // Cargar clínicas dinámicamente
   cargarClinicasGrid(currentCurrency);
@@ -454,16 +533,26 @@ async function cargarClinicasGrid(currentCurrency) {
   const gridEl = document.getElementById('landing-clinicas-grid');
   if (!gridEl) return;
 
-  const clinicas = await obtenerClinicasActivas();
+  const clinicasRaw = await obtenerClinicasActivas();
+  const clinicas = await Promise.all(
+    clinicasRaw.map(async (c, idx) => {
+      const seedFallback = CLINICAS_SEED[idx % CLINICAS_SEED.length]?.foto_fachada_url || SVG_CLINICA_FALLBACK;
+      const resolvedFoto = c.foto_fachada_url ? await resolveMediaUrl(c.foto_fachada_url) : null;
+      return {
+        ...c,
+        foto_fachada_resuelta: resolvedFoto || seedFallback
+      };
+    })
+  );
 
   gridEl.innerHTML = clinicas.map(c => `
     <div class="col-md-6 col-lg-3">
       <div class="card card-paw h-100 border-0 shadow-sm overflow-hidden d-flex flex-column">
         <div style="height: 120px; overflow: hidden; background: #E2E8F0; position: relative;">
-          <img src="${escapeHtml(c.foto_fachada_url || 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&auto=format&fit=crop&q=80')}"
+          <img src="${escapeHtml(c.foto_fachada_resuelta)}"
                alt="${escapeHtml(c.nombre)}"
                style="width: 100%; height: 100%; object-fit: cover;"
-               onerror="this.src='https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&auto=format&fit=crop&q=80'">
+               onerror="this.onerror=null; this.src='${SVG_CLINICA_FALLBACK}';">
           <span class="badge ${c.horario_atencion?.includes('24') ? 'bg-danger' : 'bg-secondary'} position-absolute top-0 end-0 m-2 shadow-sm">
             ${escapeHtml(c.horario_atencion || 'Atención Regular')}
           </span>

@@ -1,7 +1,9 @@
 /**
- * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care"
+ * Paw Patita Cusco v5.1 — Edición "Andes & Huellas Cusco"
  * css/auth.css — Estilos para Modales de Login, Registro Propietario, Postulaciones y Recuperación
  */
+
+@import './tokens.css';
 
 .auth-modal-dialog {
   max-width: 580px;

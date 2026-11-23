@@ -13,9 +13,11 @@ import { subscribeRealtime } from './supabase-client.js';
 import { CUSCO_CONFIG } from './config.js';
 import { showToast, showSpinner, hideSpinner } from './utils/ui-helpers.js';
 import { escapeHtml } from './utils/formatters.js';
+import { initLegalModal } from './components/legal-modal.js';
+import { getCurrentLang, setLanguage, applyTranslations, t } from './i18n.js';
 
 let appCurrency = localStorage.getItem('paw_currency') || 'PEN';
-let appLanguage = localStorage.getItem('paw_lang') || 'ES';
+let appLanguage = getCurrentLang();
 let unreadNotificationsCount = 0;
 
 /**
@@ -39,7 +41,7 @@ function updateNavbar(session) {
       roleNavContainer.innerHTML = `
         <li class="nav-item">
           <a class="nav-link fw-bold text-primary" href="${roleRoute}" data-route="${roleRoute}">
-            <i class="bi bi-speedometer2 me-1"></i> Mi Panel (${escapeHtml(profile.rol)})
+            <i class="bi bi-speedometer2 me-1"></i> <span data-i18n="nav.mi_panel">${t('nav.mi_panel')}</span> (${escapeHtml(profile.rol)})
           </a>
         </li>
       `;
@@ -58,11 +60,11 @@ function updateNavbar(session) {
             <div class="small text-muted">${escapeHtml(profile.email || '')}</div>
             <span class="badge bg-warning text-dark mt-1 text-uppercase">${escapeHtml(profile.rol)}</span>
           </li>
-          <li><a class="dropdown-item py-2" href="${getDefaultRoleRoute(profile.rol)}"><i class="bi bi-grid me-2"></i>Ir a Mi Panel</a></li>
+          <li><a class="dropdown-item py-2" href="${getDefaultRoleRoute(profile.rol)}"><i class="bi bi-grid me-2"></i><span data-i18n="nav.mi_panel">${t('nav.mi_panel')}</span></a></li>
           <li><hr class="dropdown-divider"></li>
           <li>
             <button class="dropdown-item py-2 text-danger fw-bold" id="btn-logout-trigger">
-              <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
+              <i class="bi bi-box-arrow-right me-2"></i><span data-i18n="nav.cerrar_sesion">${t('nav.cerrar_sesion')}</span>
             </button>
           </li>
         </ul>
@@ -77,37 +79,65 @@ function updateNavbar(session) {
 
     navAuthContainer.innerHTML = `
       <button class="btn btn-paw-outline btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modal-login">
-        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+        <i class="bi bi-box-arrow-in-right me-1"></i> <span data-i18n="nav.login">${t('nav.login')}</span>
       </button>
       <button class="btn btn-paw btn-sm" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario">
-        <i class="bi bi-person-plus-fill me-1"></i> Registrarse
+        <i class="bi bi-person-plus-fill me-1"></i> <span data-i18n="nav.registro">${t('nav.registro')}</span>
       </button>
     `;
   }
 }
 
 /**
- * Inicializa la campana de notificaciones y la suscripción Realtime a emergencias SOS
+ * Inicializa la campana de notificaciones y la suscripción Realtime a emergencias SOS (INSERT y UPDATE)
  */
 function initRealtimeAlerts() {
   const badgeEl = document.getElementById('notif-badge-count');
   const listEl = document.getElementById('notifications-list');
 
-  // Suscribirse a nuevas incidencias de emergencia SOS
-  subscribeRealtime('canal-sos-emergencias', 'incidencias_emergencias', 'INSERT', (payload) => {
+  subscribeRealtime('canal-sos-emergencias', 'incidencias_emergencias', '*', (payload) => {
+    const evType = payload.eventType || 'UPDATE';
+    const rec = payload.new || {};
     unreadNotificationsCount++;
     if (badgeEl) {
       badgeEl.textContent = unreadNotificationsCount;
       badgeEl.classList.remove('d-none');
     }
-    showToast(`🚨 ¡ALERTA S.O.S. en Cusco! Mascota en situación ${payload.new?.nivel_severidad || 'Urgente'}.`, 'danger', 'Emergencia Veterinaria', 8000);
+
+    const estadoLabel = (rec.estado_sos || 'emitida').toUpperCase();
+    if (evType === 'INSERT') {
+      showToast(
+        `🚨 ¡ALERTA S.O.S. en Cusco! Mascota en situación ${rec.nivel_severidad || 'Urgente'}.`,
+        'danger',
+        'Emergencia Veterinaria',
+        8000
+      );
+    } else {
+      showToast(
+        `🏥 Actualización S.O.S. (${rec.codigo_sos || 'Cusco'}): Estado clínico actualizado a ${estadoLabel}.`,
+        rec.estado_sos === 'resuelta' ? 'success' : 'info',
+        'Seguimiento Clínico S.O.S.',
+        6500
+      );
+    }
 
     if (listEl) {
+      const tituloNotif = evType === 'INSERT'
+        ? 'ALERTA S.O.S. RECIBIDA'
+        : `ACTUALIZACIÓN S.O.S. • ${escapeHtml(estadoLabel)}`;
+      const detalleNotif = rec.diagnostico_clinico
+        || rec.tratamiento_aplicado
+        || rec.descripcion
+        || rec.descripcion_emergencia
+        || 'Estado de emergencia veterinaria actualizado en tiempo real';
+
       const itemHtml = `
         <div class="notification-item alert-urgent">
-          <div class="fw-bold text-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i> ALERTA S.O.S. RECIBIDA</div>
-          <div class="small">${escapeHtml(payload.new?.descripcion || payload.new?.descripcion_emergencia || 'Emergencia veterinaria reportada')}</div>
-          <small class="text-muted">Recién emitida</small>
+          <div class="fw-bold ${rec.estado_sos === 'resuelta' ? 'text-success' : 'text-danger'}">
+            <i class="bi bi-exclamation-octagon-fill me-1"></i> ${tituloNotif}
+          </div>
+          <div class="small">${escapeHtml(detalleNotif)}</div>
+          <small class="text-muted">En tiempo real</small>
         </div>
       `;
       listEl.insertAdjacentHTML('afterbegin', itemHtml);
@@ -320,26 +350,55 @@ function setupFormListeners() {
   document.getElementById('btn-toggle-currency')?.addEventListener('click', () => {
     appCurrency = appCurrency === 'PEN' ? 'USD' : 'PEN';
     localStorage.setItem('paw_currency', appCurrency);
-    document.getElementById('btn-toggle-currency').textContent = appCurrency === 'PEN' ? 'S/ PEN' : '$ USD';
-    showToast(`Moneda cambiada a ${appCurrency}`, 'info');
+    const btn = document.getElementById('btn-toggle-currency');
+    if (btn) {
+      btn.innerHTML = `<i class="bi bi-cash-stack"></i> ${appCurrency === 'PEN' ? 'S/ PEN' : '$ USD'}`;
+    }
+    showToast(t('common.moneda_cambiada', { val: appCurrency }), 'info');
     handleRouteChange();
   });
 
   document.getElementById('btn-toggle-lang')?.addEventListener('click', () => {
-    appLanguage = appLanguage === 'ES' ? 'EN' : 'ES';
-    localStorage.setItem('paw_lang', appLanguage);
-    document.getElementById('btn-toggle-lang').textContent = appLanguage;
-    showToast(`Idioma seleccionado: ${appLanguage}`, 'info');
+    appLanguage = (appLanguage === 'ES') ? 'EN' : 'ES';
+    setLanguage(appLanguage);
+    const btn = document.getElementById('btn-toggle-lang');
+    if (btn) {
+      btn.innerHTML = `<i class="bi bi-translate"></i> ${appLanguage}`;
+    }
+    applyTranslations(document);
+    showToast(t('common.idioma_cambiado'), 'info');
+    handleRouteChange();
   });
 }
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🐾 Iniciando Paw Patita Cusco v5.0 Frontend Shell...');
+  console.log('🐾 Iniciando Paw Patita Cusco v5.1 Frontend Shell...');
+
+  // 1. Inicializar Modal Legal Global
+  initLegalModal();
+
+  // 2. Hidratar preferencias de Moneda e Idioma en el Navbar
+  const btnCurrency = document.getElementById('btn-toggle-currency');
+  if (btnCurrency) {
+    btnCurrency.innerHTML = `<i class="bi bi-cash-stack"></i> ${appCurrency === 'PEN' ? 'S/ PEN' : '$ USD'}`;
+  }
+
+  const btnLang = document.getElementById('btn-toggle-lang');
+  if (btnLang) {
+    btnLang.innerHTML = `<i class="bi bi-translate"></i> ${appLanguage}`;
+  }
+  setLanguage(appLanguage);
+  applyTranslations(document);
+
+  // 3. Configurar listeners de autenticación y vistas
   setupPasswordToggles();
   setupDemoButtons();
   setupFormListeners();
-  onAuthStateChanged(updateNavbar);
+  onAuthStateChanged((session) => {
+    updateNavbar(session);
+    applyTranslations(document.getElementById('navbarMainContent'));
+  });
   await initAuthSession();
   initRouter();
   initRealtimeAlerts();

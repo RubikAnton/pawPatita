@@ -1,8 +1,10 @@
 /**
- * Paw Patita Cusco v5.0 — Sistema de Diseño "Andes Pet Care"
+ * Paw Patita Cusco v5.1 — Edición "Andes & Huellas Cusco"
  * css/paneles.css — Estilos para Panel Propietario Unificado, Carné Digital PAW-ID,
  * Wizard de Reserva 4 Pasos, Muro de Fotos en Vivo, Alertas S.O.S., Billetera y Calendario.
  */
+
+@import './tokens.css';
 
 /* ==========================================================================
    1. LAYOUT DE PANELES OPERATIVOS (SIDEBAR + WORKSPACE)

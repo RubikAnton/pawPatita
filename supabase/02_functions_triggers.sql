@@ -66,15 +66,24 @@ DECLARE
     v_id_cuidador uuid;
     v_id_clinica uuid;
     v_ruc text;
+    v_foto_url text;
+    v_foto_hogar_url text;
+    v_foto_fachada_url text;
+    v_constancia_url text;
+    v_doc_identidad_url text;
+    v_doc_policial_url text;
+    v_doc_penal_url text;
+    v_doc_domicilio_url text;
+    v_especialidades text[];
 BEGIN
-    -- Determinar rol desde raw_user_meta_data (por defecto 'propietario')
+    -- 1. Determinar rol desde raw_user_meta_data (por defecto 'propietario')
     BEGIN
         v_rol := COALESCE((NEW.raw_user_meta_data->>'rol')::public.rol_usuario_enum, 'propietario');
     EXCEPTION WHEN OTHERS THEN
         v_rol := 'propietario';
     END;
 
-    -- Los postulantes a cuidador o clínica veterinaria inician en 'pendiente' hasta aprobación del Admin
+    -- 2. Los postulantes a cuidador o clínica veterinaria inician en 'pendiente' hasta aprobación del Admin
     IF v_rol IN ('cuidador', 'veterinaria') THEN
         BEGIN
             v_estado := COALESCE((NEW.raw_user_meta_data->>'estado_cuenta')::public.estado_cuenta_enum, 'pendiente');
@@ -89,6 +98,7 @@ BEGIN
         END;
     END IF;
 
+    -- 3. Tipo y número de documento con protección contra colisión UNIQUE
     BEGIN
         v_tipo_doc := COALESCE((NEW.raw_user_meta_data->>'tipo_documento')::public.tipo_documento_enum, 'DNI');
     EXCEPTION WHEN OTHERS THEN
@@ -102,39 +112,75 @@ BEGIN
     END IF;
 
     v_auto_create := COALESCE((NEW.raw_user_meta_data->>'auto_create_perfil')::boolean, false);
+    v_foto_url := COALESCE(
+        NULLIF(TRIM(NEW.raw_user_meta_data->>'foto_url'), ''),
+        NULLIF(TRIM(NEW.raw_user_meta_data->>'foto_perfil_url'), ''),
+        NULLIF(TRIM(NEW.raw_user_meta_data->>'avatar_url'), '')
+    );
+    v_foto_hogar_url := NULLIF(TRIM(NEW.raw_user_meta_data->>'foto_hogar_url'), '');
+    v_foto_fachada_url := NULLIF(TRIM(NEW.raw_user_meta_data->>'foto_fachada_url'), '');
+    v_constancia_url := NULLIF(TRIM(NEW.raw_user_meta_data->>'constancia_url'), '');
 
+    -- 4. Si es postulación de clínica veterinaria, crear o vincular clínica en clinicas_veterinarias
     IF v_rol = 'veterinaria' AND v_auto_create THEN
         v_ruc := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'ruc'), ''), '20' || LPAD((floor(random() * 899999999) + 100000000)::text, 9, '0'));
-        SELECT id INTO v_id_clinica FROM public.clinicas_veterinarias WHERE ruc = v_ruc OR email_institucional = NEW.email LIMIT 1;
 
-        IF v_id_clinica IS NULL THEN
-            BEGIN
-                INSERT INTO public.clinicas_veterinarias (
-                    ruc, nombre, email_institucional, direccion, distrito_cusco,
-                    telefono_emergencia, horario_atencion, especialidades,
-                    tarifa_consulta_emergencia, colegiatura_cmvp, estado_afiliacion, activa
-                )
-                VALUES (
-                    v_ruc,
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'nombre_clinica'), ''), 'Clínica Veterinaria ' || COALESCE(NEW.raw_user_meta_data->>'nombre', 'Cusco')),
-                    NEW.email,
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'direccion'), ''), 'Cusco, Perú'),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'distrito_cusco'), ''), 'Cusco Centro'),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000'),
-                    COALESCE((NEW.raw_user_meta_data->>'horario_atencion')::public.horario_clinica_enum, '24 Horas'),
-                    ARRAY['Emergencias 24h', 'Medicina General'],
-                    GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_consulta_emergencia')::numeric, 60.00), 10.00),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'colegiatura_cmvp'), ''), 'CMVP-CUSCO'),
-                    'pendiente',
-                    false
-                )
-                RETURNING id INTO v_id_clinica;
-            EXCEPTION WHEN OTHERS THEN
-                v_id_clinica := NULL;
-            END;
+        IF jsonb_typeof(NEW.raw_user_meta_data->'especialidades') = 'array' THEN
+            SELECT ARRAY(SELECT jsonb_array_elements_text(NEW.raw_user_meta_data->'especialidades'))
+            INTO v_especialidades;
         END IF;
+        IF v_especialidades IS NULL OR array_length(v_especialidades, 1) IS NULL THEN
+            v_especialidades := ARRAY['Emergencias 24h', 'Medicina General'];
+        END IF;
+
+        BEGIN
+            INSERT INTO public.clinicas_veterinarias (
+                ruc, nombre, email_institucional, direccion, distrito_cusco,
+                telefono_emergencia, horario_atencion, especialidades,
+                tarifa_consulta_emergencia, foto_fachada_url, constancia_url,
+                colegiatura_cmvp, estado_afiliacion, activa
+            )
+            VALUES (
+                v_ruc,
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'nombre_clinica'), ''), 'Clínica Veterinaria ' || COALESCE(NEW.raw_user_meta_data->>'nombre', 'Cusco')),
+                NEW.email,
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'direccion'), ''), 'Cusco, Perú'),
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'distrito_cusco'), ''), 'Cusco Centro'),
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000'),
+                COALESCE((NEW.raw_user_meta_data->>'horario_atencion')::public.horario_clinica_enum, '24 Horas'),
+                v_especialidades,
+                GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_consulta_emergencia')::numeric, 60.00), 10.00),
+                v_foto_fachada_url,
+                v_constancia_url,
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'colegiatura_cmvp'), ''), 'CMVP-CUSCO'),
+                'pendiente',
+                false
+            )
+            ON CONFLICT (ruc) DO NOTHING
+            RETURNING id INTO v_id_clinica;
+
+            IF v_id_clinica IS NULL THEN
+                SELECT id INTO v_id_clinica
+                FROM public.clinicas_veterinarias
+                WHERE ruc = v_ruc OR email_institucional = NEW.email
+                LIMIT 1;
+
+                IF v_id_clinica IS NOT NULL THEN
+                    UPDATE public.clinicas_veterinarias
+                    SET foto_fachada_url = COALESCE(v_foto_fachada_url, foto_fachada_url),
+                        constancia_url = COALESCE(v_constancia_url, constancia_url)
+                    WHERE id = v_id_clinica;
+                END IF;
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            SELECT id INTO v_id_clinica
+            FROM public.clinicas_veterinarias
+            WHERE ruc = v_ruc OR email_institucional = NEW.email
+            LIMIT 1;
+        END;
     END IF;
 
+    -- 5. Insertar o sincronizar perfil en public.perfiles_usuarios
     INSERT INTO public.perfiles_usuarios (
         id,
         nombre,
@@ -153,6 +199,7 @@ BEGIN
         contacto_emergencia_nombre,
         contacto_emergencia_tel,
         id_clinica_asociada,
+        avatar_url,
         tyc_version_aceptada,
         estado_cuenta
     )
@@ -174,60 +221,103 @@ BEGIN
         NEW.raw_user_meta_data->>'contacto_emergencia_nombre',
         NEW.raw_user_meta_data->>'contacto_emergencia_tel',
         v_id_clinica,
-        COALESCE(NEW.raw_user_meta_data->>'tyc_version_aceptada', 'v5.0'),
+        v_foto_url,
+        COALESCE(NEW.raw_user_meta_data->>'tyc_version_aceptada', 'v5.1'),
         v_estado
     )
     ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
+        avatar_url = COALESCE(EXCLUDED.avatar_url, public.perfiles_usuarios.avatar_url),
         id_clinica_asociada = COALESCE(public.perfiles_usuarios.id_clinica_asociada, EXCLUDED.id_clinica_asociada);
 
+    -- 6. Si es postulación de cuidador, crear expediente en perfiles_cuidadores y antecedentes_cuidadores
     IF v_rol = 'cuidador' AND v_auto_create THEN
         BEGIN
             INSERT INTO public.perfiles_cuidadores (
                 id_usuario, presentacion_corta, descripcion_experiencia, anios_experiencia,
-                tipo_vivienda, capacidad_max_mascotas, estado_postulacion, cuenta_cobro_tipo, cuenta_cobro_numero
+                tipo_vivienda, capacidad_max_mascotas, estado_postulacion,
+                foto_url, foto_hogar_url, cuenta_cobro_tipo, cuenta_cobro_numero
             )
             VALUES (
                 NEW.id,
-                'Cuidador independiente postulante en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco'),
-                'Experiencia reportada en postulación web Paw Patita Cusco.',
+                COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'presentacion_corta'), ''),
+                    'Cuidador independiente postulante en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco')
+                ),
+                COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'descripcion_experiencia'), ''),
+                    'Experiencia reportada en postulación web Paw Patita Cusco.'
+                ),
                 GREATEST(COALESCE((NEW.raw_user_meta_data->>'anios_experiencia')::integer, 2), 0),
                 COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'tipo_vivienda'), ''), 'Casa con patio cercado'),
                 LEAST(GREATEST(COALESCE((NEW.raw_user_meta_data->>'capacidad_max_mascotas')::integer, 3), 1), 10),
                 'pendiente',
+                v_foto_url,
+                v_foto_hogar_url,
                 'Yape',
                 COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000')
             )
-            ON CONFLICT (id_usuario) DO NOTHING
+            ON CONFLICT (id_usuario) DO UPDATE SET
+                foto_url = COALESCE(EXCLUDED.foto_url, public.perfiles_cuidadores.foto_url),
+                foto_hogar_url = COALESCE(EXCLUDED.foto_hogar_url, public.perfiles_cuidadores.foto_hogar_url)
             RETURNING id INTO v_id_cuidador;
 
+            IF v_id_cuidador IS NULL THEN
+                SELECT id INTO v_id_cuidador FROM public.perfiles_cuidadores WHERE id_usuario = NEW.id LIMIT 1;
+            END IF;
+
             IF v_id_cuidador IS NOT NULL THEN
+                v_doc_identidad_url := COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_identidad_url'), ''),
+                    'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700'
+                );
+                v_doc_policial_url := COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_antecedentes_policiales_url'), ''),
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_policial_url'), ''),
+                    'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700'
+                );
+                v_doc_penal_url := COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_antecedentes_penales_url'), ''),
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_penal_url'), ''),
+                    'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700'
+                );
+                v_doc_domicilio_url := COALESCE(
+                    NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_domicilio_url'), ''),
+                    'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700'
+                );
+
                 INSERT INTO public.antecedentes_cuidadores (
                     id_cuidador, doc_identidad_url, doc_antecedentes_policiales_url,
                     doc_antecedentes_penales_url, doc_domicilio_url, declaracion_jurada, estado_verificacion
                 )
                 VALUES (
                     v_id_cuidador,
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_identidad_url'), ''), 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700'),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_policial_url'), ''), 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700'),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_penal_url'), ''), 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700'),
-                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_domicilio_url'), ''), 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700'),
+                    v_doc_identidad_url,
+                    v_doc_policial_url,
+                    v_doc_penal_url,
+                    v_doc_domicilio_url,
                     true,
                     'pendiente'
                 )
-                ON CONFLICT (id_cuidador) DO NOTHING;
+                ON CONFLICT (id_cuidador) DO UPDATE SET
+                    doc_identidad_url = COALESCE(NULLIF(TRIM(EXCLUDED.doc_identidad_url), ''), public.antecedentes_cuidadores.doc_identidad_url),
+                    doc_antecedentes_policiales_url = COALESCE(NULLIF(TRIM(EXCLUDED.doc_antecedentes_policiales_url), ''), public.antecedentes_cuidadores.doc_antecedentes_policiales_url),
+                    doc_antecedentes_penales_url = COALESCE(NULLIF(TRIM(EXCLUDED.doc_antecedentes_penales_url), ''), public.antecedentes_cuidadores.doc_antecedentes_penales_url),
+                    doc_domicilio_url = COALESCE(NULLIF(TRIM(EXCLUDED.doc_domicilio_url), ''), public.antecedentes_cuidadores.doc_domicilio_url);
 
-                INSERT INTO public.servicios (
-                    id_cuidador, categoria, tipo_servicio, descripcion_servicio, tarifa_diaria_por_perro, disponible
-                )
-                VALUES (
-                    v_id_cuidador,
-                    'Paseo',
-                    'Paseo y Custodia Familiar en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco'),
-                    'Servicio personalizado con reportes fotográficos en el Muro en Vivo.',
-                    GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_inicial')::numeric, 35.00), 15.00),
-                    true
-                );
+                IF NOT EXISTS (SELECT 1 FROM public.servicios WHERE id_cuidador = v_id_cuidador) THEN
+                    INSERT INTO public.servicios (
+                        id_cuidador, categoria, tipo_servicio, descripcion_servicio, tarifa_diaria_por_perro, disponible
+                    )
+                    VALUES (
+                        v_id_cuidador,
+                        'Paseo',
+                        'Paseo y Custodia Familiar en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco'),
+                        'Servicio personalizado con reportes fotográficos en el Muro en Vivo.',
+                        GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_inicial')::numeric, 35.00), 15.00),
+                        true
+                    );
+                END IF;
             END IF;
         EXCEPTION WHEN OTHERS THEN
             NULL;
@@ -458,6 +548,49 @@ DROP TRIGGER IF EXISTS trg_disponibilidad_estado_bloque ON public.disponibilidad
 CREATE TRIGGER trg_disponibilidad_estado_bloque
     BEFORE INSERT OR UPDATE ON public.disponibilidad_cuidadores
     FOR EACH ROW EXECUTE FUNCTION public.fn_sincronizar_estado_bloque();
+
+-- =============================================================================
+-- 5B. TRIGGER DE VALIDACIÓN DE REPORTES DEL MURO EN VIVO (reportes_seguimiento)
+-- Rechaza publicaciones en el Muro si la reserva asociada no está 'en_curso'
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.fn_validar_reporte_reserva_en_curso()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_estado public.estado_reserva_enum;
+    v_codigo text;
+BEGIN
+    SELECT estado_reserva, codigo_reserva
+    INTO v_estado, v_codigo
+    FROM public.reservas
+    WHERE id = NEW.id_reserva;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'La reserva asociada al reporte no existe.';
+    END IF;
+
+    -- Permitir el reporte automático de 'Check-Out' cuando la reserva acaba de pasar a 'finalizada'
+    IF NEW.tipo_evento = 'Check-Out' AND v_estado IN ('en_curso', 'finalizada') THEN
+        RETURN NEW;
+    END IF;
+
+    IF v_estado != 'en_curso' THEN
+        RAISE EXCEPTION 'Solo se pueden publicar reportes en el Muro cuando la reserva (%) se encuentra En Curso (estado actual: %).',
+            v_codigo, v_estado;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validar_reporte_en_curso ON public.reportes_seguimiento;
+CREATE TRIGGER trg_validar_reporte_en_curso
+    BEFORE INSERT ON public.reportes_seguimiento
+    FOR EACH ROW EXECUTE FUNCTION public.fn_validar_reporte_reserva_en_curso();
 
 -- =============================================================================
 -- 6. VISTAS ANALÍTICAS Y OPERATIVAS SEGURAS

@@ -10,11 +10,12 @@
 
 import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
 import { escapeHtml, calcularEdadDinamica, formatFechaEs } from '../utils/formatters.js';
+import { t, applyTranslations } from '../i18n.js';
 
 // Datos semilla de respaldo para pruebas locales o escaneo sin conexión Supabase activa
 const MASCOTA_SEED_PUBLIC = {
   paw_id: 'PAW-6858',
-  nombre: 'Rocky',
+  nombre: 'Inti',
   raza: 'Golden Retriever',
   fecha_nacimiento: '2023-04-15',
   edad_formateada: '3 años y 7 meses',
@@ -166,11 +167,11 @@ export async function renderPawIdPublico(container, pawId) {
         <!-- Banner de Emergencia / Mascota Extraviada -->
         <div class="paw-id-banner-emergencia">
           <div class="d-flex justify-content-between align-items-center">
-            <span class="fw-bold small"><i class="bi bi-paw-fill me-1"></i> PAW-ID CUSCO</span>
+            <span class="fw-bold small text-white"><i class="bi bi-paw-fill me-1"></i> PAW-ID CUSCO</span>
             <span class="badge bg-white text-danger fw-bold">FICHA DE EMERGENCIA</span>
           </div>
-          <h4 class="fw-bold mb-0 mt-2">¿Encontraste a esta mascota?</h4>
-          <p class="small mb-0 opacity-90">Comunícate de inmediato con su dueño o con el contacto de auxilio.</p>
+          <h4 class="fw-bold mb-0 mt-2 text-white" data-i18n="paw_id.banner_title">¿Encontraste a esta mascota?</h4>
+          <p class="small mb-0 opacity-90 text-white" data-i18n="paw_id.banner_subtitle">Comunícate de inmediato con su dueño o con el contacto de auxilio.</p>
         </div>
 
         <div class="paw-id-body">
@@ -195,10 +196,10 @@ export async function renderPawIdPublico(container, pawId) {
           <!-- Botones de Contacto Directo de Emergencia -->
           <div class="d-grid gap-2 mb-4">
             <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn-contacto-emergencia btn-contacto-whatsapp shadow-sm">
-              <i class="bi bi-whatsapp fs-5"></i> Escribir por WhatsApp al Propietario
+              <i class="bi bi-whatsapp fs-5"></i> <span data-i18n="paw_id.btn_wa">Escribir por WhatsApp al Propietario</span>
             </a>
             <a href="tel:${escapeHtml(m.propietario_telefono?.replace(/\s+/g, '') || '')}" class="btn-contacto-emergencia btn-contacto-tel shadow-sm">
-              <i class="bi bi-telephone-fill fs-5"></i> Llamar al Dueño (${escapeHtml(m.propietario_telefono || 'No disponible')})
+              <i class="bi bi-telephone-fill fs-5"></i> <span data-i18n="paw_id.btn_tel">Llamar al Dueño</span> (${escapeHtml(m.propietario_telefono || 'No disponible')})
             </a>
           </div>
 
@@ -273,4 +274,6 @@ export async function renderPawIdPublico(container, pawId) {
       </div>
     </div>
   `;
+
+  applyTranslations(container);
 }

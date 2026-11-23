@@ -14,6 +14,7 @@ import { inicializarMapaCusco, actualizarMarcadoresMapa, centrarEnCoordenada } f
 import { getSessionData } from '../auth/auth.js';
 import { navigateTo } from '../router.js';
 import { showToast } from '../utils/ui-helpers.js';
+import { t, applyTranslations } from '../i18n.js';
 
 // Semilla de cuidadores de respaldo para modo offline/demo y verificación inmediata
 export const CUIDADORES_SEED = [
@@ -415,7 +416,7 @@ export async function renderCatalogo(container) {
         <div class="mapa-header-toolbar">
           <div class="d-flex align-items-center gap-2">
             <strong class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Mapa Georreferenciado de Cusco</strong>
-            <span class="badge bg-warning text-dark small">Leaflet.js + OpenStreetMap</span>
+            <span class="badge bg-warning text-dark small"><i class="bi bi-map-fill me-1"></i>Distritos y Cobertura 24h</span>
           </div>
           <div class="mapa-leyenda">
             <div class="leyenda-item">
@@ -565,6 +566,7 @@ export async function renderCatalogo(container) {
   actualizarMarcadoresMapa(cuidadoresFiltrados);
   configurarEventosFiltros();
   aplicarFiltros();
+  applyTranslations(container);
 }
 
 /**
@@ -895,13 +897,58 @@ function renderizarTarjetasCuidadores(cuidadores) {
  * Abre el modal con el perfil completo y detallado del cuidador
  * @param {string} codigoCuidador 
  */
-window.abrirModalPerfil = function(codigoCuidador) {
+window.abrirModalPerfil = async function(codigoCuidador) {
   const cuidador = todosLosCuidadores.find(c => c.codigo_cuidador === codigoCuidador);
   if (!cuidador) return;
 
   const currentCurrency = localStorage.getItem('paw_currency') || 'PEN';
   const modalContentEl = document.getElementById('modal-perfil-cuidador-content');
   if (!modalContentEl) return;
+
+  // Consultar reseñas reales de public.resenas para este cuidador
+  let resenas = [];
+  const supabase = getSupabase();
+  if (supabase && isSupabaseConfigured() && cuidador.id_cuidador) {
+    try {
+      const { data, error } = await supabase
+        .from('resenas')
+        .select('*')
+        .eq('id_cuidador', cuidador.id_cuidador)
+        .eq('publicada', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (!error && Array.isArray(data)) {
+        resenas = data;
+      }
+    } catch (err) {
+      console.warn('Error al consultar reseñas del cuidador:', err);
+    }
+  }
+
+  // Si no hay reseñas en BD o estamos en modo demo sin conexión, mostrar estado vacío elegante
+  const resenasHtml = resenas.length > 0
+    ? resenas.map(r => `
+        <div class="p-3 border rounded bg-light small mb-2">
+          <div class="d-flex justify-content-between mb-1">
+            <strong>${escapeHtml(r.nombre_propietario || 'Propietario Verificado')}</strong>
+            <span class="text-warning"><i class="bi bi-star-fill"></i> ${(Number(r.calificacion) || 5).toFixed(1)}</span>
+          </div>
+          <p class="text-muted fst-italic mb-1">
+            "${escapeHtml(r.comentario || 'Excelente atención y comunicación continua durante el servicio.')}"
+          </p>
+          ${r.respuesta_cuidador ? `
+            <div class="text-primary fw-bold" style="font-size: 0.75rem;">
+              <i class="bi bi-arrow-return-right me-1"></i>Respuesta de ${escapeHtml(cuidador.nombre)}: "${escapeHtml(r.respuesta_cuidador)}"
+            </div>
+          ` : ''}
+        </div>
+      `).join('')
+    : `
+        <div class="p-3 border rounded bg-light small mb-3 text-center text-muted">
+          <i class="bi bi-chat-square-heart text-warning fs-4 d-block mb-1"></i>
+          <span>Este cuidador aún no cuenta con reseñas públicas registradas. ¡Sé el primero en reservar y compartir tu experiencia!</span>
+        </div>
+      `;
 
   modalContentEl.innerHTML = `
     <!-- Header del Perfil -->
@@ -992,20 +1039,9 @@ window.abrirModalPerfil = function(codigoCuidador) {
         </table>
       </div>
 
-      <!-- Reseñas Destacadas -->
-      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-heart text-warning me-2"></i>Reseña Verificada de Propietario</h6>
-      <div class="p-3 border rounded bg-light small mb-3">
-        <div class="d-flex justify-content-between mb-1">
-          <strong>Lucía M. (Propietaria Local)</strong>
-          <span class="text-warning"><i class="bi bi-star-fill"></i> 5.0</span>
-        </div>
-        <p class="text-muted fst-italic mb-1">
-          "Excelente atención y comunicación continua por WhatsApp y fotos. Mi perrito regresó muy feliz y relajado."
-        </p>
-        <div class="text-primary fw-bold" style="font-size: 0.75rem;">
-          <i class="bi bi-arrow-return-right me-1"></i>Respuesta de ${escapeHtml(cuidador.nombre)}: "¡Gracias Lucía! Fue un placer total cuidar de tu perrito."
-        </div>
-      </div>
+      <!-- Reseñas Verificadas -->
+      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-heart text-warning me-2"></i>Reseñas Verificadas de Propietarios</h6>
+      ${resenasHtml}
     </div>
 
     <!-- Footer del Modal -->

@@ -1,12 +1,12 @@
 /**
- * Paw Patita Cusco v5.0 — Muro Privado de Fotos y Reportes en Vivo
+ * Paw Patita Cusco v5.1 — Muro Privado de Fotos y Reportes en Vivo
  * js/components/muro-fotos.js
  *
  * Funcionalidades:
  *  - Consulta relacional de `reportes_seguimiento` + `fotos_reporte` ordenada cronológicamente
  *  - Filtrado por reserva / mascota del propietario
  *  - Marcado de reportes como vistos (`visto_por_propietario = true`)
- *  - Visor Lightbox para ampliar fotografías (`PostImg` o `Supabase Storage`)
+ *  - Visor Lightbox para ampliar fotografías en alta resolución
  *  - Suscripción en tiempo real a nuevas publicaciones del cuidador
  */
 
@@ -37,14 +37,14 @@ export const REPORTES_MURO_SEED = [
       {
         id: 'foto-seed-2a',
         foto_url: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80',
-        origen_almacenamiento: 'postimg',
+        origen_almacenamiento: 'supabase_storage',
         descripcion_foto: 'Paseo matutino en Wanchaq bajo el sol cusqueño',
         orden: 1
       },
       {
         id: 'foto-seed-2b',
         foto_url: 'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&auto=format&fit=crop&q=80',
-        origen_almacenamiento: 'postimg',
+        origen_almacenamiento: 'supabase_storage',
         descripcion_foto: 'Descanso e hidratación en sombra',
         orden: 2
       }
@@ -70,7 +70,7 @@ export const REPORTES_MURO_SEED = [
       {
         id: 'foto-seed-1a',
         foto_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80',
-        origen_almacenamiento: 'postimg',
+        origen_almacenamiento: 'supabase_storage',
         descripcion_foto: 'Inti en el jardín al momento del Check-In',
         orden: 1
       }
@@ -96,7 +96,7 @@ export const REPORTES_MURO_SEED = [
       {
         id: 'foto-seed-3a',
         foto_url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80',
-        origen_almacenamiento: 'postimg',
+        origen_almacenamiento: 'supabase_storage',
         descripcion_foto: 'Hora de su comida hipoalergénica',
         orden: 1
       }
@@ -130,7 +130,10 @@ export async function obtenerReportesMuroPropietario(reservasPropietario = []) {
   const idsReservas = Array.from(mapaReservas.keys());
   const supabase = getSupabase();
 
-  if (supabase && isSupabaseConfigured() && idsReservas.length > 0) {
+  if (supabase && isSupabaseConfigured()) {
+    if (idsReservas.length === 0) {
+      return [];
+    }
     try {
       const { data, error } = await supabase
         .from('reportes_seguimiento')
@@ -138,11 +141,11 @@ export async function obtenerReportesMuroPropietario(reservasPropietario = []) {
         .in('id_reserva', idsReservas)
         .order('fecha_reporte', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         return data.map((rep) => enriquecerReporteConReserva(rep, mapaReservas.get(rep.id_reserva)));
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerReportesMuroPropietario:', err);
+      console.warn('Error al consultar reportes del muro:', err);
     }
   }
 
@@ -174,7 +177,7 @@ function enriquecerReporteConReserva(rep, res = null) {
     fotos_reporte: fotos.map((f, idx) => ({
       id: f.id || `foto-${idx}`,
       foto_url: f.foto_url || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80',
-      origen_almacenamiento: f.origen_almacenamiento || 'postimg',
+      origen_almacenamiento: f.origen_almacenamiento || 'supabase_storage',
       descripcion_foto: f.descripcion_foto || rep.nota_estado || 'Evidencia fotográfica en Cusco',
       orden: f.orden || (idx + 1)
     }))
@@ -186,13 +189,12 @@ function enriquecerReporteConReserva(rep, res = null) {
  */
 export async function marcarReporteComoVisto(idReporte) {
   const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured() && idReporte) {
-    try {
-      await supabase
-        .from('reportes_seguimiento')
-        .update({ visto_por_propietario: true })
-        .eq('id', idReporte);
-    } catch (_) { /* ignore */ }
+  if (supabase && isSupabaseConfigured() && idReporte && !String(idReporte).startsWith('rep-')) {
+    const { error } = await supabase
+      .from('reportes_seguimiento')
+      .update({ visto_por_propietario: true })
+      .eq('id', idReporte);
+    if (error) throw error;
   }
 
   const local = getLocalReportes().map((r) => (
@@ -275,7 +277,7 @@ export function renderSeccionMuroFotos(container, { reportes = [], reservas = []
             <i class="bi bi-camera-reels-fill text-warning me-2"></i>Muro Privado de Fotos y Bienestar en Vivo
           </h5>
           <p class="text-secondary small mb-0">
-            Seguimiento fotográfico cronológico enviado por el cuidador desde Cusco (compatible con Supabase Storage y PostImg).
+            Seguimiento fotográfico enviado por el cuidador en Cusco.
           </p>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -379,7 +381,7 @@ export function renderSeccionMuroFotos(container, { reportes = [], reservas = []
                         data-reporte="${escapeHtml(rep.id)}"
                         onerror="this.src='https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80'">
                       <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-2" style="font-size:0.68rem;">
-                        <i class="bi bi-zoom-in me-1"></i>${escapeHtml(f.origen_almacenamiento === 'supabase_storage' ? 'Storage' : 'PostImg')}
+                        <i class="bi bi-zoom-in me-1"></i>Ampliar
                       </span>
                     </div>
                   `).join('')}

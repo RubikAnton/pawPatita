@@ -623,11 +623,22 @@
 
 .paw-id-banner-emergencia {
   background: linear-gradient(135deg, var(--pp-danger) 0%, #991B1B 100%);
-  color: #FFFFFF;
+  color: #FFFFFF !important;
   padding: 1.25rem 1.5rem;
   text-align: center;
   position: relative;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.paw-id-banner-emergencia h1,
+.paw-id-banner-emergencia h2,
+.paw-id-banner-emergencia h3,
+.paw-id-banner-emergencia h4,
+.paw-id-banner-emergencia h5,
+.paw-id-banner-emergencia h6,
+.paw-id-banner-emergencia p,
+.paw-id-banner-emergencia span {
+  color: #FFFFFF !important;
 }
 
 .paw-id-body {

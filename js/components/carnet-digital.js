@@ -1,20 +1,28 @@
 /**
- * Paw Patita Cusco v5.0 — CRUD de Mascotas, Carné Digital PAW-ID (con QR Real) y Comprobantes
+ * Paw Patita Cusco v5.1 — CRUD de Mascotas, Carné Digital PAW-ID (con QR Real) y Comprobantes
  * js/components/carnet-digital.js
  *
  * Funcionalidades:
  *  - CRUD completo de mascotas (Crear, Editar, Archivar/Baja lógica)
  *  - Cálculo dinámico de edad exacta en años y meses desde `fecha_nacimiento` (0 `undefined`)
- *  - Carga híbrida de foto y cartilla de vacunas (Supabase Storage o enlaces `PostImg`)
+ *  - Subida directa de foto y cartilla de vacunas (Imagen o PDF) con visor universal
  *  - Modal Credencial Oficial PAW-ID con QR escaneable (`QRCode.js` -> `#/paw-id/PAW-XXXX`),
  *    historial de validaciones veterinarias, atenciones S.O.S. y botón de Impresión / PDF
  *  - Visor e Impresión de Comprobante Electrónico de Reserva (Boleta / Factura con 15%/85%)
  */
 
-import { getSupabase, isSupabaseConfigured, uploadOrResolveMedia } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, getFallbackSvgDataUri } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { calcularEdadDinamica, formatFechaEs, formatMoneda, escapeHtml, getHoyIso } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, showConfirmModal, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { mountFileUploader, abrirVisorDocumento } from './file-uploader.js';
+
+const BLOQUE_HORARIO_LABELS = {
+  manana_08_12: 'Mañana (08:00 - 12:00)',
+  tarde_14_18: 'Tarde (14:00 - 18:00)',
+  noche_18_22: 'Noche (18:00 - 22:00)',
+  todo_el_dia: 'Estadía Completa (24 Horas)'
+};
 
 const STORAGE_KEY_MASCOTAS = 'paw_demo_mascotas_v5';
 
@@ -185,7 +193,7 @@ export async function obtenerMascotasPropietario(idPropietario) {
         .eq('activa', true)
         .order('created_at', { ascending: true });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         return data.map(normalizarMascota);
       }
 
@@ -201,7 +209,7 @@ export async function obtenerMascotasPropietario(idPropietario) {
         return directData.map(normalizarMascota);
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerMascotasPropietario:', err);
+      console.warn('Error al consultar mascotas del propietario:', err);
     }
   }
 
@@ -312,7 +320,7 @@ export function renderTarjetaMascota(mascota) {
 }
 
 /**
- * Abre el modal CRUD para Crear o Editar una Mascota (con soporte Storage + PostImg)
+ * Abre el modal CRUD para Crear o Editar una Mascota (con Dropzones directos para Imagen y PDF)
  * @param {Object|null} mascotaExistente
  * @param {string} idPropietario
  * @param {function} onSavedCallback
@@ -408,25 +416,17 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
           </div>
         </div>
 
-        <!-- Fotografía de la Mascota (Storage o URL PostImg) -->
+        <!-- Fotografía de la Mascota (Dropzone Directo) -->
         <div class="col-md-6">
           <div class="p-3 bg-light rounded-3 border h-100">
-            <label class="form-label small fw-bold mb-1"><i class="bi bi-camera-fill text-warning me-1"></i>Fotografía de la Mascota</label>
-            <input type="url" class="form-control form-control-sm mb-2" id="pet-foto-url"
-              value="${escapeHtml(m.foto_url)}" placeholder="Pegar enlace directo PostImg (https://i.postimg.cc/...)">
-            <div class="small text-muted mb-1">O subir imagen a Supabase Storage:</div>
-            <input type="file" class="form-control form-control-sm" id="pet-foto-file" accept="image/*">
+            <div id="uploader-pet-foto"></div>
           </div>
         </div>
 
-        <!-- Cartilla de Vacunación (Storage o URL PostImg) -->
+        <!-- Cartilla de Vacunación (Dropzone Directo Imagen o PDF) -->
         <div class="col-md-6">
           <div class="p-3 bg-light rounded-3 border h-100">
-            <label class="form-label small fw-bold mb-1"><i class="bi bi-file-earmark-medical-fill text-success me-1"></i>Cartilla de Vacunación (Para Validación Vet)</label>
-            <input type="url" class="form-control form-control-sm mb-2" id="pet-cartilla-url"
-              value="${escapeHtml(m.cartilla_vacunas_url)}" placeholder="Enlace de cartilla PostImg (https://i.postimg.cc/...)">
-            <div class="small text-muted mb-1">O subir foto/escaneo de cartilla:</div>
-            <input type="file" class="form-control form-control-sm" id="pet-cartilla-file" accept="image/*">
+            <div id="uploader-pet-cartilla"></div>
           </div>
         </div>
 
@@ -468,6 +468,24 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
     tamano: 'modal-lg'
   });
 
+  // Montar dropzones de Fotografía y Cartilla de Vacunación (Imagen o PDF)
+  const fotoUploader = mountFileUploader(modal.el.querySelector('#uploader-pet-foto'), {
+    label: 'Fotografía de la Mascota',
+    accept: 'image/*',
+    bucket: 'mascotas-fotos',
+    folder: 'mascotas/fotos',
+    initialValue: m.foto_url || ''
+  });
+
+  const cartillaUploader = mountFileUploader(modal.el.querySelector('#uploader-pet-cartilla'), {
+    label: 'Cartilla de Vacunación (Para Validación Veterinaria)',
+    accept: 'image/*,application/pdf',
+    bucket: 'mascotas-fotos',
+    folder: 'mascotas/cartillas',
+    initialValue: m.cartilla_vacunas_url || '',
+    helpText: 'Fotografía o documento PDF • Máx. 10 MB'
+  });
+
   // Actualizar preview de edad en vivo al cambiar fecha_nacimiento
   const inputNac = modal.el.querySelector('#pet-nacimiento');
   const badgeEdad = modal.el.querySelector('#badge-edad-preview');
@@ -492,31 +510,12 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
 
     showSpinner(esEdicion ? 'Actualizando ficha médica PAW-ID...' : 'Generando Carné Digital PAW-ID...');
     try {
-      let fotoUrl = modal.el.querySelector('#pet-foto-url').value.trim();
-      const fotoFile = modal.el.querySelector('#pet-foto-file').files?.[0];
-      if (fotoFile) {
-        const up = await uploadOrResolveMedia(fotoFile, CUSCO_CONFIG.STORAGE_BUCKETS.MASCOTAS);
-        if (up.url) {
-          fotoUrl = up.url;
-        } else {
-          // Fallback dataURL si Storage no está configurado
-          fotoUrl = await fileToDataUrl(fotoFile);
-        }
-      }
+      let fotoUrl = await fotoUploader.uploadIfPending();
       if (!fotoUrl) {
         fotoUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop&q=80';
       }
 
-      let cartillaUrl = modal.el.querySelector('#pet-cartilla-url').value.trim();
-      const cartillaFile = modal.el.querySelector('#pet-cartilla-file').files?.[0];
-      if (cartillaFile) {
-        const upCart = await uploadOrResolveMedia(cartillaFile, CUSCO_CONFIG.STORAGE_BUCKETS.MASCOTAS);
-        if (upCart.url) {
-          cartillaUrl = upCart.url;
-        } else {
-          cartillaUrl = await fileToDataUrl(cartillaFile);
-        }
-      }
+      const cartillaUrl = await cartillaUploader.uploadIfPending();
 
       // Si estaba observada y el propietario sube/actualiza cartilla, pasa a pendiente de re-evaluación
       let nuevoEstadoVal = esEdicion ? m.estado_validacion_vet : 'pendiente';
@@ -638,7 +637,8 @@ export async function archivarMascotaPropietario(mascota, onArchivedCallback = n
   try {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured() && !String(m.id).startsWith('pet-')) {
-      await supabase.from('mascotas').update({ activa: false }).eq('id', m.id);
+      const { error } = await supabase.from('mascotas').update({ activa: false }).eq('id', m.id);
+      if (error) throw error;
     }
     const localList = getLocalMascotas().map((item) => (
       item.id === m.id ? { ...item, activa: false } : item
@@ -825,41 +825,23 @@ export async function abrirModalCarnetPawId(mascota, propietarioProfile = null, 
 }
 
 /**
- * Visor Lightbox de Cartilla de Vacunación
+ * Visor Universal de Cartilla de Vacunación (compatible con Imágenes, PDFs y URLs firmadas)
  */
-export function abrirVisorCartillaVacunas(mascota) {
+export async function abrirVisorCartillaVacunas(mascota) {
   const m = normalizarMascota(mascota);
   const url = m.cartilla_vacunas_url || m.foto_url;
 
-  const cuerpoHtml = `
-    <div class="text-center">
-      <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded border">
-        <div class="text-start small">
-          <strong>Mascota:</strong> ${escapeHtml(m.nombre)} (${escapeHtml(m.paw_id)})<br>
-          <strong>Vigencia declarada:</strong> ${m.fecha_venc_vacunas ? formatFechaEs(m.fecha_venc_vacunas) : 'En revisión'}
-        </div>
-        <div>${renderBadgeSanitario(m.estado_validacion_vet)}</div>
+  const extraHeaderHtml = `
+    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded border">
+      <div class="text-start small">
+        <strong>Mascota:</strong> ${escapeHtml(m.nombre)} (${escapeHtml(m.paw_id)})<br>
+        <strong>Vigencia declarada:</strong> ${m.fecha_venc_vacunas ? formatFechaEs(m.fecha_venc_vacunas) : 'En revisión'}
       </div>
-      <img src="${escapeHtml(url)}" alt="Cartilla de vacunación de ${escapeHtml(m.nombre)}"
-        class="img-fluid rounded-3 border shadow-sm" style="max-height: 440px; object-fit: contain;"
-        onerror="this.src='https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=700&auto=format&fit=crop&q=80'">
+      <div>${renderBadgeSanitario(m.estado_validacion_vet)}</div>
     </div>
   `;
 
-  const footerHtml = `
-    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
-      <i class="bi bi-box-arrow-up-right me-1"></i>Abrir Imagen Original
-    </a>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-  `;
-
-  crearModalDinamico({
-    titulo: `Cartilla Sanitaria — ${m.nombre} (${m.paw_id})`,
-    icono: 'bi-file-earmark-medical-fill',
-    cuerpoHtml,
-    footerHtml,
-    tamano: 'modal-lg'
-  });
+  return abrirVisorDocumento(url, `Cartilla Sanitaria — ${m.nombre} (${m.paw_id})`, extraHeaderHtml);
 }
 
 /**
@@ -926,7 +908,7 @@ export function abrirModalComprobantePago(reserva, propietarioProfile = null) {
                 <div class="fw-bold">${escapeHtml(reserva.tipo_servicio || reserva.categoria_servicio || 'Custodia Familiar')}</div>
                 <div class="small text-muted">
                   Cuidador(a): ${escapeHtml(reserva.cuidador_nombre || 'Valeria Huamán')} (${escapeHtml(reserva.cuidador_distrito || 'Wanchaq')}) •
-                  Del ${formatFechaEs(reserva.fecha_inicio)} al ${formatFechaEs(reserva.fecha_fin)} (${escapeHtml(reserva.bloque_horario || 'todo_el_dia')})
+                  Del ${formatFechaEs(reserva.fecha_inicio)} al ${formatFechaEs(reserva.fecha_fin)} (${escapeHtml(BLOQUE_HORARIO_LABELS[reserva.bloque_horario] || BLOQUE_HORARIO_LABELS.todo_el_dia)})
                 </div>
               </td>
               <td class="text-center">${escapeHtml(reserva.dias_calculados || 1)}</td>
@@ -968,7 +950,7 @@ export function abrirModalComprobantePago(reserva, propietarioProfile = null) {
       </div>
 
       <div class="p-3 rounded-3 bg-light border small">
-        <div class="fw-bold text-secondary mb-1"><i class="bi bi-shield-lock-fill text-warning me-1"></i>Desglose de Garantía Escrow Paw Patita Cusco:</div>
+        <div class="fw-bold text-secondary mb-1"><i class="bi bi-shield-lock-fill text-warning me-1"></i>Desglose de Pago Protegido en Garantía Paw Patita Cusco:</div>
         <div class="d-flex justify-content-between">
           <span>Fondo de Custodia para el Cuidador (85% en garantía hasta Check-Out):</span>
           <strong>${formatMoneda(netoCuidador85, moneda)}</strong>

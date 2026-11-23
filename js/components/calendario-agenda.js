@@ -233,13 +233,13 @@ export async function obtenerDisponibilidadCuidador(idCuidador, capacidadMax = 4
         .order('fecha', { ascending: true })
         .order('hora_inicio', { ascending: true });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         const normalizados = data.map(normalizarBloqueAgenda);
         saveLocalAgendaCuidador(normalizados);
         return normalizados;
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerDisponibilidadCuidador:', err);
+      console.warn('Error al consultar disponibilidad del cuidador:', err);
     }
   }
   return getLocalAgendaCuidador(idCuidador, capacidadMax);
@@ -413,12 +413,15 @@ export function abrirModalConfigurarDiaAgenda({
           <i class="bi bi-shield-lock-fill me-1"></i>Reservas Asignadas en esta Fecha (${reservasActivas.length}):
         </div>
         <div class="d-flex flex-wrap gap-2">
-          ${reservasActivas.map((r) => `
+          ${reservasActivas.map((r) => {
+            const etqBloque = CATALOGO_BLOQUES_HORARIOS.find((b) => b.codigo === r.bloque_horario)?.nombre || 'Todo el Día (24h)';
+            return `
             <span class="badge bg-white text-dark border px-2 py-1">
               <strong>${escapeHtml(r.codigo_reserva)}</strong>: 🐾 ${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.mascota_paw_id)})
-              • <span class="text-primary">${escapeHtml(r.bloque_horario)}</span> [${escapeHtml(r.estado_reserva.toUpperCase())}]
+              • <span class="text-primary">${escapeHtml(etqBloque)}</span> [${escapeHtml(r.estado_reserva.toUpperCase())}]
             </span>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </div>
     ` : ''}
@@ -617,22 +620,60 @@ export function abrirModalConfigurarDiaAgenda({
       });
     }
 
-    showSpinner('Guardando bloques horarios y cupos en disponibilidad_cuidadores...');
+    showSpinner('Guardando disponibilidad en tu agenda...');
     try {
       const supabase = getSupabase();
+      const agendaExistente = getLocalAgendaCuidador(idCuidador, capacidadMaxCuidador);
+      const mapaReservadosPorFechaBloque = new Map();
+
+      agendaExistente.forEach((item) => {
+        if (diasAplicar.includes(item.fecha)) {
+          mapaReservadosPorFechaBloque.set(
+            `${item.fecha}__${item.bloque_horario}`,
+            Number(item.cupos_reservados || 0)
+          );
+        }
+      });
+
+      if (supabase && isSupabaseConfigured() && idCuidador && !String(idCuidador).startsWith('mock-') && diasAplicar.length > 1) {
+        const { data: existentesDb } = await supabase
+          .from('disponibilidad_cuidadores')
+          .select('fecha, bloque_horario, cupos_reservados')
+          .eq('id_cuidador', idCuidador)
+          .in('fecha', diasAplicar);
+
+        if (Array.isArray(existentesDb)) {
+          existentesDb.forEach((row) => {
+            mapaReservadosPorFechaBloque.set(
+              `${row.fecha}__${row.bloque_horario}`,
+              Number(row.cupos_reservados || 0)
+            );
+          });
+        }
+      }
+
       const payloadUpsert = [];
 
       diasAplicar.forEach((diaTarget) => {
         bloquesConfigurados.forEach((b) => {
+          const reservadosExistentes = diaTarget === fechaIso
+            ? b.cupos_reservados
+            : Number(mapaReservadosPorFechaBloque.get(`${diaTarget}__${b.bloque_horario}`) || 0);
+          const cupoMaximoAjustado = Math.max(b.cupo_maximo, reservadosExistentes, 1);
+          const bloqueHabilitado = b.estado_bloque !== 'bloqueado' || reservadosExistentes > 0;
+          const estadoAjustado = bloqueHabilitado
+            ? (reservadosExistentes >= cupoMaximoAjustado ? 'lleno' : (reservadosExistentes > 0 ? 'parcial' : 'disponible'))
+            : 'bloqueado';
+
           payloadUpsert.push({
             id_cuidador: idCuidador,
             fecha: diaTarget,
             bloque_horario: b.bloque_horario,
             hora_inicio: b.hora_inicio,
             hora_fin: b.hora_fin,
-            cupo_maximo: b.cupo_maximo,
-            cupos_reservados: diaTarget === fechaIso ? b.cupos_reservados : 0,
-            estado_bloque: b.estado_bloque,
+            cupo_maximo: cupoMaximoAjustado,
+            cupos_reservados: reservadosExistentes,
+            estado_bloque: estadoAjustado,
             nota_agenda: b.nota_agenda
           });
         });
@@ -648,7 +689,7 @@ export function abrirModalConfigurarDiaAgenda({
       }
 
       // Actualizar en almacenamiento local
-      const agendaLocal = getLocalAgendaCuidador(idCuidador, capacidadMaxCuidador)
+      const agendaLocal = agendaExistente
         .filter((item) => !diasAplicar.includes(item.fecha));
 
       payloadUpsert.forEach((nuevo, idx) => {
@@ -1014,10 +1055,11 @@ export function renderSeccionCalendarioAgenda(container, {
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && idCuidador && !String(idCuidador).startsWith('mock-')) {
-        await supabase
+        const { error } = await supabase
           .from('perfiles_cuidadores')
           .update({ disponibilidad_semanal: state.diasLaborables })
           .eq('id', idCuidador);
+        if (error) throw error;
       }
       localStorage.setItem(STORAGE_KEY_PLANTILLA, JSON.stringify(state.diasLaborables));
       showToast(`Plantilla semanal actualizada (${state.diasLaborables.join(', ')}).`, 'success', 'Plantilla Guardada');

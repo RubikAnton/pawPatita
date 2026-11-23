@@ -28,6 +28,7 @@
 
 import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
+import { mountFileUploader, abrirVisorDocumento } from '../components/file-uploader.js';
 import {
   calcularEdadDinamica,
   formatFechaEs,
@@ -424,15 +425,15 @@ async function cargarDatosPanelVeterinaria(profile) {
       if (!resClinica.error && resClinica.data) {
         clinica = { ...clinica, ...resClinica.data };
       }
-      if (!resMascotas.error && Array.isArray(resMascotas.data) && resMascotas.data.length > 0) {
+      if (!resMascotas.error && Array.isArray(resMascotas.data)) {
         mascotas = resMascotas.data.map(normalizarMascotaVeterinaria);
       }
-      if (!resSos.error && Array.isArray(resSos.data) && resSos.data.length > 0) {
+      if (!resSos.error && Array.isArray(resSos.data)) {
         vetState.mascotas = mascotas;
         alertasSos = resSos.data.map(normalizarIncidenciaSosVeterinaria);
         saveLocalSosVet(alertasSos);
       }
-      if (!resVal.error && Array.isArray(resVal.data) && resVal.data.length > 0) {
+      if (!resVal.error && Array.isArray(resVal.data)) {
         historialValidaciones = resVal.data.map((v) => ({
           id: v.id,
           id_mascota: v.id_mascota,
@@ -456,7 +457,7 @@ async function cargarDatosPanelVeterinaria(profile) {
 
   vetState.clinica = clinica;
   vetState.mascotas = mascotas;
-  vetState.alertasSos = alertasSos || getLocalSosVet();
+  vetState.alertasSos = alertasSos !== null ? alertasSos : getLocalSosVet();
   vetState.historialValidaciones = historialValidaciones;
 }
 
@@ -618,9 +619,11 @@ function renderContenidoPanelVeterinaria(container) {
               </div>
 
               <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-outline-danger btn-sm fw-bold" id="btn-vet-simular-sos">
-                  <i class="bi bi-broadcast-pin me-1"></i>Simular Ingreso S.O.S.
-                </button>
+                ${!isSupabaseConfigured() ? `
+                  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" id="btn-vet-simular-sos">
+                    <i class="bi bi-broadcast-pin me-1"></i>Simular Ingreso S.O.S.
+                  </button>
+                ` : ''}
                 <button type="button" class="btn btn-paw-outline btn-sm" id="btn-vet-refrescar">
                   <i class="bi bi-arrow-clockwise me-1"></i>Sincronizar Central
                 </button>
@@ -1190,43 +1193,45 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
       return;
     }
 
-    showSpinner(`Actualizando estado clínico S.O.S. a "${accion}" (rpc_vet_actualizar_sos)...`);
+    showSpinner(`Actualizando estado clínico S.O.S. a "${accion}"...`);
     try {
       const supabase = getSupabase();
-      if (supabase && isSupabaseConfigured() && !String(s.id).startsWith('sos-')) {
+      const ahoraIso = new Date().toISOString();
+      const estadoAnterior = s.estado_sos;
+
+      if (supabase && isSupabaseConfigured()) {
+        if (String(s.id).startsWith('sos-')) {
+          throw new Error('Esta incidencia es una simulación local y no existe en la base de datos.');
+        }
         const { error } = await supabase.rpc('rpc_vet_actualizar_sos', {
           p_id_incidencia: s.id,
           p_accion: accion,
           p_diagnostico: diagnostico || null,
           p_tratamiento: tratamiento || null,
-          p_informe: informe || null,
-          p_costo: costo
+          p_costo: costo,
+          p_informe: informe || null
         });
-        if (error) {
-          console.warn('Fallback local en rpc_vet_actualizar_sos:', error.message);
-        }
+        if (error) throw error;
+        await cargarDatosPanelVeterinaria(vetState.profile);
+      } else {
+        vetState.alertasSos = vetState.alertasSos.map((item) => {
+          if (item.id === s.id || item.codigo_sos === s.codigo_sos) {
+            return normalizarIncidenciaSosVeterinaria({
+              ...item,
+              estado_sos: accion,
+              diagnostico_clinico: diagnostico || item.diagnostico_clinico || 'Paciente en evaluación veterinaria',
+              tratamiento_aplicado: tratamiento || item.tratamiento_aplicado || 'Protocolo clínico aplicado',
+              informe_resolucion: accion === 'resuelta' ? informe : item.informe_resolucion,
+              costo_atencion_ref: costo,
+              fecha_atencion: item.fecha_atencion || ahoraIso,
+              fecha_resolucion: accion === 'resuelta' ? ahoraIso : item.fecha_resolucion
+            });
+          }
+          return item;
+        });
+
+        saveLocalSosVet(vetState.alertasSos);
       }
-
-      const ahoraIso = new Date().toISOString();
-      const estadoAnterior = s.estado_sos;
-
-      vetState.alertasSos = vetState.alertasSos.map((item) => {
-        if (item.id === s.id || item.codigo_sos === s.codigo_sos) {
-          return normalizarIncidenciaSosVeterinaria({
-            ...item,
-            estado_sos: accion,
-            diagnostico_clinico: diagnostico || item.diagnostico_clinico || 'Paciente en evaluación veterinaria',
-            tratamiento_aplicado: tratamiento || item.tratamiento_aplicado || 'Protocolo clínico aplicado',
-            informe_resolucion: accion === 'resuelta' ? informe : item.informe_resolucion,
-            costo_atencion_ref: costo,
-            fecha_atencion: item.fecha_atencion || ahoraIso,
-            fecha_resolucion: accion === 'resuelta' ? ahoraIso : item.fecha_resolucion
-          });
-        }
-        return item;
-      });
-
-      saveLocalSosVet(vetState.alertasSos);
 
       registrarEventoAuditoriaLocal({
         entidad: 'incidencias_emergencias',
@@ -1485,11 +1490,11 @@ function renderSeccionValidarPawIdVeterinaria(workspace, rootContainer) {
       `}
     </div>
 
-    <!-- Bitácora Histórica de Dictámenes Emitidos (validaciones_veterinarias) -->
+    <!-- Bitácora Histórica de Dictámenes Emitidos -->
     <div class="card card-paw p-4 border-0 shadow-sm">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="fw-bold mb-0">
-          <i class="bi bi-journal-medical text-success me-2"></i>Registro Histórico de Dictámenes Médicos (` + '`validaciones_veterinarias`' + `) (${vetState.historialValidaciones.length})
+          <i class="bi bi-journal-medical text-success me-2"></i>Registro Histórico de Dictámenes Médicos (${vetState.historialValidaciones.length})
         </h6>
         <span class="badge bg-light text-dark border">Trazabilidad CMVP Cusco</span>
       </div>
@@ -1604,16 +1609,16 @@ function renderSeccionValidarPawIdVeterinaria(workspace, rootContainer) {
 }
 
 /**
- * Visor de Cartilla de Vacunación Ampliable con Controles de Zoom + Acciones Directas Validar/Observar
+ * Visor Universal de Cartilla de Vacunación (compatible con Imágenes y PDFs firmados) + Acciones Directas Validar/Observar
  */
-function abrirVisorCartillaAmpliableVet(mascota, onDictamenCallback = null) {
+async function abrirVisorCartillaAmpliableVet(mascota, onDictamenCallback = null) {
   const m = normalizarMascotaVeterinaria(mascota);
   const url = m.cartilla_vacunas_url || m.foto_url;
 
-  const cuerpoHtml = `
+  const extraHeaderHtml = `
     <div class="p-3 bg-light rounded-3 border mb-3 small">
-      <div class="row g-2 align-items-center">
-        <div class="col-md-8">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
           <div class="d-flex align-items-center gap-2 mb-1">
             <span class="paw-id-chip">${escapeHtml(m.paw_id)}</span>
             <strong class="fs-6 text-dark">${escapeHtml(m.nombre)}</strong>
@@ -1625,55 +1630,25 @@ function abrirVisorCartillaAmpliableVet(mascota, onDictamenCallback = null) {
             <strong>Alergias:</strong> ${escapeHtml(m.alergias_restricciones)}
           </div>
         </div>
-        <div class="col-md-4 text-md-end">
-          <div class="btn-group btn-group-sm" role="group" aria-label="Zoom Cartilla">
-            <button type="button" class="btn btn-outline-secondary active" data-zoom-level="1">100%</button>
-            <button type="button" class="btn btn-outline-secondary" data-zoom-level="1.4">140%</button>
-            <button type="button" class="btn btn-outline-secondary" data-zoom-level="1.8">180%</button>
-          </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-danger btn-sm fw-bold" id="btn-visor-observar">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>Observar Cartilla
+          </button>
+          <button type="button" class="btn btn-success btn-sm fw-bold" id="btn-visor-validar">
+            <i class="bi bi-patch-check-fill me-1"></i>Validar Carné CMVP
+          </button>
         </div>
       </div>
     </div>
-
-    <div class="text-center overflow-auto p-3 bg-dark rounded-3 border" style="max-height: 460px;">
-      <img src="${escapeHtml(url)}" id="vet-cartilla-zoom-img"
-        alt="Cartilla Sanitaria de ${escapeHtml(m.nombre)}"
-        class="img-fluid rounded shadow"
-        style="max-height: 410px; transition: transform 0.2s ease; transform-origin: center top;"
-        onerror="this.src='https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=700&auto=format&fit=crop&q=80'">
-    </div>
   `;
 
-  const footerHtml = `
-    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm me-auto">
-      <i class="bi bi-box-arrow-up-right me-1"></i>Abrir en Nueva Pestaña
-    </a>
-    <button type="button" class="btn btn-outline-danger btn-sm fw-bold" id="btn-visor-observar">
-      <i class="bi bi-exclamation-triangle-fill me-1"></i>Observar Cartilla
-    </button>
-    <button type="button" class="btn btn-success btn-sm fw-bold" id="btn-visor-validar">
-      <i class="bi bi-patch-check-fill me-1"></i>Validar Carné CMVP
-    </button>
-    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-  `;
+  const modal = await abrirVisorDocumento(
+    url,
+    `Visor Clínico de Cartilla de Vacunación — ${m.nombre} (${m.paw_id})`,
+    extraHeaderHtml
+  );
 
-  const modal = crearModalDinamico({
-    titulo: `Visor Clínico de Cartilla de Vacunación — ${m.nombre} (${m.paw_id})`,
-    icono: 'bi-file-earmark-medical-fill',
-    cuerpoHtml,
-    footerHtml,
-    tamano: 'modal-lg'
-  });
-
-  const imgEl = modal.el.querySelector('#vet-cartilla-zoom-img');
-  modal.el.querySelectorAll('[data-zoom-level]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      modal.el.querySelectorAll('[data-zoom-level]').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const scale = parseFloat(btn.getAttribute('data-zoom-level')) || 1;
-      if (imgEl) imgEl.style.transform = `scale(${scale})`;
-    });
-  });
+  if (!modal?.el) return;
 
   modal.el.querySelector('#btn-visor-validar')?.addEventListener('click', async () => {
     await modal.cerrarAsync();
@@ -1837,9 +1812,12 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
 
     const obsFinal = observaciones || `Cartilla verificada conforme por ${c.nombre} (${c.colegiatura_cmvp}).`;
 
-    showSpinner(`Registrando dictamen sanitario "${resultado}" (rpc_vet_dictaminar_ficha)...`);
+    showSpinner(`Registrando dictamen sanitario "${resultado}"...`);
     try {
       const supabase = getSupabase();
+      const ahoraIso = new Date().toISOString();
+      const estadoAnterior = m.estado_validacion_vet;
+
       if (supabase && isSupabaseConfigured() && !String(m.id).startsWith('pet-')) {
         const { error } = await supabase.rpc('rpc_vet_dictaminar_ficha', {
           p_id_mascota: m.id,
@@ -1848,13 +1826,9 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
           p_vigencia: vigencia,
           p_observaciones: obsFinal
         });
-        if (error) {
-          console.warn('Fallback local en rpc_vet_dictaminar_ficha:', error.message);
-        }
+        if (error) throw error;
+        await cargarDatosPanelVeterinaria(vetState.profile);
       }
-
-      const ahoraIso = new Date().toISOString();
-      const estadoAnterior = m.estado_validacion_vet;
 
       const mascotaActualizada = normalizarMascotaVeterinaria({
         ...m,
@@ -1868,30 +1842,32 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
         fecha_ultima_validacion: ahoraIso
       });
 
-      vetState.mascotas = vetState.mascotas.map((item) => (
-        item.id === m.id || item.paw_id === m.paw_id ? mascotaActualizada : item
-      ));
-      saveLocalMascotaActualizada(mascotaActualizada);
+      if (!isSupabaseConfigured()) {
+        vetState.mascotas = vetState.mascotas.map((item) => (
+          item.id === m.id || item.paw_id === m.paw_id ? mascotaActualizada : item
+        ));
+        saveLocalMascotaActualizada(mascotaActualizada);
 
-      const nuevoDictamen = {
-        id: `85000000-0000-0000-0000-${String(Date.now()).slice(-12)}`,
-        id_mascota: m.id,
-        paw_id: m.paw_id,
-        mascota_nombre: m.nombre,
-        mascota_raza: m.raza,
-        propietario_nombre: m.propietario_nombre,
-        id_clinica: c.id,
-        clinica_nombre: c.nombre,
-        colegiatura_cmvp: c.colegiatura_cmvp,
-        medico_vet: vetState.profile?.nombre || 'Dra. Claudia Salazar Cáceres',
-        resultado,
-        vacunas_verificadas: vacunas,
-        vigencia_hasta: vigencia,
-        observaciones_medicas: obsFinal,
-        fecha_validacion: ahoraIso
-      };
-      vetState.historialValidaciones.unshift(nuevoDictamen);
-      saveLocalValidacionesVet(vetState.historialValidaciones);
+        const nuevoDictamen = {
+          id: `85000000-0000-0000-0000-${String(Date.now()).slice(-12)}`,
+          id_mascota: m.id,
+          paw_id: m.paw_id,
+          mascota_nombre: m.nombre,
+          mascota_raza: m.raza,
+          propietario_nombre: m.propietario_nombre,
+          id_clinica: c.id,
+          clinica_nombre: c.nombre,
+          colegiatura_cmvp: c.colegiatura_cmvp,
+          medico_vet: vetState.profile?.nombre || 'Dra. Claudia Salazar Cáceres',
+          resultado,
+          vacunas_verificadas: vacunas,
+          vigencia_hasta: vigencia,
+          observaciones_medicas: obsFinal,
+          fecha_validacion: ahoraIso
+        };
+        vetState.historialValidaciones.unshift(nuevoDictamen);
+        saveLocalValidacionesVet(vetState.historialValidaciones);
+      }
 
       registrarEventoAuditoriaLocal({
         entidad: 'mascotas',
@@ -1934,12 +1910,12 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
   workspace.innerHTML = `
     <div class="card card-paw p-4 border-0 shadow-sm">
       <div class="pb-3 border-bottom mb-3">
-        <span class="badge bg-primary-subtle text-primary fw-bold mb-1">DIRECTORIO DE EMERGENCIAS & MAPA LEAFLET CUSCO</span>
+        <span class="badge bg-primary-subtle text-primary fw-bold mb-1">DIRECTORIO DE EMERGENCIAS Y MAPA DE CUSCO</span>
         <h5 class="fw-bold mb-1">
           <i class="bi bi-hospital text-danger me-2"></i>Configuración de Sede Clínica Veterinaria Aliada
         </h5>
         <p class="text-secondary small mb-0">
-          Mantén actualizados los horarios de atención, teléfono de emergencias 24h y tarifa de consulta S.O.S. de tu sede en Cusco.
+          Mantén actualizados los horarios de atención, teléfono de emergencias 24h, fachada y constancia CMVP de tu sede en Cusco.
         </p>
       </div>
 
@@ -1998,6 +1974,18 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
               value="${escapeHtml(especialidadesStr)}"
               placeholder="Ej. Emergencias 24h, Traumatología, UCI Canina, Oxigenoterapia de Altura">
           </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <div id="uploader-cfg-vet-fachada"></div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <div id="uploader-cfg-vet-constancia"></div>
+            </div>
+          </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
@@ -2008,6 +1996,23 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
       </form>
     </div>
   `;
+
+  const uploaderFachada = mountFileUploader(workspace.querySelector('#uploader-cfg-vet-fachada'), {
+    label: 'Fotografía de Fachada de la Sede Clínica',
+    accept: 'image/*',
+    bucket: CUSCO_CONFIG.STORAGE_BUCKETS.PERFILES,
+    folder: 'clinicas/fachadas',
+    initialValue: c.foto_fachada_url || ''
+  });
+
+  const uploaderConstancia = mountFileUploader(workspace.querySelector('#uploader-cfg-vet-constancia'), {
+    label: 'Constancia de Habilitación CMVP / Ficha RUC (Imagen o PDF)',
+    accept: 'image/*,application/pdf',
+    bucket: CUSCO_CONFIG.STORAGE_BUCKETS.DOCUMENTOS,
+    folder: 'clinicas/constancias',
+    initialValue: c.constancia_url || '',
+    helpText: 'Imagen o documento PDF • Máx. 10 MB'
+  });
 
   workspace.querySelector('#form-vet-config-sede')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2028,8 +2033,13 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
       return;
     }
 
-    showSpinner('Actualizando datos de la sede veterinaria en Cusco...');
+    showSpinner('Actualizando datos y archivos de la sede veterinaria en Cusco...');
     try {
+      const [foto_fachada_url, constancia_url] = await Promise.all([
+        uploaderFachada.uploadIfPending(),
+        uploaderConstancia.uploadIfPending()
+      ]);
+
       const supabase = getSupabase();
       const payload = {
         nombre,
@@ -2039,14 +2049,18 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
         telefono_emergencia,
         horario_atencion,
         tarifa_consulta_emergencia,
-        especialidades
+        especialidades,
+        foto_fachada_url: foto_fachada_url || null,
+        constancia_url: constancia_url || null
       };
 
       if (supabase && isSupabaseConfigured()) {
-        await supabase.from('clinicas_veterinarias').update(payload).eq('id', c.id);
+        const { error } = await supabase.from('clinicas_veterinarias').update(payload).eq('id', c.id);
+        if (error) throw error;
+        await cargarDatosPanelVeterinaria(vetState.profile);
+      } else {
+        vetState.clinica = { ...vetState.clinica, ...payload };
       }
-
-      vetState.clinica = { ...vetState.clinica, ...payload };
 
       // Sincronizar también en el listado local compartido con Admin
       try {

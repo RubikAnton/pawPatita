@@ -1,18 +1,15 @@
 /**
- * Paw Patita Cusco v5.0 — Wizard de Reserva en 4 Pasos
+ * Paw Patita Cusco v5.1 — Wizard de Reserva en 4 Pasos (Sin Cupones, Hospedaje 24h y Validación Multi-Día)
  * js/components/wizard-reserva.js
  *
  * Flujo Transaccional en 4 Pasos:
  *  - Paso 1: Selección de Cuidador Aprobado, Oferta/Servicio real (`HU-XXX`) y Mascota validada.
- *  - Paso 2: Selección de Fechas (`fecha_inicio`, `fecha_fin`), Bloque Horario exacto
- *            (`todo_el_dia`, `manana_08_12`, `tarde_14_18`, `noche_18_22`) verificando cupos
- *            en `disponibilidad_cuidadores`, Extras (Baño higiénico, Recojo en hotel) y Notas.
- *  - Paso 3: Cotización transparente vía `rpc_cotizar_reserva` (tarifa base, días, temporada Cusco,
- *            recargo cachorro <1 año, extras, validación de cupón `BIENVENIDO10`/`MACHUPICCHU15`/`CUSCO20`,
- *            desglose exacto 15% plataforma / 85% cuidador y total en PEN y USD).
- *  - Paso 4: Pasarela Simulada (Yape/Plin con QR + N° operación o Tarjeta con últimos 4 dígitos),
- *            aceptación de TyC v5.0, ejecución atómica de `rpc_crear_reserva` y apertura automática
- *            del Comprobante Electrónico Imprimible.
+ *  - Paso 2: Selección de Fechas (`fecha_inicio`, `fecha_fin`), Bloque Horario validando todos los días
+ *            del rango (y forzando Estadía Completa 24 Horas para Hospedaje), Extras y Notas.
+ *  - Paso 3: Cotización Transparente (tarifa base × días, temporada turística Cusco, recargo cachorro <1 año,
+ *            extras opcionales y desglose exacto 15% plataforma / 85% cuidador en PEN y USD).
+ *  - Paso 4: Pasarela Simulada (Yape/Plin/Transferencia o Tarjeta), aceptación de Términos v5.1 clicables
+ *            y apertura automática del Comprobante Electrónico Imprimible.
  */
 
 import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
@@ -22,11 +19,18 @@ import { formatMoneda, formatFechaEs, escapeHtml, getHoyIso, sumarDiasIso, parse
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
 
 const BLOQUES_WIZARD = [
-  { id: 'todo_el_dia', etiqueta: 'Todo el Día (08:00 - 20:00)', inicio: '08:00:00', fin: '20:00:00', icono: 'bi-sun-fill' },
+  { id: 'todo_el_dia', etiqueta: 'Estadía Completa (24h • 08:00 - 20:00)', inicio: '08:00:00', fin: '20:00:00', icono: 'bi-sun-fill' },
   { id: 'manana_08_12', etiqueta: 'Mañana (08:00 - 12:00)', inicio: '08:00:00', fin: '12:00:00', icono: 'bi-sunrise-fill' },
   { id: 'tarde_14_18', etiqueta: 'Tarde (14:00 - 18:00)', inicio: '14:00:00', fin: '18:00:00', icono: 'bi-cloud-sun-fill' },
   { id: 'noche_18_22', etiqueta: 'Noche (18:00 - 22:00)', inicio: '18:00:00', fin: '22:00:00', icono: 'bi-moon-stars-fill' }
 ];
+
+const BLOQUE_LABELS_MAP = {
+  todo_el_dia: 'Estadía Completa (24 Horas)',
+  manana_08_12: 'Mañana (08:00 - 12:00)',
+  tarde_14_18: 'Tarde (14:00 - 18:00)',
+  noche_18_22: 'Noche (18:00 - 22:00)'
+};
 
 const TEMPORADAS_FALLBACK = [
   { id: '10000000-0000-0000-0000-000000000001', nombre: 'Fiestas del Cusco e Inti Raymi', inicio: '06-01', fin: '06-30', recargo_pct: 20 },
@@ -35,12 +39,6 @@ const TEMPORADAS_FALLBACK = [
   { id: '10000000-0000-0000-0000-000000000004', nombre: 'Navidad y Año Nuevo en los Andes', inicio: '12-20', fin: '12-31', recargo_pct: 25 },
   { id: '10000000-0000-0000-0000-000000000005', nombre: 'Temporada de Lluvias Cusco', inicio: '01-05', fin: '02-28', recargo_pct: 10 }
 ];
-
-const CUPONES_FALLBACK = {
-  BIENVENIDO10: { id: '20000000-0000-0000-0000-000000000001', codigo: 'BIENVENIDO10', tipo: 'porcentaje', valor: 10, minimo: 40, desc: '10% de descuento de bienvenida' },
-  MACHUPICCHU15: { id: '20000000-0000-0000-0000-000000000002', codigo: 'MACHUPICCHU15', tipo: 'porcentaje', valor: 15, minimo: 70, desc: '15% de descuento especial Machu Picchu' },
-  CUSCO20: { id: '20000000-0000-0000-0000-000000000003', codigo: 'CUSCO20', tipo: 'monto_fijo', valor: 20, minimo: 120, desc: 'S/ 20.00 de descuento directo en hospedajes' }
-};
 
 /**
  * Carga todos los cuidadores aprobados con sus ofertas desde `v_catalogo_cuidadores` o fallback
@@ -65,14 +63,17 @@ export async function cargarCuidadoresConOfertas() {
 }
 
 /**
- * Replica exactamente la lógica matemática de `rpc_cotizar_reserva` cuando se opera en modo local/demo
+ * Replica exactamente la lógica matemática de cotización transparente (sin cupones) en modo local/demo
  */
-function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin, bloqueHorario, extras, codigoCupon }) {
+function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin, bloqueHorario, extras }) {
   const fIni = parseFechaLocal(fechaInicio);
   const fFin = parseFechaLocal(fechaFin);
   if (!fIni || !fFin || fFin < fIni) {
     throw new Error('La fecha de término no puede ser anterior a la fecha de inicio.');
   }
+
+  const esHospedaje = String(oferta?.categoria || '').toLowerCase() === 'hospedaje';
+  const bloqueFinal = esHospedaje ? 'todo_el_dia' : (bloqueHorario || 'todo_el_dia');
 
   const diffDays = Math.round((fFin.getTime() - fIni.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const dias = Math.max(1, diffDays);
@@ -98,30 +99,7 @@ function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin,
     extrasMonto += Number(oferta.tarifa_recojo_extra ?? 15.00);
   }
 
-  // Cupón promocional
-  let idCupon = null;
-  let codigoAplicado = null;
-  let descuentoCupon = 0;
-  if (codigoCupon && codigoCupon.trim() !== '') {
-    const key = codigoCupon.trim().toUpperCase();
-    const cup = CUPONES_FALLBACK[key];
-    if (!cup) {
-      throw new Error(`El cupón "${codigoCupon}" no es válido o ha expirado. Prueba con BIENVENIDO10, MACHUPICCHU15 o CUSCO20.`);
-    }
-    const preTotal = subtotalBase + ajusteTemporada + recargoCachorro + extrasMonto;
-    if (preTotal < cup.minimo) {
-      throw new Error(`El cupón "${cup.codigo}" requiere un consumo mínimo de S/ ${cup.minimo.toFixed(2)}.`);
-    }
-    idCupon = cup.id;
-    codigoAplicado = cup.codigo;
-    if (cup.tipo === 'porcentaje') {
-      descuentoCupon = Number(((subtotalBase + ajusteTemporada) * (cup.valor / 100)).toFixed(2));
-    } else {
-      descuentoCupon = Math.min(cup.valor, subtotalBase);
-    }
-  }
-
-  const montoTotalPen = Math.max(1, Number((subtotalBase + ajusteTemporada + recargoCachorro + extrasMonto - descuentoCupon).toFixed(2)));
+  const montoTotalPen = Math.max(1, Number((subtotalBase + ajusteTemporada + recargoCachorro + extrasMonto).toFixed(2)));
   const tcUsd = 3.75;
   const montoTotalUsd = Number((montoTotalPen / tcUsd).toFixed(2));
   const comision15 = Number((montoTotalPen * 0.15).toFixed(2));
@@ -136,7 +114,7 @@ function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin,
     tipo_servicio: oferta.tipo_servicio,
     fecha_inicio: fechaInicio,
     fecha_fin: fechaFin,
-    bloque_horario: bloqueHorario,
+    bloque_horario: bloqueFinal,
     dias_calculados: dias,
     tarifa_unitaria: tarifaUnitaria,
     subtotal_base: subtotalBase,
@@ -146,9 +124,9 @@ function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin,
     es_cachorro: esCachorro,
     recargo_cachorro: recargoCachorro,
     extras_monto: extrasMonto,
-    id_cupon: idCupon,
-    codigo_cupon: codigoAplicado,
-    descuento_cupon: descuentoCupon,
+    id_cupon: null,
+    codigo_cupon: null,
+    descuento_cupon: 0,
     monto_total_pen: montoTotalPen,
     monto_total_usd: montoTotalUsd,
     tipo_cambio_usd: tcUsd,
@@ -156,6 +134,22 @@ function cotizarReservaLocal({ oferta, cuidador, mascota, fechaInicio, fechaFin,
     comision_plataforma_15: comision15,
     monto_neto_cuidador_85: netoCuidador85
   };
+}
+
+/**
+ * Genera el arreglo de fechas ISO YYYY-MM-DD comprendidas entre fechaInicio y fechaFin
+ */
+function listarFechasEnRango(fechaInicio, fechaFin) {
+  const dias = [];
+  if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) return [fechaInicio].filter(Boolean);
+  let cursor = fechaInicio;
+  let guard = 0;
+  while (cursor <= fechaFin && guard < 60) {
+    dias.push(cursor);
+    cursor = sumarDiasIso(cursor, 1);
+    guard++;
+  }
+  return dias;
 }
 
 /**
@@ -201,7 +195,7 @@ export async function abrirWizardReserva({
     fechaInicio: mananaIso,
     fechaFin: pasadoMananaIso,
     bloqueHorario: 'todo_el_dia',
-    disponibilidadDia: null,
+    disponibilidadRango: [],
     extras: {
       bano_higienico: false,
       recojo_hotel: Boolean(propietarioProfile?.es_turista)
@@ -209,7 +203,6 @@ export async function abrirWizardReserva({
     notasPropietario: propietarioProfile?.hospedaje_hotel_cusco
       ? `Recojo coordinado en ${propietarioProfile.hospedaje_hotel_cusco}.`
       : '',
-    codigoCupon: '',
     cotizacion: null,
     metodoPago: 'Yape',
     numOperacion: `YAPE-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -219,7 +212,7 @@ export async function abrirWizardReserva({
   };
 
   const modal = crearModalDinamico({
-    titulo: 'Asistente de Reserva Segura con Garantía Escrow (4 Pasos)',
+    titulo: 'Asistente de Reserva Segura con Pago Protegido en Garantía (4 Pasos)',
     icono: 'bi-calendar2-check-fill',
     cuerpoHtml: '<div id="wizard-reserva-root"></div>',
     footerHtml: '<div id="wizard-reserva-footer" class="w-100 d-flex justify-content-between align-items-center"></div>',
@@ -228,6 +221,10 @@ export async function abrirWizardReserva({
   });
 
   async function verificarDisponibilidadStep2() {
+    if (String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje') {
+      state.bloqueHorario = 'todo_el_dia';
+    }
+
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured() && state.cuidador?.id_cuidador) {
       try {
@@ -238,17 +235,67 @@ export async function abrirWizardReserva({
           .gte('fecha', state.fechaInicio)
           .lte('fecha', state.fechaFin);
 
-        if (Array.isArray(data) && data.length > 0) {
-          state.disponibilidadDia = data;
+        if (Array.isArray(data)) {
+          state.disponibilidadRango = data;
           return;
         }
       } catch (_) { /* fallback */ }
     }
-    state.disponibilidadDia = null;
+    state.disponibilidadRango = [];
   }
 
-  async function ejecutarCotizacionStep3(mostrarToastCupon = false) {
-    showSpinner('Calculando cotización con rpc_cotizar_reserva...');
+  /**
+   * Evalúa la disponibilidad de un bloque horario en TODOS los días del rango [fechaInicio..fechaFin]
+   */
+  function evaluarDisponibilidadRango(bloqueId) {
+    const capMax = Number(state.cuidador?.capacidad_max_mascotas || 3);
+    const fechas = listarFechasEnRango(state.fechaInicio, state.fechaFin);
+    const registros = state.disponibilidadRango || [];
+    const fechasBloqueadas = [];
+    let minLibres = capMax;
+
+    fechas.forEach((diaIso) => {
+      const filasDia = registros.filter((d) => d.fecha === diaIso);
+      const filaBloque = filasDia.find((d) => d.bloque_horario === bloqueId);
+      const filaTodoDia = filasDia.find((d) => d.bloque_horario === 'todo_el_dia');
+      const todoElDiaBloqueado =
+        (filasDia.length > 0 && filasDia.every((d) => d.estado_bloque === 'bloqueado')) ||
+        (filaTodoDia && filaTodoDia.estado_bloque === 'bloqueado' && !filaBloque);
+
+      if (todoElDiaBloqueado) {
+        fechasBloqueadas.push(diaIso);
+        minLibres = 0;
+        return;
+      }
+
+      if (filaBloque) {
+        const cupo = Number(filaBloque.cupo_maximo || capMax);
+        const ocupados = Number(filaBloque.cupos_reservados || 0);
+        const libres = Math.max(0, cupo - ocupados);
+        if (filaBloque.estado_bloque === 'bloqueado' || libres <= 0) {
+          fechasBloqueadas.push(diaIso);
+          minLibres = 0;
+        } else {
+          minLibres = Math.min(minLibres, libres);
+        }
+      }
+    });
+
+    return {
+      bloqueado: fechasBloqueadas.length > 0,
+      fechasBloqueadas,
+      minLibres,
+      capMax,
+      totalDias: fechas.length
+    };
+  }
+
+  async function ejecutarCotizacionStep3() {
+    if (String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje') {
+      state.bloqueHorario = 'todo_el_dia';
+    }
+
+    showSpinner('Calculando cotización transparente...');
     try {
       const supabase = getSupabase();
       let cot = null;
@@ -263,11 +310,16 @@ export async function abrirWizardReserva({
             ...state.extras,
             es_cachorro: state.mascota.es_cachorro
           },
-          p_codigo_cupon: state.codigoCupon ? state.codigoCupon.trim() : null,
+          p_codigo_cupon: null,
           p_id_mascota: state.mascota.id
         });
         if (error) throw error;
-        cot = data;
+        cot = {
+          ...data,
+          descuento_cupon: 0,
+          id_cupon: null,
+          codigo_cupon: null
+        };
       } else {
         cot = cotizarReservaLocal({
           oferta: state.oferta,
@@ -276,15 +328,11 @@ export async function abrirWizardReserva({
           fechaInicio: state.fechaInicio,
           fechaFin: state.fechaFin,
           bloqueHorario: state.bloqueHorario,
-          extras: state.extras,
-          codigoCupon: state.codigoCupon
+          extras: state.extras
         });
       }
 
       state.cotizacion = cot;
-      if (mostrarToastCupon && cot.codigo_cupon) {
-        showToast(`¡Cupón ${cot.codigo_cupon} aplicado! Descuento: S/ ${Number(cot.descuento_cupon).toFixed(2)}`, 'success', 'Cupón Promocional');
-      }
       return true;
     } catch (err) {
       handleSupabaseError(err, 'No se pudo cotizar la reserva.');
@@ -298,7 +346,7 @@ export async function abrirWizardReserva({
     const titulos = [
       { n: 1, t: 'Mascota y Servicio' },
       { n: 2, t: 'Fechas y Horario' },
-      { n: 3, t: 'Cotización y Cupón' },
+      { n: 3, t: 'Cotización Transparente' },
       { n: 4, t: 'Pago y Confirmación' }
     ];
     return `
@@ -436,7 +484,12 @@ export async function abrirWizardReserva({
   function renderPaso2() {
     const hoy = getHoyIso();
     const moneda = localStorage.getItem('paw_currency') || 'PEN';
-    const capMax = state.cuidador?.capacidad_max_mascotas || 3;
+    const esHospedaje = String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje';
+    if (esHospedaje) {
+      state.bloqueHorario = 'todo_el_dia';
+    }
+
+    const evalActual = evaluarDisponibilidadRango(state.bloqueHorario);
 
     return `
       <div class="row g-4">
@@ -454,32 +507,58 @@ export async function abrirWizardReserva({
               </div>
             </div>
 
-            <h6 class="fw-bold mt-4 mb-2"><i class="bi bi-clock-history text-warning me-1"></i>2. Selecciona el Bloque Horario Exacto</h6>
-            <div class="row g-2">
-              ${BLOQUES_WIZARD.map((b) => {
-                const sel = state.bloqueHorario === b.id;
-                const matchDisp = (state.disponibilidadDia || []).find((d) => d.bloque_horario === b.id);
-                const ocupados = matchDisp ? matchDisp.cupos_reservados : (b.id === 'todo_el_dia' ? 1 : 0);
-                const cupo = matchDisp ? matchDisp.cupo_maximo : capMax;
-                const bloqueado = matchDisp?.estado_bloque === 'bloqueado' || ocupados >= cupo;
-                return `
-                  <div class="col-sm-6">
-                    <div class="wizard-selectable-card p-2 ${sel ? 'selected' : ''} ${bloqueado ? 'disabled-card' : ''}"
-                      data-select-bloque="${escapeHtml(b.id)}" data-bloqueado="${bloqueado}">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold small"><i class="bi ${b.icono} text-warning me-1"></i>${escapeHtml(b.etiqueta)}</span>
-                      </div>
-                      <div class="d-flex justify-content-between align-items-center mt-1 small">
-                        <span class="text-muted">Cupos libres: <strong>${Math.max(0, cupo - ocupados)} de ${cupo}</strong></span>
-                        <span class="badge ${bloqueado ? 'bg-danger' : 'bg-success-subtle text-success'}">
-                          ${bloqueado ? 'Agotado' : 'Disponible'}
-                        </span>
+            <h6 class="fw-bold mt-4 mb-2"><i class="bi bi-clock-history text-warning me-1"></i>2. Régimen Horario del Servicio</h6>
+
+            ${esHospedaje ? `
+              <div class="p-3 rounded-3 bg-white border border-2 border-warning shadow-xs">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                  <span class="badge bg-warning text-dark fw-bold px-2 py-1">
+                    <i class="bi bi-house-heart-fill me-1"></i>Estadía Completa 24 Horas (Check-In / Check-Out diario)
+                  </span>
+                  <span class="badge ${evalActual.bloqueado ? 'bg-danger' : 'bg-success'}">
+                    ${evalActual.bloqueado ? 'Fechas sin cupo' : `Disponible (${evalActual.minLibres} cupos libres)`}
+                  </span>
+                </div>
+                <p class="small text-secondary mb-0 mt-1">
+                  Los servicios de <strong>Hospedaje Familiar</strong> cubren custodia continua las 24 horas del día durante los <strong>${evalActual.totalDias} día(s)</strong> seleccionados.
+                </p>
+              </div>
+            ` : `
+              <div class="row g-2">
+                ${BLOQUES_WIZARD.map((b) => {
+                  const sel = state.bloqueHorario === b.id;
+                  const ev = evaluarDisponibilidadRango(b.id);
+                  return `
+                    <div class="col-sm-6">
+                      <div class="wizard-selectable-card p-2 ${sel ? 'selected' : ''} ${ev.bloqueado ? 'disabled-card' : ''}"
+                        data-select-bloque="${escapeHtml(b.id)}" data-bloqueado="${ev.bloqueado}">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <span class="fw-bold small"><i class="bi ${b.icono} text-warning me-1"></i>${escapeHtml(b.etiqueta)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1 small">
+                          <span class="text-muted">Cupos libres: <strong>${ev.minLibres} de ${ev.capMax}</strong></span>
+                          <span class="badge ${ev.bloqueado ? 'bg-danger' : 'bg-success-subtle text-success'}">
+                            ${ev.bloqueado ? 'Agotado' : 'Disponible'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+
+            ${evalActual.bloqueado ? `
+              <div class="alert alert-danger border-0 small mt-3 mb-0 py-2">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <strong>Sin disponibilidad en el rango elegido:</strong>
+                Las siguientes fechas están bloqueadas o sin cupos libres: <strong>${escapeHtml(evalActual.fechasBloqueadas.join(', '))}</strong>.
+              </div>
+            ` : `
+              <div class="small text-success fw-semibold mt-3">
+                <i class="bi bi-check-circle-fill me-1"></i>Disponibilidad verificada en los ${evalActual.totalDias} día(s) del rango seleccionado.
+              </div>
+            `}
           </div>
         </div>
 
@@ -505,7 +584,7 @@ export async function abrirWizardReserva({
             </div>
 
             <div>
-              <label class="form-label small fw-bold">Instrucciones Especiales para ${escapeHtml(state.cuidador?.nombre || 'el Cuidador')}</label>
+              <label class="form-label small fw-bold">Instrucciones Especiales para ${escapeHtml(state.cuidador?.nombre_completo || 'el Cuidador')}</label>
               <textarea class="form-control" id="wiz-notas" rows="3" maxlength="350"
                 placeholder="Ej. Horario de recojo en el lobby del hotel, rutina de paseo, premios permitidos...">${escapeHtml(state.notasPropietario)}</textarea>
             </div>
@@ -559,16 +638,9 @@ export async function abrirWizardReserva({
               <strong>${Number(cot.extras_monto) > 0 ? `+ ${formatMoneda(cot.extras_monto, moneda)}` : formatMoneda(0, moneda)}</strong>
             </div>
 
-            ${Number(cot.descuento_cupon) > 0 ? `
-              <div class="cotizacion-line text-success fw-bold">
-                <span><i class="bi bi-ticket-perforated-fill me-1"></i>Descuento Cupón (${escapeHtml(cot.codigo_cupon)})</span>
-                <span>- ${formatMoneda(cot.descuento_cupon, moneda)}</span>
-              </div>
-            ` : ''}
-
             <div class="cotizacion-total-row">
               <div>
-                <div class="small text-white-50 text-uppercase">Total Final a Pagar</div>
+                <div class="small text-white-50 text-uppercase">Total Transparente a Pagar (100%)</div>
                 <div class="fs-4 fw-bold">S/ ${Number(cot.monto_total_pen || 0).toFixed(2)} PEN</div>
               </div>
               <div class="text-end">
@@ -595,23 +667,17 @@ export async function abrirWizardReserva({
         </div>
 
         <div class="col-lg-5">
-          <div class="p-3 bg-light rounded-3 border mb-3">
-            <h6 class="fw-bold mb-2"><i class="bi bi-ticket-detailed-fill text-warning me-1"></i>¿Tienes un Cupón Promocional?</h6>
-            <div class="input-group mb-2">
-              <input type="text" class="form-control text-uppercase" id="wiz-input-cupon"
-                value="${escapeHtml(state.codigoCupon)}" placeholder="Ej. BIENVENIDO10">
-              <button class="btn btn-paw" type="button" id="wiz-btn-aplicar-cupon">Aplicar</button>
+          <div class="p-3 bg-light rounded-3 border mb-3 small">
+            <div class="fw-bold text-dark mb-2">
+              <i class="bi bi-shield-lock-fill text-warning me-1"></i>Pago Protegido en Garantía (85% / 15%)
             </div>
-            <div class="small text-muted">
-              Cupones activos en Cusco:
-              <button type="button" class="btn btn-link btn-sm p-0 me-2" data-quick-coupon="BIENVENIDO10">BIENVENIDO10</button>
-              <button type="button" class="btn btn-link btn-sm p-0 me-2" data-quick-coupon="MACHUPICCHU15">MACHUPICCHU15</button>
-              <button type="button" class="btn btn-link btn-sm p-0" data-quick-coupon="CUSCO20">CUSCO20</button>
-            </div>
+            <p class="text-secondary mb-0">
+              Tu pago queda resguardado al 100% en garantía dentro de Paw Patita Cusco y solo se libera al cuidador cuando el servicio finaliza con el <strong>Check-Out</strong> conforme.
+            </p>
           </div>
 
           <div class="p-3 bg-white rounded-3 border small">
-            <div class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i>Política Escalonada de Cancelación v5.0</div>
+            <div class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i>Política Escalonada de Cancelación v5.1</div>
             <ul class="mb-0 ps-3 text-secondary">
               <li><strong>&gt; 48 horas antes (o sin confirmar):</strong> 100% de reembolso inmediato.</li>
               <li><strong>Entre 24h y 48h antes:</strong> 70% de reembolso (30% penalidad).</li>
@@ -626,6 +692,7 @@ export async function abrirWizardReserva({
   function renderPaso4() {
     const cot = state.cotizacion || {};
     const esTarjeta = state.metodoPago === 'Tarjeta';
+    const etiquetaBloque = BLOQUE_LABELS_MAP[state.bloqueHorario] || BLOQUE_LABELS_MAP.todo_el_dia;
 
     return `
       <div class="row g-4">
@@ -649,7 +716,7 @@ export async function abrirWizardReserva({
               <div class="p-3 bg-white rounded-3 border mb-3">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                   <div>
-                    <div class="fw-bold text-dark">Cuenta Recaudadora Escrow Paw Patita Cusco</div>
+                    <div class="fw-bold text-dark">Cuenta Recaudadora en Garantía Paw Patita Cusco</div>
                     <div class="small text-secondary">
                       ${state.metodoPago === 'Transferencia'
                         ? 'BCP Soles: 285-00112233-0-45 (CCI: 00228500001122330451)'
@@ -691,7 +758,7 @@ export async function abrirWizardReserva({
                 <div class="form-check mb-2">
                   <input class="form-check-input" type="checkbox" id="wiz-check-tyc" ${state.aceptaTyc ? 'checked' : ''}>
                   <label class="form-check-label small fw-semibold" for="wiz-check-tyc">
-                    Acepto los Términos de Custodia v5.0 y la Política Escalonada de Cancelación.
+                    Acepto los <a href="javascript:void(0)" class="fw-bold text-primary text-decoration-underline" data-legal-tab="terminos">Términos de Custodia v5.1</a> y la Política Escalonada de Cancelación.
                   </label>
                 </div>
               </div>
@@ -706,10 +773,10 @@ export async function abrirWizardReserva({
             <div class="small mb-2"><strong>Cuidador(a):</strong> ${escapeHtml(state.cuidador?.nombre_completo)} (${escapeHtml(state.cuidador?.distrito_cusco)})</div>
             <div class="small mb-2"><strong>Servicio:</strong> ${escapeHtml(state.oferta?.tipo_servicio)} (${escapeHtml(state.oferta?.hu_ecode)})</div>
             <div class="small mb-2"><strong>Fechas:</strong> Del ${formatFechaEs(state.fechaInicio)} al ${formatFechaEs(state.fechaFin)} (${escapeHtml(cot.dias_calculados)} día(s))</div>
-            <div class="small mb-3"><strong>Bloque Horario:</strong> ${escapeHtml(state.bloqueHorario)}</div>
+            <div class="small mb-3"><strong>Régimen Horario:</strong> ${escapeHtml(etiquetaBloque)}</div>
 
             <div class="p-2 rounded bg-warning-subtle text-dark fw-bold d-flex justify-content-between">
-              <span>Total con Garantía Escrow:</span>
+              <span>Total Protegido en Garantía:</span>
               <span>S/ ${Number(cot.monto_total_pen || 0).toFixed(2)} ($ ${Number(cot.monto_total_usd || 0).toFixed(2)})</span>
             </div>
           </div>
@@ -766,6 +833,9 @@ export async function abrirWizardReserva({
       if (found) {
         state.cuidador = found;
         state.oferta = (found.servicios_disponibles || [])[0] || null;
+        if (String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje') {
+          state.bloqueHorario = 'todo_el_dia';
+        }
         renderWizard();
       }
     });
@@ -791,6 +861,9 @@ export async function abrirWizardReserva({
         const of = (state.cuidador?.servicios_disponibles || []).find((s) => (s.id_oferta || s.id) === ofId);
         if (of) {
           state.oferta = of;
+          if (String(of.categoria || '').toLowerCase() === 'hospedaje') {
+            state.bloqueHorario = 'todo_el_dia';
+          }
           renderWizard();
         }
       });
@@ -815,7 +888,7 @@ export async function abrirWizardReserva({
     root.querySelectorAll('[data-select-bloque]').forEach((card) => {
       card.addEventListener('click', () => {
         if (card.getAttribute('data-bloqueado') === 'true') {
-          showToast('Este bloque horario no tiene cupos disponibles en las fechas elegidas.', 'warning');
+          showToast('Este bloque horario no tiene cupos disponibles en todos los días del rango elegido.', 'warning');
           return;
         }
         state.bloqueHorario = card.getAttribute('data-select-bloque');
@@ -833,21 +906,6 @@ export async function abrirWizardReserva({
 
     root.querySelector('#wiz-notas')?.addEventListener('input', (e) => {
       state.notasPropietario = e.target.value;
-    });
-
-    // Eventos Paso 3 (Cupones)
-    root.querySelector('#wiz-btn-aplicar-cupon')?.addEventListener('click', async () => {
-      state.codigoCupon = root.querySelector('#wiz-input-cupon')?.value.trim() || '';
-      const ok = await ejecutarCotizacionStep3(true);
-      if (ok) renderWizard();
-    });
-
-    root.querySelectorAll('[data-quick-coupon]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        state.codigoCupon = btn.getAttribute('data-quick-coupon');
-        const ok = await ejecutarCotizacionStep3(true);
-        if (ok) renderWizard();
-      });
     });
 
     // Eventos Paso 4
@@ -905,7 +963,19 @@ export async function abrirWizardReserva({
           showToast('Verifica que la fecha de fin sea igual o posterior a la fecha de inicio.', 'warning');
           return;
         }
-        const ok = await ejecutarCotizacionStep3(false);
+        if (String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje') {
+          state.bloqueHorario = 'todo_el_dia';
+        }
+        const ev = evaluarDisponibilidadRango(state.bloqueHorario);
+        if (ev.bloqueado) {
+          showToast(
+            `No hay cupos disponibles en la(s) fecha(s): ${ev.fechasBloqueadas.join(', ')}. Por favor elige otro rango o bloque.`,
+            'warning',
+            'Fechas Sin Disponibilidad'
+          );
+          return;
+        }
+        const ok = await ejecutarCotizacionStep3();
         if (ok) {
           state.paso = 3;
           renderWizard();
@@ -916,14 +986,18 @@ export async function abrirWizardReserva({
       }
     });
 
-    // Confirmación Final Paso 4 -> rpc_crear_reserva
+    // Confirmación Final Paso 4
     root.querySelector('#wiz-btn-confirmar')?.addEventListener('click', async () => {
       if (!state.aceptaTyc) {
-        showToast('Debes aceptar los Términos y Condiciones de Custodia v5.0 para confirmar.', 'warning');
+        showToast('Debes aceptar los Términos y Condiciones de Custodia v5.1 para confirmar.', 'warning');
         return;
       }
 
-      showSpinner('Procesando reserva y garantía anti-overbooking (rpc_crear_reserva)...');
+      if (String(state.oferta?.categoria || '').toLowerCase() === 'hospedaje') {
+        state.bloqueHorario = 'todo_el_dia';
+      }
+
+      showSpinner('Confirmando tu reserva y registrando garantía...');
       try {
         const supabase = getSupabase();
         const monedaActual = localStorage.getItem('paw_currency') || 'PEN';
@@ -935,7 +1009,7 @@ export async function abrirWizardReserva({
           fecha_fin: state.fechaFin,
           bloque_horario: state.bloqueHorario,
           extras: { ...state.extras, es_cachorro: state.mascota.es_cachorro },
-          codigo_cupon: state.codigoCupon || null,
+          codigo_cupon: null,
           metodo_pago: state.metodoPago,
           num_operacion: state.numOperacion || `OP-${Date.now()}`,
           ultimos_4_digitos: state.metodoPago === 'Tarjeta' ? (state.ultimos4 || '4242') : null,
@@ -982,7 +1056,7 @@ export async function abrirWizardReserva({
           subtotal_base: cot.subtotal_base,
           ajuste_temporada: cot.ajuste_temporada,
           recargo_cachorro: cot.recargo_cachorro,
-          descuento_cupon: cot.descuento_cupon,
+          descuento_cupon: 0,
           extras_detalle: state.extras,
           extras_monto: cot.extras_monto,
           monto_total: cot.monto_total_pen,

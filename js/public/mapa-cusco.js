@@ -1,5 +1,5 @@
 /**
- * Paw Patita Cusco v5.0 — Mapa Interactivo de Cusco (Leaflet.js + OpenStreetMap)
+ * Paw Patita Cusco v5.1 — Mapa Interactivo de Cusco
  * js/public/mapa-cusco.js
  * 
  * Mapa centrado en la ciudad del Cusco con marcadores personalizados para cuidadores
@@ -76,7 +76,7 @@ export function inicializarMapaCusco(elementId = 'mapa-cusco-leaf') {
     container.innerHTML = `
       <div class="p-4 text-center text-muted">
         <i class="bi bi-exclamation-triangle fs-2 text-warning"></i>
-        <p class="small mt-2">No se pudo cargar la librería cartográfica Leaflet.js.</p>
+        <p class="small mt-2">No se pudo cargar el mapa interactivo de Cusco.</p>
       </div>
     `;
     return;

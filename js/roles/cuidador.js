@@ -1,30 +1,30 @@
 /**
- * Paw Patita Cusco v5.0 — Panel Operativo del Cuidador Independiente
+ * Paw Patita Cusco v5.1 — Panel Operativo del Cuidador Independiente
  * js/roles/cuidador.js
  *
- * Implementa las 4 Secciones Operativas Core + Pestaña de Servicios y Reseñas:
+ * Implementa las 4 Secciones Operativas Core + Pestaña de Perfil, Servicios y Reseñas:
  *  1. Sección 1 — Reservas y Clientes:
  *     - KPIs reales (Solicitudes Pendientes, En Curso Hoy, Saldo Disponible para Retiro, Calificación Media)
- *     - Reparación definitiva de Aceptar Reserva (`rpc_cuidador_responder_reserva('aceptar')`) y
- *       Rechazar Reserva (`rpc_cuidador_responder_reserva('rechazar', motivo)` con liberación de cupo y reembolso 100%)
- *     - Estados en vivo: Check-In con checklist inicial (`rpc_cuidador_checkin`) y Check-Out con checklist final
- *       (`rpc_cuidador_checkout`, que libera inmediatamente el 85% de `en_garantia` a `disponible`)
- *     - Visor completo de Ficha Médica y Carné PAW-ID de la mascota cliente sin errores de permisos
- *     - Botón directo de WhatsApp (`wa.me`) y disparo de Alerta S.O.S. (`rpc_emitir_sos`)
+ *     - Aceptar y Rechazar Reserva con liberación de cupo y reembolso 100%
+ *     - Estados en vivo: Check-In con checklist inicial y Check-Out con validación horaria Cusco (America/Lima)
+ *       que libera inmediatamente el 85% de garantía a disponible
+ *     - Visor completo de Ficha Médica y Carné PAW-ID de la mascota cliente
+ *     - Botón directo de WhatsApp (`wa.me`) y disparo de Alerta S.O.S.
  *  2. Sección 2 — Agenda y Cupos (`js/components/calendario-agenda.js`):
- *     - Calendario mensual y semanal interactivo por días y bloques horarios (`08:00-12:00`, `14:00-18:00`, `18:00-22:00`, `todo_el_dia`)
+ *     - Calendario mensual y semanal interactivo por días y bloques horarios
  *  3. Sección 3 — Billetera Digital y Retiros (`js/components/billetera-cuidador.js`):
- *     - Conciliación exacta de saldos (Garantía, Disponible, En Proceso y Total Histórico Cobrado) + `rpc_solicitar_retiro`
+ *     - Conciliación exacta de saldos (Garantía, Disponible, En Proceso y Total Histórico Cobrado)
  *  4. Sección 4 — Enviar Fotos y Reportes al Muro:
- *     - Selector de reserva activa, subida híbrida a Supabase Storage o enlace directo `PostImg` (hasta 3 fotos),
- *       tipo de evento, ánimo, ubicación en Cusco y publicación instantánea en `reportes_seguimiento` + `fotos_reporte`
- *  5. Sección 5 — Mi Perfil, Servicios (HU-XXX CRUD) y Respuesta a Reseñas
+ *     - Selector estricto de reservas `en_curso`, dropzones directos para hasta 3 fotografías,
+ *       tipo de evento, ánimo, ubicación en Cusco y publicación instantánea
+ *  5. Sección 5 — Mi Perfil Profesional, Servicios (HU-XXX CRUD) y Respuesta a Reseñas
  */
 
-import { getSupabase, isSupabaseConfigured, uploadOrResolveMedia, subscribeRealtime } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { formatMoneda, formatFechaEs, escapeHtml, getHoyIso, sumarDiasIso } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { mountFileUploader } from '../components/file-uploader.js';
 import {
   normalizarMascota,
   abrirModalCarnetPawId,
@@ -511,13 +511,13 @@ async function obtenerReservasCuidador(idCuidador) {
         .eq('id_cuidador', idCuidador)
         .order('created_at', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         const normalizadas = data.map(normalizarReservaCuidador);
         saveLocalReservasCuidador(normalizadas);
         return normalizadas;
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerReservasCuidador:', err);
+      console.warn('Error al consultar reservas del cuidador:', err);
     }
   }
   return getLocalReservasCuidador().map(normalizarReservaCuidador);
@@ -542,11 +542,11 @@ async function obtenerServiciosYResenasCuidador(idCuidador) {
           .order('created_at', { ascending: false })
       ]);
 
-      if (!resSrv.error && Array.isArray(resSrv.data) && resSrv.data.length > 0) {
+      if (!resSrv.error && Array.isArray(resSrv.data)) {
         servicios = resSrv.data;
         saveLocalServiciosCuidador(servicios);
       }
-      if (!resRev.error && Array.isArray(resRev.data) && resRev.data.length > 0) {
+      if (!resRev.error && Array.isArray(resRev.data)) {
         resenas = resRev.data.map((rv) => ({
           id: rv.id,
           id_reserva: rv.id_reserva,
@@ -565,13 +565,41 @@ async function obtenerServiciosYResenasCuidador(idCuidador) {
         saveLocalResenasCuidador(resenas);
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerServiciosYResenasCuidador:', err);
+      console.warn('Error al consultar servicios y reseñas del cuidador:', err);
     }
   }
 
   return {
-    servicios: servicios || getLocalServiciosCuidador(),
-    resenas: resenas || getLocalResenasCuidador()
+    servicios: servicios !== null ? servicios : getLocalServiciosCuidador(),
+    resenas: resenas !== null ? resenas : getLocalResenasCuidador()
+  };
+}
+
+/**
+ * Evalúa si ya llegó la fecha y hora de inicio programada en Cusco (America/Lima, UTC-5)
+ * para permitir el Check-Out de la reserva.
+ */
+function evaluarDisponibilidadCheckoutLima(r) {
+  const fIni = String(r.fecha_inicio || getHoyIso()).slice(0, 10);
+  const rawHora = String(r.hora_inicio || '08:00:00').trim();
+  const hIni = rawHora.length === 5 ? `${rawHora}:00` : rawHora.slice(0, 8);
+  const hhmm = hIni.slice(0, 5);
+  const inicioLimaMs = new Date(`${fIni}T${hIni}-05:00`).getTime();
+  const partes = fIni.split('-');
+  const fechaLegible = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fIni;
+  const etiquetaLima = `${fechaLegible} a las ${hhmm} (hora Cusco)`;
+
+  if (!isNaN(inicioLimaMs) && inicioLimaMs > Date.now()) {
+    return {
+      permitido: false,
+      etiquetaLima,
+      mensaje: `Disponible desde el ${etiquetaLima}`
+    };
+  }
+  return {
+    permitido: true,
+    etiquetaLima,
+    mensaje: ''
   };
 }
 
@@ -613,11 +641,11 @@ function abrirModalFichaMascotaCliente(reservaRaw) {
 }
 
 /**
- * Ejecuta `rpc_cuidador_responder_reserva(p_id_reserva, 'aceptar')`
+ * Confirma una reserva pendiente
  */
 async function ejecutarAceptarReservaCuidador(reservaRaw, onSuccess) {
   const r = normalizarReservaCuidador(reservaRaw);
-  showSpinner(`Confirmando reserva ${r.codigo_reserva} (rpc_cuidador_responder_reserva)...`);
+  showSpinner(`Confirmando reserva ${r.codigo_reserva}...`);
   try {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -648,7 +676,7 @@ async function ejecutarAceptarReservaCuidador(reservaRaw, onSuccess) {
 }
 
 /**
- * Abre modal con motivo obligatorio para Rechazar Reserva (`rpc_cuidador_responder_reserva('rechazar', motivo)`),
+ * Abre modal con motivo obligatorio para Rechazar Reserva,
  * devolviendo automáticamente el cupo horario en agenda y reembolsando 100% al propietario.
  */
 function abrirModalRechazarReservaCuidador(reservaRaw, onSuccess) {
@@ -694,7 +722,7 @@ function abrirModalRechazarReservaCuidador(reservaRaw, onSuccess) {
       return;
     }
 
-    showSpinner('Rechazando reserva, liberando cupo en agenda y reembolsando 100% (rpc_cuidador_responder_reserva)...');
+    showSpinner('Rechazando reserva, liberando cupo en agenda y reembolsando 100%...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -741,7 +769,7 @@ function abrirModalRechazarReservaCuidador(reservaRaw, onSuccess) {
 }
 
 /**
- * Abre el modal de Check-In con Checklist de Seguridad (`rpc_cuidador_checkin`)
+ * Abre el modal de Check-In con Checklist de Seguridad
  */
 function abrirModalCheckinCuidador(reservaRaw, onSuccess) {
   const r = normalizarReservaCuidador(reservaRaw);
@@ -822,7 +850,7 @@ function abrirModalCheckinCuidador(reservaRaw, onSuccess) {
       observacion_recepcion: nota
     };
 
-    showSpinner('Registrando Check-In y publicando aviso en el Muro en Vivo (rpc_cuidador_checkin)...');
+    showSpinner('Registrando ingreso de la mascota y publicando aviso en el Muro en Vivo...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -857,7 +885,7 @@ function abrirModalCheckinCuidador(reservaRaw, onSuccess) {
         fotos: [
           {
             foto_url: r.mascota_foto,
-            origen_almacenamiento: 'postimg',
+            origen_almacenamiento: 'supabase_storage',
             descripcion_foto: `Recepción Check-In de ${r.mascota_nombre}`
           }
         ]
@@ -882,18 +910,28 @@ function abrirModalCheckinCuidador(reservaRaw, onSuccess) {
 }
 
 /**
- * Abre el modal de Check-Out con Checklist Final (`rpc_cuidador_checkout`),
+ * Abre el modal de Check-Out con Checklist Final y validación temporal Cusco (America/Lima),
  * liberando inmediatamente el 85% del cuidador de `en_garantia` a `disponible` para retiro.
  */
 function abrirModalCheckoutCuidador(reservaRaw, onSuccess) {
   const r = normalizarReservaCuidador(reservaRaw);
+  const infoCheckout = evaluarDisponibilidadCheckoutLima(r);
+  if (!infoCheckout.permitido) {
+    showToast(
+      `No puedes registrar el Check-Out antes de la fecha y hora de inicio programada (${infoCheckout.etiquetaLima}).`,
+      'warning',
+      'Check-Out No Disponible Aún'
+    );
+    return;
+  }
+
   const moneda = localStorage.getItem('paw_currency') || 'PEN';
 
   const cuerpoHtml = `
     <div class="alert alert-success border-0 d-flex align-items-center gap-3 mb-3">
       <i class="bi bi-unlock-fill fs-2 text-success"></i>
       <div class="small">
-        <strong>Liberación Inmediata de Garantía Escrow (85%):</strong><br>
+        <strong>Liberación Inmediata de Pago Protegido en Garantía (85%):</strong><br>
         Al confirmar el Check-Out de <strong>${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.codigo_reserva)})</strong>,
         tu pago neto de <strong>${formatMoneda(r.monto_neto_cuidador, moneda)}</strong> pasará instantáneamente de
         <em>Saldo en Garantía</em> a <strong>Saldo Disponible para Retiro</strong> en tu billetera digital.
@@ -941,6 +979,15 @@ function abrirModalCheckoutCuidador(reservaRaw, onSuccess) {
   });
 
   modal.el.querySelector('#btn-confirmar-checkout-rpc')?.addEventListener('click', async () => {
+    const validacionActual = evaluarDisponibilidadCheckoutLima(r);
+    if (!validacionActual.permitido) {
+      showToast(
+        `No puedes registrar el Check-Out antes de la fecha y hora de inicio programada (${validacionActual.etiquetaLima}).`,
+        'warning'
+      );
+      return;
+    }
+
     const chkConforme = modal.el.querySelector('#chk-out-conforme').checked;
     const chkPertenencias = modal.el.querySelector('#chk-out-pertenencias').checked;
     const chkMuro = modal.el.querySelector('#chk-out-muro').checked;
@@ -958,7 +1005,7 @@ function abrirModalCheckoutCuidador(reservaRaw, onSuccess) {
       nota_cierre: nota
     };
 
-    showSpinner('Finalizando custodia y liberando garantía a Saldo Disponible (rpc_cuidador_checkout)...');
+    showSpinner('Finalizando custodia y liberando garantía a Saldo Disponible...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -996,7 +1043,7 @@ function abrirModalCheckoutCuidador(reservaRaw, onSuccess) {
         fotos: [
           {
             foto_url: r.mascota_foto,
-            origen_almacenamiento: 'postimg',
+            origen_almacenamiento: 'supabase_storage',
             descripcion_foto: `Check-Out conforme de ${r.mascota_nombre}`
           }
         ]
@@ -1052,7 +1099,7 @@ function agregarReporteMuroLocal(datos) {
       fotos_reporte: (datos.fotos || []).map((f, idx) => ({
         id: `foto-${Date.now()}-${idx}`,
         foto_url: f.foto_url,
-        origen_almacenamiento: f.origen_almacenamiento || 'postimg',
+        origen_almacenamiento: f.origen_almacenamiento || 'supabase_storage',
         descripcion_foto: f.descripcion_foto || datos.nota_estado,
         orden: idx + 1
       }))
@@ -1223,10 +1270,12 @@ function abrirModalServicioCuidador(servicioExistente = null, idCuidador, onSave
       if (supabase && isSupabaseConfigured() && idCuidador && !String(idCuidador).startsWith('mock-')) {
         if (esEdicion) {
           const { data, error } = await supabase.from('servicios').update(payload).eq('id', s.id).select().single();
-          if (!error) saved = data;
+          if (error) throw error;
+          saved = data;
         } else {
           const { data, error } = await supabase.from('servicios').insert([payload]).select().single();
-          if (!error) saved = data;
+          if (error) throw error;
+          saved = data;
         }
       }
 
@@ -1640,7 +1689,9 @@ export async function renderPanelCuidador(container, userProfile) {
                     </button>
                   ` : ''}
 
-                  ${r.estado_reserva === 'en_curso' ? `
+                  ${r.estado_reserva === 'en_curso' ? (() => {
+                    const infoCheckout = evaluarDisponibilidadCheckoutLima(r);
+                    return `
                     <button type="button" class="btn btn-outline-primary btn-sm fw-bold"
                       data-action="enviar-foto-reserva" data-id="${escapeHtml(r.id)}">
                       <i class="bi bi-camera-fill me-1"></i>Publicar Foto en Muro
@@ -1649,11 +1700,19 @@ export async function renderPanelCuidador(container, userProfile) {
                       data-action="sos-reserva" data-id="${escapeHtml(r.id)}">
                       <i class="bi bi-hospital-fill me-1"></i>S.O.S.
                     </button>
-                    <button type="button" class="btn btn-paw btn-sm fw-bold px-3"
-                      data-action="checkout-reserva" data-id="${escapeHtml(r.id)}">
-                      <i class="bi bi-patch-check-fill me-1"></i>Finalizar Check-Out (Liberar ${formatMoneda(r.monto_neto_cuidador, moneda)})
-                    </button>
-                  ` : ''}
+                    ${infoCheckout.permitido ? `
+                      <button type="button" class="btn btn-paw btn-sm fw-bold px-3"
+                        data-action="checkout-reserva" data-id="${escapeHtml(r.id)}">
+                        <i class="bi bi-patch-check-fill me-1"></i>Finalizar Check-Out (Liberar ${formatMoneda(r.monto_neto_cuidador, moneda)})
+                      </button>
+                    ` : `
+                      <button type="button" class="btn btn-secondary btn-sm fw-bold px-3 opacity-75"
+                        disabled title="${escapeHtml(infoCheckout.mensaje)}">
+                        <i class="bi bi-clock-history me-1"></i>Check-Out (${escapeHtml(infoCheckout.mensaje)})
+                      </button>
+                    `}
+                  `;
+                  })() : ''}
                 </div>
               </div>
             </article>
@@ -1711,7 +1770,7 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Acción: Aceptar Reserva (`rpc_cuidador_responder_reserva('aceptar')`)
+    // Acción: Aceptar Reserva
     ws.querySelectorAll('[data-action="aceptar-reserva"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const res = findRes(btn.getAttribute('data-id'));
@@ -1723,7 +1782,7 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Acción: Rechazar Reserva (`rpc_cuidador_responder_reserva('rechazar', motivo)`)
+    // Acción: Rechazar Reserva
     ws.querySelectorAll('[data-action="rechazar-reserva"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const res = findRes(btn.getAttribute('data-id'));
@@ -1737,7 +1796,7 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Acción: Check-In con Checklist (`rpc_cuidador_checkin`)
+    // Acción: Check-In con Checklist
     ws.querySelectorAll('[data-action="checkin-reserva"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const res = findRes(btn.getAttribute('data-id'));
@@ -1749,7 +1808,7 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Acción: Check-Out con Checklist y liberación de garantía (`rpc_cuidador_checkout`)
+    // Acción: Check-Out con Checklist y liberación de garantía
     ws.querySelectorAll('[data-action="checkout-reserva"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const res = findRes(btn.getAttribute('data-id'));
@@ -1787,9 +1846,9 @@ export async function renderPanelCuidador(container, userProfile) {
    * SECCIÓN 4: ENVIAR FOTOS Y REPORTES AL MURO PRIVADO DEL PROPIETARIO
    */
   function renderTabPublicarMuroFotos(ws) {
-    const reservasElegibles = reservas.filter((r) => ['en_curso', 'confirmada'].includes(r.estado_reserva));
-    const listaSelector = reservasElegibles.length > 0 ? reservasElegibles : reservas;
-    const preselected = listaSelector.find((r) => r.id === reservaPreseleccionadaMuro) || listaSelector[0];
+    const reservasEnCurso = reservas.filter((r) => r.estado_reserva === 'en_curso');
+    const sinReservasEnCurso = reservasEnCurso.length === 0;
+    const preselected = reservasEnCurso.find((r) => r.id === reservaPreseleccionadaMuro) || reservasEnCurso[0] || null;
     const historialEnviados = obtenerReportesEnviadosPorCuidador(cuidadorProfile.id);
 
     ws.innerHTML = `
@@ -1803,100 +1862,113 @@ export async function renderPanelCuidador(container, userProfile) {
                 <i class="bi bi-camera-reels-fill text-warning me-2"></i>Publicar Fotos y Reporte en el Muro
               </h5>
               <p class="text-secondary small mb-0">
-                Sube hasta 3 fotografías por reporte directamente a <strong>Supabase Storage</strong> o pega enlaces de <strong>PostImg</strong>.
+                Envía hasta 3 fotografías por reporte desde tu cámara o galería para que el propietario siga en tiempo real el bienestar de su mascota.
               </p>
             </div>
 
+            ${sinReservasEnCurso ? `
+              <div class="alert alert-warning border-0 d-flex align-items-center gap-3 mb-3">
+                <i class="bi bi-info-circle-fill fs-3 text-warning-emphasis"></i>
+                <div class="small">
+                  <strong>No tienes reservas En Curso en este momento:</strong><br>
+                  Solo puedes enviar fotos al Muro cuando tengas una reserva activa <strong>En Curso</strong> (después de registrar el Check-In).
+                </div>
+              </div>
+            ` : ''}
+
             <form id="form-publicar-muro-cuidador" novalidate>
-              <div class="mb-3">
-                <label class="form-label small fw-bold">1. Selecciona la Reserva Activa *</label>
-                <select class="form-select" id="muro-cuid-select-reserva" required>
-                  ${listaSelector.map((r) => `
-                    <option value="${escapeHtml(r.id)}" ${r.id === preselected?.id ? 'selected' : ''}>
-                      ${escapeHtml(r.codigo_reserva)} — 🐾 ${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.mascota_paw_id)}) • Dueño: ${escapeHtml(r.propietario_nombre)} [${escapeHtml(r.estado_reserva.toUpperCase())}]
-                    </option>
-                  `).join('')}
-                </select>
-              </div>
-
-              <div class="row g-2 mb-3">
-                <div class="col-sm-6">
-                  <label class="form-label small fw-bold">2. Tipo de Actividad / Evento *</label>
-                  <select class="form-select form-select-sm" id="muro-cuid-select-evento">
-                    <option value="Paseo y Recreación">🐕 Paseo y Recreación</option>
-                    <option value="Alimentación">🥣 Alimentación e Hidratación</option>
-                    <option value="Descanso y Siesta">😴 Descanso y Siesta</option>
-                    <option value="Juegos y Socialización">🎾 Juegos y Socialización</option>
-                    <option value="Medicación / Higiene">💊 Medicación / Baño Higiénico</option>
-                    <option value="Reporte General">📸 Reporte de Bienestar General</option>
+              <fieldset ${sinReservasEnCurso ? 'disabled' : ''}>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">1. Selecciona la Reserva Activa En Curso *</label>
+                  <select class="form-select" id="muro-cuid-select-reserva" required>
+                    ${sinReservasEnCurso ? `
+                      <option value="">Sin reservas En Curso disponibles</option>
+                    ` : reservasEnCurso.map((r) => `
+                      <option value="${escapeHtml(r.id)}" ${r.id === preselected?.id ? 'selected' : ''}>
+                        ${escapeHtml(r.codigo_reserva)} — 🐾 ${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.mascota_paw_id)}) • Dueño: ${escapeHtml(r.propietario_nombre)} [EN CURSO]
+                      </option>
+                    `).join('')}
                   </select>
                 </div>
 
-                <div class="col-sm-6">
-                  <label class="form-label small fw-bold">3. Estado de Ánimo de la Mascota *</label>
-                  <select class="form-select form-select-sm" id="muro-cuid-select-animo">
-                    <option value="Feliz y moviendo la cola">😊 Feliz y moviendo la cola</option>
-                    <option value="Activo y juguetón">⚡ Activo y juguetón</option>
-                    <option value="Con buen apetito">🍖 Con buen apetito</option>
-                    <option value="Tranquilo y relajado">😌 Tranquilo y relajado</option>
-                    <option value="Durmiendo plácidamente">💤 Durmiendo plácidamente</option>
-                  </select>
-                </div>
-              </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-sm-6">
+                    <label class="form-label small fw-bold">2. Tipo de Actividad / Evento *</label>
+                    <select class="form-select form-select-sm" id="muro-cuid-select-evento">
+                      <option value="Paseo y Recreación">🐕 Paseo y Recreación</option>
+                      <option value="Alimentación">🥣 Alimentación e Hidratación</option>
+                      <option value="Descanso y Siesta">😴 Descanso y Siesta</option>
+                      <option value="Juegos y Socialización">🎾 Juegos y Socialización</option>
+                      <option value="Medicación / Higiene">💊 Medicación / Baño Higiénico</option>
+                      <option value="Reporte General">📸 Reporte de Bienestar General</option>
+                    </select>
+                  </div>
 
-              <div class="mb-3">
-                <label class="form-label small fw-bold">4. Ubicación Referencial en Cusco *</label>
-                <input type="text" class="form-control form-control-sm" id="muro-cuid-input-ubicacion" required
-                  value="Parque Marianito Ferro - ${escapeHtml(cuidadorProfile.distrito_cusco)}, Cusco"
-                  placeholder="Ej. Urb. Magisterio - Wanchaq, Cusco">
-              </div>
-
-              <!-- Carga Híbrida de hasta 3 Fotografías (Supabase Storage o PostImg) -->
-              <div class="p-3 bg-light rounded-3 border mb-3">
-                <label class="form-label small fw-bold mb-2">
-                  <i class="bi bi-images text-warning me-1"></i>5. Fotografías de Evidencia (Supabase Storage o Enlaces PostImg)
-                </label>
-
-                <div class="mb-2">
-                  <div class="small text-muted mb-1">Subir archivo(s) desde tu celular o PC (hasta 3 imágenes):</div>
-                  <input type="file" class="form-control form-control-sm" id="muro-cuid-input-files" accept="image/*" multiple>
+                  <div class="col-sm-6">
+                    <label class="form-label small fw-bold">3. Estado de Ánimo de la Mascota *</label>
+                    <select class="form-select form-select-sm" id="muro-cuid-select-animo">
+                      <option value="Feliz y moviendo la cola">😊 Feliz y moviendo la cola</option>
+                      <option value="Activo y juguetón">⚡ Activo y juguetón</option>
+                      <option value="Con buen apetito">🍖 Con buen apetito</option>
+                      <option value="Tranquilo y relajado">😌 Tranquilo y relajado</option>
+                      <option value="Durmiendo plácidamente">💤 Durmiendo plácidamente</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div class="small text-muted mb-1">O pegar enlaces directos de PostImg / Web (hasta 3 URLs):</div>
-                <input type="url" class="form-control form-control-sm mb-1" id="muro-cuid-url-1"
-                  placeholder="Foto 1 URL (ej. https://i.postimg.cc/...)">
-                <input type="url" class="form-control form-control-sm mb-1" id="muro-cuid-url-2"
-                  placeholder="Foto 2 URL opcional">
-                <input type="url" class="form-control form-control-sm" id="muro-cuid-url-3"
-                  placeholder="Foto 3 URL opcional">
-
-                <!-- Botones de fotos rápidas de demostración en Cusco -->
-                <div class="d-flex flex-wrap align-items-center gap-1 mt-2 pt-2 border-top">
-                  <span class="small text-muted me-1" style="font-size:0.72rem;">Fotos demo rápidas:</span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
-                    data-demo-foto="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80">
-                    + Paseo soleado
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
-                    data-demo-foto="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80">
-                    + Hora de comer
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
-                    data-demo-foto="https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&auto=format&fit=crop&q=80">
-                    + Siesta en jardín
-                  </button>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">4. Ubicación Referencial en Cusco *</label>
+                  <input type="text" class="form-control form-control-sm" id="muro-cuid-input-ubicacion" required
+                    value="Parque Marianito Ferro - ${escapeHtml(cuidadorProfile.distrito_cusco)}, Cusco"
+                    placeholder="Ej. Urb. Magisterio - Wanchaq, Cusco">
                 </div>
-              </div>
 
-              <div class="mb-3">
-                <label class="form-label small fw-bold">6. Nota de Estado y Bienestar para el Dueño * (mín. 5 caracteres)</label>
-                <textarea class="form-control" id="muro-cuid-input-nota" rows="3" required minlength="5"
-                  placeholder="Cuenta cómo estuvo su ánimo, alimentación, hidratación y paseo en Cusco..."></textarea>
-              </div>
+                <!-- Dropzones de hasta 3 Fotografías (Cámara o Galería) -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                  <label class="form-label small fw-bold mb-2">
+                    <i class="bi bi-images text-warning me-1"></i>5. Subir Fotografías de Evidencia (Hasta 3 imágenes)
+                  </label>
 
-              <button type="submit" class="btn btn-paw w-100 fw-bold py-2">
-                <i class="bi bi-send-check-fill me-1"></i>Publicar Instantáneamente en el Muro del Propietario
-              </button>
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <div id="uploader-muro-foto-1"></div>
+                    </div>
+                    <div class="col-md-6">
+                      <div id="uploader-muro-foto-2"></div>
+                    </div>
+                    <div class="col-md-6">
+                      <div id="uploader-muro-foto-3"></div>
+                    </div>
+                  </div>
+
+                  <!-- Botones de fotos rápidas de demostración en Cusco -->
+                  <div class="d-flex flex-wrap align-items-center gap-1 mt-2 pt-2 border-top">
+                    <span class="small text-muted me-1" style="font-size:0.72rem;">Fotos demo rápidas:</span>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
+                      data-demo-foto="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&auto=format&fit=crop&q=80">
+                      + Paseo soleado
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
+                      data-demo-foto="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80">
+                      + Hora de comer
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:0.72rem;"
+                      data-demo-foto="https://images.unsplash.com/photo-1534361960057-19889db9621e?w=800&auto=format&fit=crop&q=80">
+                      + Siesta en jardín
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">6. Nota de Estado y Bienestar para el Dueño * (mín. 5 caracteres)</label>
+                  <textarea class="form-control" id="muro-cuid-input-nota" rows="3" required minlength="5"
+                    placeholder="Cuenta cómo estuvo su ánimo, alimentación, hidratación y paseo en Cusco..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-paw w-100 fw-bold py-2" ${sinReservasEnCurso ? 'disabled' : ''}>
+                  <i class="bi bi-send-check-fill me-1"></i>Publicar Instantáneamente en el Muro del Propietario
+                </button>
+              </fieldset>
             </form>
           </div>
         </div>
@@ -1949,16 +2021,37 @@ export async function renderPanelCuidador(container, userProfile) {
       </div>
     `;
 
+    const muroUploaders = [
+      mountFileUploader(ws.querySelector('#uploader-muro-foto-1'), {
+        label: 'Fotografía Principal (Obligatoria)',
+        accept: 'image/*',
+        bucket: CUSCO_CONFIG.STORAGE_BUCKETS.MURO,
+        folder: 'reportes',
+        compact: true
+      }),
+      mountFileUploader(ws.querySelector('#uploader-muro-foto-2'), {
+        label: 'Fotografía 2 (Opcional)',
+        accept: 'image/*',
+        bucket: CUSCO_CONFIG.STORAGE_BUCKETS.MURO,
+        folder: 'reportes',
+        compact: true
+      }),
+      mountFileUploader(ws.querySelector('#uploader-muro-foto-3'), {
+        label: 'Fotografía 3 (Opcional)',
+        accept: 'image/*',
+        bucket: CUSCO_CONFIG.STORAGE_BUCKETS.MURO,
+        folder: 'reportes',
+        compact: true
+      })
+    ];
+
     // Botones de fotos demo rápidas
     ws.querySelectorAll('[data-demo-foto]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        if (sinReservasEnCurso) return;
         const url = btn.getAttribute('data-demo-foto');
-        const u1 = ws.querySelector('#muro-cuid-url-1');
-        const u2 = ws.querySelector('#muro-cuid-url-2');
-        const u3 = ws.querySelector('#muro-cuid-url-3');
-        if (u1 && !u1.value) u1.value = url;
-        else if (u2 && !u2.value) u2.value = url;
-        else if (u3) u3.value = url;
+        const slotLibre = muroUploaders.find((u) => !u.hasValue()) || muroUploaders[0];
+        slotLibre.setValue(url);
       });
     });
 
@@ -1972,10 +2065,21 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Submit del formulario de publicación al Muro (`reportes_seguimiento` + `fotos_reporte`)
+    // Submit del formulario de publicación al Muro
     ws.querySelector('#form-publicar-muro-cuidador')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (sinReservasEnCurso) {
+        showToast('Solo puedes publicar en el Muro cuando tengas una reserva activa En Curso.', 'warning');
+        return;
+      }
+
       const idReserva = ws.querySelector('#muro-cuid-select-reserva').value;
+      const resObj = reservasEnCurso.find((r) => r.id === idReserva);
+      if (!resObj || resObj.estado_reserva !== 'en_curso') {
+        showToast('Selecciona una reserva activa En Curso para publicar en el Muro.', 'warning');
+        return;
+      }
+
       const tipoEvento = ws.querySelector('#muro-cuid-select-evento').value;
       const estadoAnimo = ws.querySelector('#muro-cuid-select-animo').value;
       const ubicacion = ws.querySelector('#muro-cuid-input-ubicacion').value.trim() || `${cuidadorProfile.distrito_cusco}, Cusco`;
@@ -1986,54 +2090,24 @@ export async function renderPanelCuidador(container, userProfile) {
         return;
       }
 
-      const filesInput = ws.querySelector('#muro-cuid-input-files');
-      const urlsManuales = [
-        ws.querySelector('#muro-cuid-url-1')?.value.trim(),
-        ws.querySelector('#muro-cuid-url-2')?.value.trim(),
-        ws.querySelector('#muro-cuid-url-3')?.value.trim()
-      ].filter(Boolean);
-
-      const resObj = reservas.find((r) => r.id === idReserva) || preselected;
-
       showSpinner('Subiendo fotografías y publicando reporte en el Muro Privado del Propietario...');
       try {
-        const fotosResueltas = [];
+        const urlsSubidas = (await Promise.all(muroUploaders.map((u) => u.uploadIfPending()))).filter(Boolean);
 
-        // 1. Procesar archivos locales hacia Supabase Storage (`muro-fotos`) o DataURL fallback
-        if (filesInput?.files?.length > 0) {
-          const maxFiles = Math.min(3, filesInput.files.length);
-          for (let i = 0; i < maxFiles; i++) {
-            const file = filesInput.files[i];
-            const up = await uploadOrResolveMedia(file, CUSCO_CONFIG.STORAGE_BUCKETS.MURO);
-            const urlFinal = up.url || await fileToDataUrl(file);
-            fotosResueltas.push({
-              foto_url: urlFinal,
-              origen_almacenamiento: up.url ? 'supabase_storage' : 'postimg',
-              descripcion_foto: `${tipoEvento} — ${resObj?.mascota_nombre || 'Mascota'}`,
-              orden: fotosResueltas.length + 1
-            });
-          }
-        }
-
-        // 2. Procesar enlaces PostImg / URLs externas
-        for (const u of urlsManuales) {
-          if (fotosResueltas.length >= 3) break;
-          const up = await uploadOrResolveMedia(u, CUSCO_CONFIG.STORAGE_BUCKETS.MURO);
-          fotosResueltas.push({
-            foto_url: up.url || u,
-            origen_almacenamiento: (up.origen === 'storage' || up.origen === 'supabase_storage') ? 'supabase_storage' : 'postimg',
-            descripcion_foto: `${tipoEvento} — ${resObj?.mascota_nombre || 'Mascota'}`,
-            orden: fotosResueltas.length + 1
-          });
-        }
-
-        if (fotosResueltas.length === 0) {
-          showToast('Debes adjuntar al menos 1 fotografía (subiendo un archivo o pegando un enlace PostImg).', 'warning');
+        if (urlsSubidas.length === 0) {
+          showToast('Debes adjuntar al menos 1 fotografía de evidencia para publicar el reporte.', 'warning');
           hideSpinner();
           return;
         }
 
-        // 3. Insertar en Supabase (`reportes_seguimiento` + `fotos_reporte` + `notificaciones`)
+        const fotosResueltas = urlsSubidas.slice(0, 3).map((urlFinal, idx) => ({
+          foto_url: urlFinal,
+          origen_almacenamiento: 'supabase_storage',
+          descripcion_foto: `${tipoEvento} — ${resObj?.mascota_nombre || 'Mascota'}`,
+          orden: idx + 1
+        }));
+
+        // Insertar en Supabase (`reportes_seguimiento` + `fotos_reporte`)
         const supabase = getSupabase();
         let idReporteDb = null;
 
@@ -2052,20 +2126,21 @@ export async function renderPanelCuidador(container, userProfile) {
             .select()
             .single();
 
-          if (!repErr && repData) {
-            idReporteDb = repData.id;
-            const rowsFotos = fotosResueltas.map((f, idx) => ({
-              id_reporte: idReporteDb,
-              foto_url: f.foto_url,
-              origen_almacenamiento: f.origen_almacenamiento,
-              descripcion_foto: f.descripcion_foto,
-              orden: idx + 1
-            }));
-            await supabase.from('fotos_reporte').insert(rowsFotos);
-          }
+          if (repErr) throw repErr;
+          idReporteDb = repData.id;
+
+          const rowsFotos = fotosResueltas.map((f, idx) => ({
+            id_reporte: idReporteDb,
+            foto_url: f.foto_url,
+            origen_almacenamiento: 'supabase_storage',
+            descripcion_foto: f.descripcion_foto,
+            orden: idx + 1
+          }));
+          const { error: fotosErr } = await supabase.from('fotos_reporte').insert(rowsFotos);
+          if (fotosErr) throw fotosErr;
         }
 
-        // 4. Sincronizar con `paw_demo_muro_reportes_v5` para visualización instantánea en el Panel del Propietario
+        // Sincronizar con `paw_demo_muro_reportes_v5` para visualización instantánea
         agregarReporteMuroLocal({
           id: idReporteDb,
           id_reserva: idReserva,
@@ -2099,12 +2174,47 @@ export async function renderPanelCuidador(container, userProfile) {
   }
 
   /**
-   * SECCIÓN 5 (INICIATIVA): MI PERFIL PROFESIONAL, CRUD DE SERVICIOS Y RESPUESTA A RESEÑAS
+   * SECCIÓN 5: MI PERFIL PROFESIONAL, CRUD DE SERVICIOS Y RESPUESTA A RESEÑAS
    */
   function renderTabServiciosYResenas(ws) {
     const moneda = localStorage.getItem('paw_currency') || 'PEN';
 
     ws.innerHTML = `
+      <!-- Fotografías Oficiales de Perfil y Hogar Anfitrión del Cuidador -->
+      <div class="card card-paw p-4 border-0 shadow-sm mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+          <div>
+            <h5 class="fw-bold mb-1">
+              <i class="bi bi-person-bounding-box text-warning me-2"></i>Fotografías de Perfil y Hogar Anfitrión en Cusco
+            </h5>
+            <p class="text-secondary small mb-0">
+              Mantén actualizadas tu foto de perfil y la fotografía de tu hogar/jardín que ven los propietarios en el catálogo.
+            </p>
+          </div>
+          <span class="badge bg-dark">${escapeHtml(cuidadorProfile.codigo_cuidador)}</span>
+        </div>
+
+        <form id="form-fotos-perfil-cuidador" novalidate>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100">
+                <div id="uploader-cuid-panel-avatar"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 border h-100">
+                <div id="uploader-cuid-panel-hogar"></div>
+              </div>
+            </div>
+          </div>
+          <div class="text-end mt-3">
+            <button type="submit" class="btn btn-paw btn-sm fw-bold px-3">
+              <i class="bi bi-floppy-fill me-1"></i>Guardar Fotografías de Perfil y Hogar
+            </button>
+          </div>
+        </form>
+      </div>
+
       <!-- Mis Modalidades de Servicio y Tarifas (HU-XXX) -->
       <div class="card card-paw p-4 border-0 shadow-sm mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-3 border-bottom">
@@ -2195,6 +2305,54 @@ export async function renderPanelCuidador(container, userProfile) {
       </div>
     `;
 
+    const upAvatarCuid = mountFileUploader(ws.querySelector('#uploader-cuid-panel-avatar'), {
+      label: 'Fotografía de Perfil del Cuidador',
+      accept: 'image/*',
+      bucket: CUSCO_CONFIG.STORAGE_BUCKETS.PERFILES,
+      folder: 'cuidadores/perfiles',
+      initialValue: cuidadorProfile.foto_url || ''
+    });
+
+    const upHogarCuid = mountFileUploader(ws.querySelector('#uploader-cuid-panel-hogar'), {
+      label: 'Fotografía de tu Hogar / Jardín de Custodia',
+      accept: 'image/*',
+      bucket: CUSCO_CONFIG.STORAGE_BUCKETS.PERFILES,
+      folder: 'cuidadores/hogares',
+      initialValue: cuidadorProfile.foto_hogar_url || ''
+    });
+
+    ws.querySelector('#form-fotos-perfil-cuidador')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showSpinner('Guardando fotografías de perfil y hogar del cuidador...');
+      try {
+        const [nuevaFotoPerfil, nuevaFotoHogar] = await Promise.all([
+          upAvatarCuid.uploadIfPending(),
+          upHogarCuid.uploadIfPending()
+        ]);
+
+        const supabase = getSupabase();
+        if (supabase && isSupabaseConfigured() && cuidadorProfile.id && !String(cuidadorProfile.id).startsWith('mock-')) {
+          const { error } = await supabase
+            .from('perfiles_cuidadores')
+            .update({
+              foto_url: nuevaFotoPerfil || cuidadorProfile.foto_url,
+              foto_hogar_url: nuevaFotoHogar || cuidadorProfile.foto_hogar_url || null
+            })
+            .eq('id', cuidadorProfile.id);
+          if (error) throw error;
+        }
+
+        if (nuevaFotoPerfil) cuidadorProfile.foto_url = nuevaFotoPerfil;
+        if (nuevaFotoHogar) cuidadorProfile.foto_hogar_url = nuevaFotoHogar;
+        showToast('Fotografías de perfil y hogar actualizadas con éxito.', 'success');
+        renderLayout();
+      } catch (err) {
+        handleSupabaseError(err, 'No se pudieron actualizar las fotografías del perfil.');
+      } finally {
+        hideSpinner();
+      }
+    });
+
     ws.querySelector('#btn-nuevo-servicio-cuid')?.addEventListener('click', () => {
       abrirModalServicioCuidador(null, cuidadorProfile.id, (nuevos) => {
         servicios = nuevos;
@@ -2227,18 +2385,22 @@ export async function renderPanelCuidador(container, userProfile) {
         showSpinner('Publicando respuesta en tu perfil público...');
         try {
           const supabase = getSupabase();
-          if (supabase && isSupabaseConfigured()) {
-            await supabase
+          const ahoraIso = new Date().toISOString();
+          if (supabase && isSupabaseConfigured() && !String(idRev).startsWith('rev-')) {
+            const { error } = await supabase
               .from('resenas')
-              .update({ respuesta_cuidador: texto, fecha_respuesta: new Date().toISOString() })
+              .update({ respuesta_cuidador: texto, fecha_respuesta: ahoraIso })
               .eq('id', idRev);
+            if (error) throw error;
           }
           resenas = resenas.map((r) => (
-            r.id === idRev ? { ...r, respuesta_cuidador: texto, fecha_respuesta: new Date().toISOString() } : r
+            r.id === idRev ? { ...r, respuesta_cuidador: texto, fecha_respuesta: ahoraIso } : r
           ));
           saveLocalResenasCuidador(resenas);
           showToast('Respuesta publicada en tu perfil del catálogo.', 'success');
           renderTabServiciosYResenas(ws);
+        } catch (err) {
+          handleSupabaseError(err, 'No se pudo publicar la respuesta a la reseña.');
         } finally {
           hideSpinner();
         }

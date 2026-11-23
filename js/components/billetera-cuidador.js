@@ -285,7 +285,7 @@ export async function obtenerDatosBilleteraCuidador(idCuidador) {
           .order('created_at', { ascending: false })
       ]);
 
-      if (!resLiq.error && Array.isArray(resLiq.data) && resLiq.data.length > 0) {
+      if (!resLiq.error && Array.isArray(resLiq.data)) {
         liquidaciones = resLiq.data.map(normalizarLiquidacion);
         saveLocalLiquidacionesCuidador(liquidaciones);
       }
@@ -293,11 +293,11 @@ export async function obtenerDatosBilleteraCuidador(idCuidador) {
         resumenVista = resView.data;
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerDatosBilleteraCuidador:', err);
+      console.warn('Error al consultar billetera del cuidador:', err);
     }
   }
 
-  if (!liquidaciones) {
+  if (liquidaciones === null) {
     liquidaciones = getLocalLiquidacionesCuidador();
   }
 
@@ -328,7 +328,7 @@ export function renderBadgeEstadoLiquidacion(estado) {
     en_garantia: {
       cls: 'bg-warning-subtle text-dark border border-warning-subtle',
       icon: 'bi-shield-lock-fill text-warning',
-      txt: 'En Garantía Escrow'
+      txt: 'Pago Protegido en Garantía'
     },
     disponible: {
       cls: 'bg-success-subtle text-success border border-success-subtle',
@@ -461,7 +461,7 @@ export function abrirModalSolicitarRetiro({
       return;
     }
 
-    showSpinner('Enviando solicitud de liquidación bancaria (rpc_solicitar_retiro)...');
+    showSpinner('Enviando solicitud de retiro bancario...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured()) {
@@ -469,10 +469,7 @@ export function abrirModalSolicitarRetiro({
           p_cuenta_tipo: cuentaTipo,
           p_cuenta_numero: cuentaNumero
         });
-        if (error) {
-          // Si estamos en sesión demo sin auth.uid() en Supabase Cloud, usar fallback local limpio
-          console.warn('Ejecutando transición local de retiro:', error.message);
-        }
+        if (error) throw error;
       }
 
       const ahoraIso = new Date().toISOString();
@@ -514,7 +511,7 @@ export function abrirModalSolicitarRetiro({
 }
 
 /**
- * Inicializa o actualiza el gráfico Chart.js de evolución de ingresos mensuales del cuidador
+ * Inicializa o actualiza el gráfico Chart.js calculando dinámicamente la serie mensual desde liquidaciones reales
  */
 function renderChartIngresosMensuales(canvasEl, liquidaciones = []) {
   if (!canvasEl || typeof window.Chart === 'undefined') return;
@@ -524,31 +521,54 @@ function renderChartIngresosMensuales(canvasEl, liquidaciones = []) {
     chartIngresosCuidadorInstance = null;
   }
 
-  const resumenActual = calcularResumenBilletera(liquidaciones);
-  const cobradoNov = Number(resumenActual.total_historico_cobrado || 357);
-  const disponibleMasGarantia = Number(
-    (resumenActual.saldo_disponible_retiro + resumenActual.saldo_en_garantia + resumenActual.saldo_en_proceso_retiro).toFixed(2)
-  );
+  const nombresMes = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const hoy = new Date();
+  const buckets = [];
+  const mapIndex = new Map();
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${nombresMes[d.getMonth()]} ${d.getFullYear()}`;
+    mapIndex.set(key, buckets.length);
+    buckets.push({ key, label, cobrado: 0, enCustodia: 0 });
+  }
+
+  (liquidaciones || []).forEach((item) => {
+    const rawDate = item.fecha_liquidacion || item.fecha_solicitud_retiro || item.fecha_disponible || item.created_at;
+    const d = rawDate ? new Date(rawDate) : hoy;
+    const validDate = isNaN(d.getTime()) ? hoy : d;
+    const key = `${validDate.getFullYear()}-${String(validDate.getMonth() + 1).padStart(2, '0')}`;
+    const idx = mapIndex.has(key) ? mapIndex.get(key) : buckets.length - 1;
+    const monto = Number(item.monto_liquidado || 0);
+    const est = (item.estado_liquidacion || 'en_garantia').toLowerCase();
+
+    if (est === 'pagado') {
+      buckets[idx].cobrado = Number((buckets[idx].cobrado + monto).toFixed(2));
+    } else if (['disponible', 'en_garantia', 'solicitado'].includes(est)) {
+      buckets[idx].enCustodia = Number((buckets[idx].enCustodia + monto).toFixed(2));
+    }
+  });
 
   const ctx = canvasEl.getContext('2d');
   chartIngresosCuidadorInstance = new window.Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Jun (Inti Raymi)', 'Jul (F. Patrias)', 'Ago', 'Sep', 'Oct', 'Nov 2026 (Actual)'],
+      labels: buckets.map((b) => b.label),
       datasets: [
         {
           label: 'Neto Cobrado (85% Pagado) S/',
-          data: [425.00, 510.00, 382.50, 340.00, 467.50, cobradoNov],
-          backgroundColor: 'rgba(42, 157, 143, 0.85)',
-          borderColor: '#2A9D8F',
+          data: buckets.map((b) => b.cobrado),
+          backgroundColor: 'rgba(30, 86, 49, 0.85)',
+          borderColor: '#1E5631',
           borderWidth: 1,
           borderRadius: 6
         },
         {
           label: 'Disponible + En Garantía S/',
-          data: [0, 0, 0, 0, 0, disponibleMasGarantia],
-          backgroundColor: 'rgba(255, 107, 53, 0.82)',
-          borderColor: '#FF6B35',
+          data: buckets.map((b) => b.enCustodia),
+          backgroundColor: 'rgba(232, 93, 36, 0.85)',
+          borderColor: '#E85D24',
           borderWidth: 1,
           borderRadius: 6
         }
@@ -830,7 +850,7 @@ export function renderSeccionBilleteraCuidador(container, {
     });
   });
 
-  // Evento: Exportar CSV
+    // Evento: Exportar CSV
   container.querySelector('#btn-exportar-liquidaciones-csv')?.addEventListener('click', () => {
     const rowsCsv = filtradas.map((l) => ({
       codigo_liquidacion: l.codigo_liquidacion,
@@ -845,7 +865,7 @@ export function renderSeccionBilleteraCuidador(container, {
       num_operacion_bancaria: l.num_operacion_desembolso || 'Pendiente',
       fecha: l.fecha_liquidacion || l.created_at
     }));
-    exportarCsv('billetera_liquidaciones_cuidador_cusco.csv', rowsCsv);
+    exportarCsv(rowsCsv, 'billetera_liquidaciones_cuidador_cusco.csv');
     showToast('Reporte contable de billetera exportado a CSV.', 'info');
   });
 

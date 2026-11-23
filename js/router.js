@@ -244,7 +244,7 @@ function renderPawIdPlaceholder(pawId) {
         <h3 class="fw-bold mb-2">Ficha de Emergencia PAW-ID</h3>
         <span class="badge bg-secondary mb-3 fs-6">${escapeHtml(pawId)}</span>
         <p class="text-secondary small mb-4">
-          Esta ruta pública de emergencia está lista para invocar <code>rpc_obtener_paw_id_publico</code> en la Fase 4.
+          Consultando credencial digital PAW-ID de emergencia...
         </p>
         <a href="#/" class="btn btn-paw-outline">Ir a la Portada</a>
       </div>

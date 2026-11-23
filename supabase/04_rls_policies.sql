@@ -452,6 +452,11 @@ CREATE POLICY "sos_select_involucrados" ON public.incidencias_emergencias
             WHERE r.id = incidencias_emergencias.id_reserva
               AND (r.id_propietario = auth.uid() OR r.id_cuidador = public.get_my_cuidador_id())
         )
+        OR EXISTS (
+            SELECT 1 FROM public.mascotas m
+            WHERE m.id = incidencias_emergencias.id_mascota
+              AND m.id_propietario = auth.uid()
+        )
     );
 
 DROP POLICY IF EXISTS "sos_admin_vet_update" ON public.incidencias_emergencias;

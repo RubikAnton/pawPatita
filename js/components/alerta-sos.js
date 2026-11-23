@@ -176,11 +176,11 @@ export async function obtenerAlertasSosPropietario(idPropietario, mascotasIds = 
         .select('*, mascotas(nombre, paw_id), clinicas_veterinarias(nombre, telefono_emergencia, direccion), reservas(codigo_reserva)')
         .order('fecha_incidencia', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         return data.map(normalizarIncidenciaSos);
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerAlertasSosPropietario:', err);
+      console.warn('Error al consultar alertas S.O.S. del propietario:', err);
     }
   }
 
@@ -258,7 +258,7 @@ export async function abrirModalEmitirSos({
 
   const cuerpoHtml = `
     <div class="alert alert-danger border-0 d-flex align-items-center gap-3 mb-3">
-      <i class="bi bi-Broadcast-pin fs-2"></i>
+      <i class="bi bi-broadcast-pin fs-2"></i>
       <div class="small">
         <strong>Protocolo de Triaje Veterinario Inmediato (Cusco 24h):</strong>
         Al emitir esta alerta S.O.S., se notificará en tiempo real a la <strong>Clínica Veterinaria Aliada</strong>,
@@ -387,9 +387,8 @@ export async function abrirModalEmitirSos({
 
     const resObj = reservasCandidatas.find((r) => r.id === idReserva) || reservaActiva;
     const clinicaObj = clinicas.find((c) => c.id === idClinica) || clinicaSugerida;
-    const descripcionCompleta = `${descripcionRaw} [Ubicación: ${ubicacion}]`;
 
-    showSpinner('Derivando emergencia a Clínica Veterinaria 24h y Administrador (rpc_emitir_sos)...');
+    showSpinner('Enviando alerta S.O.S. a la Clínica Veterinaria 24h y Central de Emergencias...');
     try {
       const supabase = getSupabase();
       let rpcData = null;
@@ -399,8 +398,9 @@ export async function abrirModalEmitirSos({
           p_id_reserva: idReserva,
           p_severidad: severidad,
           p_tipo: tipo,
-          p_descripcion: descripcionCompleta,
-          p_id_clinica: idClinica
+          p_descripcion: descripcionRaw,
+          p_id_clinica: idClinica,
+          p_ubicacion: ubicacion
         });
         if (error) throw error;
         rpcData = data;

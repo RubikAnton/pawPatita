@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paw Patita Cusco v5.0 — Cuidado Familiar & Central SOS 24h</title>
+  <title>Paw Patita Cusco v5.1 — Cuidado Familiar & Central SOS 24h</title>
   <meta name="description" content="Plataforma SaaS de cuidado confiable de mascotas en Cusco con Carné Digital PAW-ID, seguimiento fotográfico en vivo y red de emergencias veterinarias 24h.">
   
   <!-- Favicon Paw Patita -->
@@ -21,6 +21,8 @@
   <!-- Leaflet 1.9.4 CSS CDN -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
+  <!-- Tokens Maestros Andes & Huellas Cusco v5.1 -->
+  <link rel="stylesheet" href="./css/tokens.css">
   <!-- Hojas de Estilo Propias del Sistema Andes Pet Care -->
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/auth.css">
@@ -43,6 +45,7 @@
 
   <!-- NAVBAR PRINCIPAL REACTIVO -->
   <header>
+    <div class="andean-textile-ribbon" role="presentation"></div>
     <nav class="navbar navbar-expand-lg navbar-pawpatita" aria-label="Navegación principal">
       <div class="container-fluid px-lg-4">
         <!-- Logotipo y Marca Oficial Cusco -->
@@ -63,12 +66,12 @@
           <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
             <li class="nav-item">
               <a class="nav-link fw-semibold" href="#/" data-route="#/">
-                <i class="bi bi-house-door me-1"></i> Inicio
+                <i class="bi bi-house-door me-1"></i> <span data-i18n="nav.inicio">Inicio</span>
               </a>
             </li>
             <li class="nav-item">
               <a class="nav-link fw-semibold" href="#/catalogo" data-route="#/catalogo">
-                <i class="bi bi-compass me-1"></i> Cuidadores
+                <i class="bi bi-compass me-1"></i> <span data-i18n="nav.cuidadores">Cuidadores</span>
               </a>
             </li>
           </ul>
@@ -118,7 +121,8 @@
     <!-- Renderizado dinámicamente por router.js -->
   </main>
 
-  <!-- FOOTER INSTITUCIONAL MODERNO -->
+  <!-- FOOTER INSTITUCIONAL MODERNO (WCAG AAA) -->
+  <div class="andean-textile-ribbon no-print" role="presentation"></div>
   <footer class="footer-paw no-print">
     <div class="container py-4">
       <div class="row g-4">
@@ -127,54 +131,60 @@
             <i class="bi bi-paw-fill text-warning fs-3"></i>
             <span class="h5 fw-bold text-white mb-0">Paw Patita Cusco</span>
           </div>
-          <p class="small text-muted mb-3">
+          <p class="small mb-3 footer-desc" data-i18n="footer.desc">
             Plataforma digital para el cuidado ético y familiar de mascotas en la Capital Histórica del Perú. Identidad médica digital PAW-ID y red veterinaria de urgencias 24h.
           </p>
-          <div class="small text-muted">
-            <i class="bi bi-geo-alt-fill text-warning me-1"></i> Cusco Centro, Wanchaq, San Sebastián, San Jerónimo, San Blas
+          <div class="small footer-desc">
+            <i class="bi bi-geo-alt-fill text-warning me-1"></i> <span data-i18n="footer.distritos">Cusco Centro, Wanchaq, San Sebastián, San Jerónimo, San Blas</span>
           </div>
         </div>
 
         <div class="col-lg-2 col-md-6">
-          <h6 class="text-white fw-bold mb-3">Para Mascotas</h6>
+          <h6 class="text-white fw-bold mb-3" data-i18n="footer.para_mascotas">Para Mascotas</h6>
           <ul class="list-unstyled small">
-            <li class="mb-2"><a href="#/catalogo">Buscar Cuidador</a></li>
-            <li class="mb-2"><a href="#/propietario">Carné Digital PAW-ID</a></li>
-            <li class="mb-2"><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario">Registro Propietario</a></li>
+            <li class="mb-2"><a href="#/catalogo" data-i18n="footer.buscar_cuidador">Buscar Cuidador</a></li>
+            <li class="mb-2"><a href="#/propietario" data-i18n="footer.carne_digital">Carné Digital PAW-ID</a></li>
+            <li class="mb-2"><a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario" data-i18n="footer.registro_propietario">Registro Propietario</a></li>
           </ul>
         </div>
 
         <div class="col-lg-3 col-md-6">
-          <h6 class="text-white fw-bold mb-3">Únete a la Red</h6>
+          <h6 class="text-white fw-bold mb-3" data-i18n="footer.unete_red">Únete a la Red</h6>
           <ul class="list-unstyled small">
             <li class="mb-2">
               <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-postular-cuidador">
-                <i class="bi bi-heart text-warning me-1"></i> Postular como Cuidador
+                <i class="bi bi-heart text-warning me-1"></i> <span data-i18n="footer.postular_cuidador">Postular como Cuidador</span>
               </a>
             </li>
             <li class="mb-2">
               <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modal-postular-clinica">
-                <i class="bi bi-hospital text-danger me-1"></i> Postular Clínica Veterinaria
+                <i class="bi bi-hospital text-danger me-1"></i> <span data-i18n="footer.postular_clinica">Postular Clínica Veterinaria</span>
               </a>
             </li>
-            <li class="mb-2"><a href="#/login">Acceso a Mi Panel</a></li>
+            <li class="mb-2"><a href="#/login" data-i18n="footer.acceso_panel">Acceso a Mi Panel</a></li>
           </ul>
         </div>
 
         <div class="col-lg-3 col-md-6">
-          <h6 class="text-white fw-bold mb-3">Soporte & Emergencias</h6>
-          <p class="small text-muted mb-2">
+          <h6 class="text-white fw-bold mb-3" data-i18n="footer.soporte_emergencias">Soporte & Emergencias</h6>
+          <p class="small mb-2 footer-desc" data-i18n="footer.soporte_desc">
             En caso de urgencia médica en Cusco, nuestras clínicas aliadas atienden las 24 horas del día.
           </p>
           <div class="badge bg-danger p-2 fs-6 w-100 text-center">
-            <i class="bi bi-telephone-fill me-1"></i> Central SOS Cusco 24h
+            <i class="bi bi-telephone-fill me-1"></i> <span data-i18n="footer.central_sos">Central SOS Cusco 24h</span>
           </div>
         </div>
       </div>
 
-      <div class="border-top border-secondary mt-4 pt-3 d-flex justify-content-between align-items-center flex-wrap small text-muted">
-        <div>© 2026 Paw Patita Cusco v5.0. Todos los derechos reservados.</div>
-        <div>Términos de Servicio v5.0 • Políticas de Privacidad Cusco</div>
+      <div class="border-top border-secondary mt-4 pt-3 d-flex justify-content-between align-items-center flex-wrap small footer-meta">
+        <div data-i18n="footer.derechos">© 2026 Paw Patita Cusco v5.1. Todos los derechos reservados.</div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="terminos" data-i18n="legal.terminos_link">Términos de Servicio v5.1</a>
+          <span>•</span>
+          <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="privacidad" data-i18n="legal.privacidad_link">Políticas de Privacidad Cusco</a>
+          <span>•</span>
+          <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="declaracion" data-i18n="legal.declaracion_link">Declaración Jurada</a>
+        </div>
       </div>
     </div>
   </footer>
@@ -189,7 +199,7 @@
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-login-title">
-            <i class="bi bi-box-arrow-in-right text-warning"></i> Iniciar Sesión en Paw Patita
+            <i class="bi bi-box-arrow-in-right text-warning"></i> <span data-i18n="auth.login_title">Iniciar Sesión en Paw Patita</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
@@ -197,25 +207,25 @@
           <!-- Selector Demo Rápido para Evaluación -->
           <div class="demo-accounts-panel">
             <div class="demo-title">
-              <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Accesos Demo Rápidos (4 Roles Activos)</span>
-              <span class="badge bg-secondary">Clave: PawPatita2026!</span>
+              <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> <span data-i18n="auth.demo_title">Accesos Demo Rápidos (4 Roles Activos)</span></span>
+              <span class="badge bg-secondary" data-i18n="auth.demo_pass">Clave: PawPatita2026!</span>
             </div>
             <div class="demo-grid">
               <button type="button" class="btn-demo-badge" data-email="lucia.mendoza@gmail.com" data-pass="PawPatita2026!">
-                <strong>🐾 Propietaria</strong>
-                <span>Lucía Mendoza (Local/Turista)</span>
+                <strong data-i18n="auth.demo_prop">🐾 Propietario</strong>
+                <span data-i18n="auth.demo_prop_desc">Lucía Mendoza (Local/Turista)</span>
               </button>
               <button type="button" class="btn-demo-badge" data-email="valeria.cuidadora@pawpatitacusco.pe" data-pass="PawPatita2026!">
-                <strong>🏡 Cuidadora Aprobada</strong>
-                <span>Valeria Quispe (Wanchaq)</span>
+                <strong data-i18n="auth.demo_cuid">🏡 Cuidadora Aprobada</strong>
+                <span data-i18n="auth.demo_cuid_desc">Valeria Huamán (Wanchaq)</span>
               </button>
               <button type="button" class="btn-demo-badge" data-email="vet.sanfrancisco@pawpatitacusco.pe" data-pass="PawPatita2026!">
-                <strong>🏥 Clínica Veterinaria</strong>
-                <span>Dr. Marco Polo (24 Horas)</span>
+                <strong data-i18n="auth.demo_vet">🏥 Clínica Veterinaria</strong>
+                <span data-i18n="auth.demo_vet_desc">Dra. Claudia Salazar (24 Horas)</span>
               </button>
               <button type="button" class="btn-demo-badge" data-email="admin@pawpatitacusco.pe" data-pass="PawPatita2026!">
-                <strong>🛡️ Administrador</strong>
-                <span>Comisión 15% & Arbitraje</span>
+                <strong data-i18n="auth.demo_admin">🛡️ Administrador</strong>
+                <span data-i18n="auth.demo_admin_desc">Comisión 15% & Arbitraje</span>
               </button>
             </div>
           </div>
@@ -414,11 +424,11 @@
               </div>
             </div>
 
-            <!-- TyC v5.0 -->
+            <!-- TyC v5.1 & Privacidad -->
             <div class="form-check mb-4">
               <input class="form-check-input" type="checkbox" id="reg-prop-tyc" required>
               <label class="form-check-label small text-secondary" for="reg-prop-tyc">
-                He leído y acepto los <a href="#/" class="fw-bold">Términos y Condiciones v5.0</a> de Paw Patita Cusco y la Política de Emergencias Veterinarias.
+                He leído y acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos y Condiciones v5.1</a> y las <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="privacidad">Políticas de Privacidad (Ley N° 29733)</a> de Paw Patita Cusco.
               </label>
             </div>
 
@@ -530,13 +540,35 @@
             </div>
 
             <div class="row g-3 mb-3">
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label class="form-label small fw-bold">Tarifa Paseo Inicial (S/ PEN)</label>
                 <input type="number" class="form-control" id="post-cuid-tarifa" min="20" max="150" value="35" required>
               </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-bold">Enlace DNI / Antecedentes (PostImg o URL)</label>
-                <input type="url" class="form-control" id="post-cuid-doc-url" placeholder="https://i.postimg.cc/tu-dni.jpg">
+              <div class="col-md-4">
+                <div id="uploader-cuid-foto-perfil"></div>
+              </div>
+              <div class="col-md-4">
+                <div id="uploader-cuid-foto-hogar"></div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-3 border mb-3" style="background: var(--pp-bg-body, #FAF7F2);">
+              <div class="small fw-bold text-dark mb-2">
+                <i class="bi bi-shield-check text-primary me-1"></i>Expediente de Verificación Legal (Imagen o PDF)
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div id="uploader-cuid-doc-dni"></div>
+                </div>
+                <div class="col-md-6">
+                  <div id="uploader-cuid-doc-policial"></div>
+                </div>
+                <div class="col-md-6">
+                  <div id="uploader-cuid-doc-penal"></div>
+                </div>
+                <div class="col-md-6">
+                  <div id="uploader-cuid-doc-domicilio"></div>
+                </div>
               </div>
             </div>
 
@@ -545,7 +577,7 @@
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="post-cuid-declaracion" required>
                 <label class="form-check-label small fw-bold text-dark" for="post-cuid-declaracion">
-                  DECLARACIÓN JURADA: Declaro bajo juramento no poseer antecedentes penales ni denuncias por maltrato animal en el Perú ni en el extranjero.
+                  DECLARACIÓN JURADA: Declaro bajo juramento no poseer antecedentes penales ni denuncias por maltrato animal en el Perú ni en el extranjero. (<a href="javascript:void(0)" class="text-primary text-decoration-underline" data-legal-tab="declaracion">Ver Declaración Jurada Completa</a>)
                 </label>
               </div>
             </div>
@@ -554,7 +586,7 @@
             <div class="form-check mb-4">
               <input class="form-check-input" type="checkbox" id="post-cuid-tyc" required>
               <label class="form-check-label small text-secondary" for="post-cuid-tyc">
-                Acepto el Código de Conducta de Cuidadores y la comisión del 15% de Paw Patita.
+                Acepto el Código de Conducta de Cuidadores, los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Servicio v5.1</a> y la comisión del 15% de Paw Patita.
               </label>
             </div>
 
@@ -655,15 +687,23 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Tarifa Base Consulta de Emergencia (S/ PEN)</label>
-              <input type="number" class="form-control" id="post-vet-tarifa" min="30" max="250" value="60" required>
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Tarifa Base Consulta de Emergencia (S/ PEN)</label>
+                <input type="number" class="form-control" id="post-vet-tarifa" min="30" max="250" value="60" required>
+              </div>
+              <div class="col-md-4">
+                <div id="uploader-vet-foto-fachada"></div>
+              </div>
+              <div class="col-md-4">
+                <div id="uploader-vet-constancia"></div>
+              </div>
             </div>
 
             <div class="form-check mb-4">
               <input class="form-check-input" type="checkbox" id="post-vet-tyc" required>
               <label class="form-check-label small text-secondary" for="post-vet-tyc">
-                Acepto los Términos de Afiliación Veterinaria y el Protocolo de Atención S.O.S. de Paw Patita Cusco.
+                Acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Afiliación Veterinaria v5.1</a>, la <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="declaracion">Declaración de Responsabilidad</a> y el Protocolo de Atención S.O.S. de Paw Patita Cusco.
               </label>
             </div>
 

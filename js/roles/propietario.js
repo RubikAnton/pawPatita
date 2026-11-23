@@ -14,12 +14,20 @@
  *  5. Mi Perfil (Edición de datos personales, interruptor Local/Turista, hotel en Cusco y contacto emergencia)
  */
 
-import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime, getFallbackSvgDataUri } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { updateLocalSessionProfile } from '../auth/auth.js';
 import { navigateTo } from '../router.js';
 import { formatMoneda, formatFechaEs, escapeHtml, getHoyIso, sumarDiasIso } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { mountFileUploader } from '../components/file-uploader.js';
+
+const BLOQUE_HORARIO_LABELS = {
+  manana_08_12: 'Mañana (08:00 - 12:00)',
+  tarde_14_18: 'Tarde (14:00 - 18:00)',
+  noche_18_22: 'Noche (18:00 - 22:00)',
+  todo_el_dia: 'Estadía Completa (24h)'
+};
 import {
   obtenerMascotasPropietario,
   renderTarjetaMascota,
@@ -293,11 +301,11 @@ async function obtenerReservasPropietario(idPropietario) {
         .eq('id_propietario', idPropietario)
         .order('created_at', { ascending: false });
 
-      if (!error && Array.isArray(data) && data.length > 0) {
+      if (!error && Array.isArray(data)) {
         return data.map(normalizarReserva);
       }
     } catch (err) {
-      console.warn('Fallback local en obtenerReservasPropietario:', err);
+      console.warn('Error al consultar reservas del propietario:', err);
     }
   }
   return getLocalReservas().map(normalizarReserva);
@@ -365,7 +373,7 @@ async function abrirModalCancelarReserva(reserva, onCanceladaCallback) {
   const r = normalizarReserva(reserva);
   const moneda = localStorage.getItem('paw_currency') || 'PEN';
 
-  showSpinner('Calculando horas de anticipación y reembolso (rpc_preview_cancelacion)...');
+  showSpinner('Calculando horas de anticipación y reembolso...');
   let preview = null;
   try {
     const supabase = getSupabase();
@@ -382,7 +390,7 @@ async function abrirModalCancelarReserva(reserva, onCanceladaCallback) {
     <div class="alert alert-warning border-0 d-flex align-items-center gap-3 mb-3">
       <i class="bi bi-calculator-fill fs-2 text-warning-emphasis"></i>
       <div class="small">
-        <strong>Liquidación Automática por Política Escalonada v5.0:</strong><br>
+        <strong>Liquidación Automática por Política Escalonada v5.1:</strong><br>
         ${escapeHtml(preview.regla_aplicada)}
       </div>
     </div>
@@ -439,7 +447,7 @@ async function abrirModalCancelarReserva(reserva, onCanceladaCallback) {
       return;
     }
 
-    showSpinner('Ejecutando cancelación y reembolso (rpc_cancelar_reserva)...');
+    showSpinner('Procesando cancelación y reembolso...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -473,7 +481,7 @@ async function abrirModalCancelarReserva(reserva, onCanceladaCallback) {
 }
 
 /**
- * Abre el modal para Abrir Disputa (`rpc_abrir_disputa`) congelando fondos en garantía
+ * Abre el modal para Abrir Disputa congelando fondos en garantía
  */
 function abrirModalDisputaReserva(reserva, onDisputaCallback) {
   const r = normalizarReserva(reserva);
@@ -482,7 +490,7 @@ function abrirModalDisputaReserva(reserva, onDisputaCallback) {
     <div class="alert alert-danger border-0 d-flex align-items-center gap-3 mb-3">
       <i class="bi bi-shield-exclamation fs-2"></i>
       <div class="small">
-        <strong>Protección de Garantía Escrow:</strong> Al abrir una disputa formal sobre la reserva
+        <strong>Protección de Pago en Garantía:</strong> Al abrir una disputa formal sobre la reserva
         <strong>${escapeHtml(r.codigo_reserva)}</strong>, los fondos quedan congelados inmediatamente en garantía
         y el caso se eleva a arbitraje del Administrador de Paw Patita Cusco.
       </div>
@@ -516,7 +524,7 @@ function abrirModalDisputaReserva(reserva, onDisputaCallback) {
       return;
     }
 
-    showSpinner('Congelando fondos y registrando expediente de arbitraje (rpc_abrir_disputa)...');
+    showSpinner('Registrando reclamo y congelando fondos en garantía...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -641,7 +649,7 @@ function abrirModalCalificarReserva(reserva, onCalificadaCallback) {
       return;
     }
 
-    showSpinner('Publicando reseña y actualizando reputación del cuidador (rpc_publicar_resena)...');
+    showSpinner('Publicando tu calificación verificada...');
     try {
       const supabase = getSupabase();
       if (supabase && isSupabaseConfigured() && !String(r.id).startsWith('res-')) {
@@ -712,7 +720,8 @@ export async function renderPanelPropietario(container, profile) {
     distrito_cusco: profile?.distrito_cusco || 'Wanchaq',
     hospedaje_hotel_cusco: profile?.hospedaje_hotel_cusco || '',
     contacto_emergencia_nombre: profile?.contacto_emergencia_nombre || 'Carlos Mendoza (Hermano)',
-    contacto_emergencia_tel: profile?.contacto_emergencia_tel || '+51 984 998 877'
+    contacto_emergencia_tel: profile?.contacto_emergencia_tel || '+51 984 998 877',
+    avatar_url: profile?.avatar_url || ''
   };
 
   let activeTab = 'resumen';
@@ -732,23 +741,31 @@ export async function renderPanelPropietario(container, profile) {
     hideSpinner();
   }
 
-  // Suscripción Realtime a nuevos reportes del Muro y cambios en Alertas S.O.S.
+  // Suscripción Realtime a nuevos reportes del Muro y cambios en Alertas S.O.S. (INSERT + UPDATE)
   subscribeRealtime('canal-propietario-muro', 'reportes_seguimiento', 'INSERT', async () => {
     reportesMuro = await obtenerReportesMuroPropietario(reservas);
     showToast('📸 ¡Tu cuidador acaba de publicar una nueva foto en el Muro en Vivo!', 'info', 'Muro en Vivo');
-    if (activeTab === 'muro') renderWorkspace();
+    if (activeTab === 'muro') renderLayout();
   });
 
-  subscribeRealtime('canal-propietario-sos', 'incidencias_emergencias', 'UPDATE', async () => {
+  subscribeRealtime('canal-propietario-sos', 'incidencias_emergencias', '*', async (payload) => {
     alertasSos = await obtenerAlertasSosPropietario(propProfile.id, mascotas.map((m) => m.id));
-    showToast('🏥 Actualización clínica en tiempo real sobre tu alerta S.O.S.', 'info', 'Central S.O.S.');
-    if (activeTab === 'sos') renderWorkspace();
+    const ev = payload?.eventType || 'UPDATE';
+    showToast(
+      ev === 'INSERT'
+        ? '🚨 Se ha registrado una nueva alerta S.O.S. para tu mascota.'
+        : '🏥 Actualización clínica en tiempo real sobre tu alerta S.O.S.',
+      ev === 'INSERT' ? 'danger' : 'info',
+      'Central S.O.S. 24h'
+    );
+    renderLayout();
   });
 
   function renderLayout() {
     const iniciales = `${propProfile.nombre.charAt(0)}${(propProfile.apellido || 'P').charAt(0)}`.toUpperCase();
     const noVistosMuro = reportesMuro.filter((r) => !r.visto_por_propietario).length;
     const sosActivos = alertasSos.filter((s) => s.estado_sos !== 'resuelta').length;
+    const fallbackAvatar = getFallbackSvgDataUri('avatar');
 
     container.innerHTML = `
       <div class="container">
@@ -757,7 +774,14 @@ export async function renderPanelPropietario(container, profile) {
           <aside class="panel-sidebar">
             <div class="panel-sidebar-profile">
               <div class="d-flex align-items-center gap-3 mb-2">
-                <div class="panel-avatar-circle">${escapeHtml(iniciales)}</div>
+                ${propProfile.avatar_url ? `
+                  <img src="${escapeHtml(propProfile.avatar_url)}" alt="${escapeHtml(propProfile.nombre)}"
+                       class="rounded-circle border border-2 border-warning object-fit-cover flex-shrink-0"
+                       style="width:48px;height:48px;"
+                       onerror="this.onerror=null;this.src='${fallbackAvatar}';">
+                ` : `
+                  <div class="panel-avatar-circle">${escapeHtml(iniciales)}</div>
+                `}
                 <div class="min-w-0">
                   <h6 class="fw-bold text-white mb-0 text-truncate">${escapeHtml(propProfile.nombre)} ${escapeHtml(propProfile.apellido)}</h6>
                   <div class="small text-white-50 text-truncate">${escapeHtml(propProfile.email)}</div>
@@ -975,7 +999,7 @@ export async function renderPanelPropietario(container, profile) {
                 </div>
                 <div class="col-sm-5">
                   <span class="text-muted">Fechas y Horario:</span>
-                  <strong class="text-dark ms-1">${formatFechaEs(r.fecha_inicio)} al ${formatFechaEs(r.fecha_fin)} (${escapeHtml(r.bloque_horario)})</strong>
+                  <strong class="text-dark ms-1">${formatFechaEs(r.fecha_inicio)} al ${formatFechaEs(r.fecha_fin)} (${escapeHtml(BLOQUE_HORARIO_LABELS[r.bloque_horario] || r.bloque_horario)})</strong>
                 </div>
                 <div class="col-sm-3 text-sm-end">
                   <span class="text-muted">Duración:</span>
@@ -1083,10 +1107,10 @@ export async function renderPanelPropietario(container, profile) {
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-3 border-bottom">
           <div>
             <h5 class="fw-bold mb-1">
-              <i class="bi bi-person-Vcard-fill text-warning me-2"></i>Mi Perfil Unificado de Propietario (Residente Local / Turista)
+              <i class="bi bi-person-vcard-fill text-warning me-2"></i>Mi Perfil Unificado de Propietario (Residente Local / Turista)
             </h5>
             <p class="text-secondary small mb-0">
-              Configura tus datos de contacto, documento (DNI, CE o Pasaporte) y si te encuentras de visita turística en un hotel de Cusco.
+              Configura tu fotografía de perfil, datos de contacto, documento (DNI, CE o Pasaporte) y si te encuentras de visita turística en un hotel de Cusco.
             </p>
           </div>
           <span class="badge bg-dark fs-6">${escapeHtml(propProfile.codigo_usuario)}</span>
@@ -1094,6 +1118,12 @@ export async function renderPanelPropietario(container, profile) {
 
         <form id="form-perfil-propietario" novalidate>
           <div class="row g-3">
+            <div class="col-12">
+              <div class="p-3 bg-light rounded-3 border">
+                <div id="uploader-prop-avatar"></div>
+              </div>
+            </div>
+
             <div class="col-md-4">
               <label class="form-label small fw-bold">Nombres *</label>
               <input type="text" class="form-control" id="prof-nombre" required value="${escapeHtml(propProfile.nombre)}">
@@ -1193,6 +1223,14 @@ export async function renderPanelPropietario(container, profile) {
       </div>
     `;
 
+    const avatarUploader = mountFileUploader(workspace.querySelector('#uploader-prop-avatar'), {
+      label: 'Fotografía de Perfil (Avatar)',
+      accept: 'image/*',
+      bucket: CUSCO_CONFIG.STORAGE_BUCKETS.PERFILES,
+      folder: 'propietarios/avatars',
+      initialValue: propProfile.avatar_url || ''
+    });
+
     const checkTurista = workspace.querySelector('#prof-check-turista');
     const boxTurista = workspace.querySelector('#prof-campos-turista');
     checkTurista?.addEventListener('change', () => {
@@ -1201,24 +1239,27 @@ export async function renderPanelPropietario(container, profile) {
 
     workspace.querySelector('#form-perfil-propietario')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const updated = {
-        nombre: workspace.querySelector('#prof-nombre').value.trim() || propProfile.nombre,
-        apellido: workspace.querySelector('#prof-apellido').value.trim(),
-        telefono: workspace.querySelector('#prof-telefono').value.trim(),
-        tipo_documento: workspace.querySelector('#prof-tipo-doc').value,
-        num_documento: workspace.querySelector('#prof-num-doc').value.trim(),
-        distrito_cusco: workspace.querySelector('#prof-distrito').value,
-        direccion: workspace.querySelector('#prof-direccion').value.trim(),
-        es_turista: checkTurista.checked,
-        pais_origen: checkTurista.checked ? (workspace.querySelector('#prof-pais').value.trim() || 'Perú') : 'Perú',
-        idioma_preferido: checkTurista.checked ? workspace.querySelector('#prof-idioma').value : 'ES',
-        hospedaje_hotel_cusco: checkTurista.checked ? workspace.querySelector('#prof-hotel').value.trim() : '',
-        contacto_emergencia_nombre: workspace.querySelector('#prof-emerg-nombre').value.trim(),
-        contacto_emergencia_tel: workspace.querySelector('#prof-emerg-tel').value.trim()
-      };
-
       showSpinner('Actualizando tu perfil unificado de propietario...');
       try {
+        const avatarUrl = await avatarUploader.uploadIfPending();
+
+        const updated = {
+          nombre: workspace.querySelector('#prof-nombre').value.trim() || propProfile.nombre,
+          apellido: workspace.querySelector('#prof-apellido').value.trim(),
+          telefono: workspace.querySelector('#prof-telefono').value.trim(),
+          tipo_documento: workspace.querySelector('#prof-tipo-doc').value,
+          num_documento: workspace.querySelector('#prof-num-doc').value.trim(),
+          distrito_cusco: workspace.querySelector('#prof-distrito').value,
+          direccion: workspace.querySelector('#prof-direccion').value.trim(),
+          es_turista: checkTurista.checked,
+          pais_origen: checkTurista.checked ? (workspace.querySelector('#prof-pais').value.trim() || 'Perú') : 'Perú',
+          idioma_preferido: checkTurista.checked ? workspace.querySelector('#prof-idioma').value : 'ES',
+          hospedaje_hotel_cusco: checkTurista.checked ? workspace.querySelector('#prof-hotel').value.trim() : '',
+          contacto_emergencia_nombre: workspace.querySelector('#prof-emerg-nombre').value.trim(),
+          contacto_emergencia_tel: workspace.querySelector('#prof-emerg-tel').value.trim(),
+          avatar_url: avatarUrl || null
+        };
+
         const supabase = getSupabase();
         if (supabase && isSupabaseConfigured() && !String(propProfile.id).startsWith('mock-')) {
           const { error } = await supabase
