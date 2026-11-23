@@ -1,7 +1,7 @@
 # 📋 BITÁCORA TÉCNICA VIVA DE EJECUCIÓN — PAW PATITA CUSCO v5.0
 ## Registro Continuo de Desarrollo, Decisiones de Arquitectura y Trazabilidad
 
-> **Repositorio:** `https://github.com/nasdigog-glitch/paw-patita-cusco.git`  
+> **Repositorio:** `https://github.com/RubikAnton/pawPatita.git`  
 > **Stack Tecnológico:** GitHub Pages (HTML5, CSS3, JS Vanilla ES Modules) + Supabase (PostgreSQL 15+, Auth, RLS, Realtime, Storage)  
 > **Plan Maestro de Referencia:** [`PLAN_MIGRACION_SUPABASE.md`](./PLAN_MIGRACION_SUPABASE.md)  
 > **Directiva de Ahorro de Tokens:** Ningún agente debe leer archivos legacy (`Codigo.gs`, `Index.html`, etc.). Toda la verdad técnica reside en el Plan Maestro y en esta Bitácora.
@@ -407,7 +407,7 @@ El repositorio se encuentra limpio, desacoplado, completamente funcional, con 0 
 7. **Responsividad y Formato de Impresión:** Layout 100% responsivo en 360px (móvil), 768px (tablet) y 1440px (desktop). El Carné Digital PAW-ID se imprime en formato tarjeta de identificación impecable con QR de alta definición gracias a `css/print.css`.
 
 #### 4. Estado de Publicación en GitHub Pages
-- **URL del Sitio:** `https://nasdigog-glitch.github.io/paw-patita-cusco/`
+- **URL del Sitio:** `https://rubikanton.github.io/pawPatita/`
 - **Punto de Entrada SPA:** `index.html` (en minúsculas) en la raíz `/` del repositorio.
 - **Bypass de Jekyll:** Archivo `.nojekyll` presente en la raíz.
 - **Rutas y Assets:** Enrutamiento hash (`#/`, `#/catalogo`, `#/propietario`, `#/cuidador`, `#/veterinaria`, `#/admin`) con referencias relativas (`./css/`, `./js/`), garantizando que no se produzcan errores 404 ante recargas de página en el subdirectorio de GitHub Pages.

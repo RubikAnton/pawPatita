@@ -1,17 +1,37 @@
 /**
- * Paw Patita Cusco v5.0 — Configuración Centralizada
+ * Paw Patita Cusco v5.0 — Configuración Centralizada de Producción
  * js/config.js
  * 
- * Centraliza las credenciales públicas de Supabase, constantes geográficas de Cusco,
- * parámetros de plataforma, tipos de documento y bloques horarios.
+ * ==============================================================================
+ * GUÍA DE CONFIGURACIÓN DE SUPABASE EN PRODUCCIÓN:
+ * ==============================================================================
+ * 1. Accede a tu proyecto en Supabase Dashboard: https://supabase.com/dashboard
+ * 2. Ve a: Project Settings (icono de engranaje) -> API
+ * 3. En la sección "Project API keys", localiza:
+ *    - Project URL: Copia la URL (ej. https://abcdefghijklm.supabase.co)
+ *    - anon / public key: Copia la clave anon (ej. eyJhbGciOiJIUzI1NiIsInR5cCI6...)
+ * 4. Pega tus credenciales en las constantes SUPABASE_URL y SUPABASE_ANON_KEY abajo,
+ *    o inyéctalas dinámicamente mediante window.__ENV__ en tu HTML/CDN.
+ * 
+ * ⚠️ REGLA DE ORO DE SEGURIDAD:
+ * NUNCA uses ni coloques aquí la clave 'service_role' (secret). Únicamente la clave 'anon' (public).
+ * La seguridad está 100% blindada por las políticas RLS definidas en supabase/04_rls_policies.sql.
+ * ==============================================================================
  */
 
 export const ENV = {
-  // Configuración de Supabase Cloud
-  // Reemplazar con las credenciales de tu proyecto Supabase o configurar en window.__ENV__
+  // URL del Proyecto Supabase (Project URL)
+  // Reemplazar 'https://xyzcompany.supabase.co' con tu URL real de Supabase
   SUPABASE_URL: window.__ENV__?.SUPABASE_URL || 'https://xyzcompany.supabase.co',
+
+  // Clave Anónima Pública de Supabase (anon public API key)
+  // Reemplazar con el token JWT público de tu proyecto
   SUPABASE_ANON_KEY: window.__ENV__?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_development',
-  SITE_URL: window.location.origin + window.location.pathname,
+
+  // URL canónica de producción en GitHub Pages
+  SITE_URL: window.__ENV__?.SITE_URL || (window.location.origin + window.location.pathname),
+
+  // Modo depuración (false en producción final si se desea silenciar logs en consola)
   DEBUG: true
 };
 

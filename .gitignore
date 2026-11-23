@@ -1,25 +1,45 @@
-# Python
+# ==============================================================================
+# Paw Patita Cusco v5.0 — .gitignore de Producción (GitHub Pages + Supabase)
+# ==============================================================================
+
+# Entornos y Archivos de Secretos Locales
+.env
+.env.local
+.env.*.local
+
+# Archivos Legacy y Herramientas de Desarrollo Excluidas de GitHub Pages
+legacy-gas/
+legacy-Index.html
+Codigo.gs
+tools/
+*.xlsx
+*.xls
+*.docx
+*.doc
+Informe_analisis.md
+Informe_PawPatita_Actualizado.docx
+docs/
+tests/
+
+# Python & Entornos Virtuales
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyo
 venv/
 env/
-.env
 
-# Temporary Office / Windows files
+# Archivos Temporales de Sistema Operativo y Ofimática
 ~$*
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# OS generated
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 
-# Logs & scratch
+# Logs & Scratch
 *.log
 scratch/

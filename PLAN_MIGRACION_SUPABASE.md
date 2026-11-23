@@ -1,7 +1,7 @@
 # 🐾 PLAN MAESTRO DE MIGRACIÓN — PAW PATITA CUSCO v5.0
 ## De Google Apps Script + Google Sheets hacia GitHub Pages (HTML5/CSS3/JS Modular) + Supabase (PostgreSQL + Auth + RLS + Realtime + Storage)
 
-> **Repositorio Oficial:** `https://github.com/nasdigog-glitch/paw-patita-cusco.git`  
+> **Repositorio Oficial:** `https://github.com/RubikAnton/pawPatita.git`  
 > **Rol del Documento:** Blueprint de Arquitectura Full-Stack, Auditoría Forense y Checklist Maestro por Fases  
 > **Estado de Fase 1:** ✅ Completada (Auditoría Total + Diseño de Arquitectura + Plan de Migración)  
 > **Fecha:** Noviembre 2026 | **Cusco, Perú**
@@ -562,7 +562,7 @@ Todas las tablas usan `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`, timestamp
   - [x] Verificar seguridad: comprobar que la clave `service_role` NO existe en ningún archivo del repositorio y que un `Propietario` no puede leer tablas administrativas vía consola del navegador (bloqueado por RLS).
 - [x] Mover archivos legacy de Google Apps Script a `legacy-gas/` manteniendo intacta la trazabilidad académica en Git y asegurando que la raíz tenga únicamente `index.html` (minúscula) como entrypoint de GitHub Pages.
 - [x] Actualizar `README.md` y documentación clave en `docs/` reflejando **Paw Patita Cusco v5.0 (GitHub Pages + Supabase)**.
-- [x] Configurar y validar publicación en **GitHub Pages** (`https://nasdigog-glitch.github.io/paw-patita-cusco/`) y verificar Redirect URLs de recuperación de contraseña en Supabase Auth.
+- [x] Configurar y validar publicación en **GitHub Pages** (`https://rubikanton.github.io/pawPatita/`) y verificar Redirect URLs de recuperación de contraseña en Supabase Auth.
 
 **Criterio de Aceptación Fase 8:** ✅ Sitio publicado y funcional en GitHub Pages conectado a Supabase, 100% de pruebas SQL y E2E en verde, 0 errores en consola y documentación v5.0 al día.
 
@@ -816,7 +816,7 @@ Por favor, sigue estas directrices estrictas:
      * Actualizar `README.md` con la nueva arquitectura (GitHub Pages + Supabase), guía de despliegue, enlaces a documentación y 4 credenciales demo para pruebas.
      * Actualizar `docs/01_CHANGELOG_Y_TRAZABILIDAD_CAMBIOS.md` con la sección detallada de la migración v4.0 -> v5.0.
      * Actualizar `docs/04_DICCIONARIO_DE_DATOS_Y_ARQUITECTURA.md` con el nuevo esquema relacional PostgreSQL de 23 tablas, diccionario de columnas y políticas de seguridad RLS.
-   - **Verificación de Publicación:** Validar la configuración del repositorio para GitHub Pages (`https://nasdigog-glitch.github.io/paw-patita-cusco/`).
+   - **Verificación de Publicación:** Validar la configuración del repositorio para GitHub Pages (`https://rubikanton.github.io/pawPatita/`).
 4. Al finalizar:
    - Marca con `[x]` todas las tareas pendientes de la Fase 8 en `PLAN_MIGRACION_SUPABASE.md`.
    - REGISTRA OBLIGATORIAMENTE tu entrada de cierre en `BITACORA_EJECUCION_V5.md` resumiendo la suite de pruebas ejecutada, el estado final del repositorio y las métricas de calidad obtenidas.

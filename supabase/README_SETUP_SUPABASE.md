@@ -37,9 +37,9 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.reportes_seguimiento;
 ## 3. Configurar Autenticación y URLs de GitHub Pages
 
 1. Ve a **Authentication** → **URL Configuration**:
-   - **Site URL:** `https://nasdigog-glitch.github.io/paw-patita-cusco/` (o `http://localhost:5500` durante pruebas locales).
+   - **Site URL:** `https://rubikanton.github.io/pawPatita/` (o `http://localhost:5500` durante pruebas locales).
    - **Redirect URLs:** Agrega:
-     - `https://nasdigog-glitch.github.io/paw-patita-cusco/**`
+     - `https://rubikanton.github.io/pawPatita/**`
      - `http://localhost:5500/**`
      - `http://127.0.0.1:5500/**`
 2. Ve a **Authentication** → **Providers** → **Email**:
