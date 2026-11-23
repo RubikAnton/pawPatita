@@ -79,10 +79,10 @@ export const CUSCO_CONFIG = {
     },
     {
       rol: 'cuidador',
-      nombre: 'Valeria Huamán (Cuidadora Aprobada)',
+      nombre: 'Valeria Huamán (Cuidador Aprobado)',
       email: 'valeria.cuidadora@pawpatitacusco.pe',
       password: 'PawPatita2026!',
-      badge: 'Cuidadora Activa',
+      badge: 'Cuidador Activo',
       desc: 'Wanchaq • Agenda Bloques y Billetera'
     },
     {
@@ -91,7 +91,7 @@ export const CUSCO_CONFIG = {
       email: 'vet.sanfrancisco@pawpatitacusco.pe',
       password: 'PawPatita2026!',
       badge: 'Veterinaria 24h',
-      desc: 'Central SOS Realtime y Validar PAW-ID'
+      desc: 'Central SOS en Vivo y Validar PAW-ID'
     },
     {
       rol: 'administrador',
@@ -111,5 +111,5 @@ export const CUSCO_CONFIG = {
   },
   DEFAULT_TIPO_CAMBIO: 3.75,
   COMISION_PLATAFORMA_PCT: 0.15,
-  TYC_VERSION: '5.0'
+  TYC_VERSION: '5.2'
 };

@@ -12,6 +12,15 @@ import { getSupabase, isSupabaseConfigured, uploadFileToStorage } from '../supab
 import { CUSCO_CONFIG } from '../config.js';
 import { showSpinner, hideSpinner, showToast, handleSupabaseError, showConfirmModal } from '../utils/ui-helpers.js';
 import { mountFileUploader } from '../components/file-uploader.js';
+import {
+  validatePersonName,
+  validateEmail,
+  validatePassword,
+  validateDocument,
+  validatePhone,
+  validateCmvp,
+  validateNumberRange
+} from '../utils/validators.js';
 
 let cuidadorUploaders = null;
 let clinicaUploaders = null;
@@ -109,6 +118,26 @@ export async function registrarPropietario(data) {
   const supabase = getSupabase();
 
   try {
+    const vNom = validatePersonName(data.nombre);
+    if (!vNom.valid) throw new Error(`Nombres: ${vNom.message}`);
+    const vApe = validatePersonName(data.apellido);
+    if (!vApe.valid) throw new Error(`Apellidos: ${vApe.message}`);
+    const vMail = validateEmail(data.email);
+    if (!vMail.valid) throw new Error(vMail.message);
+    const vPwd = validatePassword(data.password, { minLen: 8 });
+    if (!vPwd.valid) throw new Error(vPwd.message);
+    const vDoc = validateDocument(data.tipoDocumento || 'DNI', data.numDocumento);
+    if (!vDoc.valid) throw new Error(vDoc.message);
+    const vTel = validatePhone(data.telefono);
+    if (!vTel.valid) throw new Error(`Teléfono: ${vTel.message}`);
+    if (data.contactoNombre) {
+      const vEmergNom = validatePersonName(data.contactoNombre, { required: false });
+      if (!vEmergNom.valid) throw new Error(`Contacto de emergencia: ${vEmergNom.message}`);
+    }
+    if (data.contactoTel) {
+      const vEmergTel = validatePhone(data.contactoTel, { required: false });
+      if (!vEmergTel.valid) throw new Error(`Teléfono de emergencia: ${vEmergTel.message}`);
+    }
     if (!data.aceptaTyc) {
       throw new Error('Debes aceptar los Términos y Condiciones para registrarte.');
     }
@@ -167,6 +196,28 @@ export async function postularCuidador(data) {
 
   try {
     initPostulacionesUploaders();
+
+    const vNom = validatePersonName(data.nombre);
+    if (!vNom.valid) throw new Error(`Nombres: ${vNom.message}`);
+    const vApe = validatePersonName(data.apellido);
+    if (!vApe.valid) throw new Error(`Apellidos: ${vApe.message}`);
+    const vMail = validateEmail(data.email);
+    if (!vMail.valid) throw new Error(vMail.message);
+    const vPwd = validatePassword(data.password, { minLen: 8 });
+    if (!vPwd.valid) throw new Error(vPwd.message);
+    const vDoc = validateDocument(data.tipoDocumento || 'DNI', data.numDocumento);
+    if (!vDoc.valid) throw new Error(vDoc.message);
+    const vTel = validatePhone(data.telefono);
+    if (!vTel.valid) throw new Error(`Teléfono móvil: ${vTel.message}`);
+    if (!data.direccion || String(data.direccion).trim().length < 5) {
+      throw new Error('Ingresa tu dirección de residencia en Cusco (mínimo 5 caracteres).');
+    }
+    const vExp = validateNumberRange(data.experiencia, { min: 1, max: 30 });
+    if (!vExp.valid) throw new Error(`Años de experiencia: ${vExp.message}`);
+    const vCap = validateNumberRange(data.capacidad, { min: 1, max: 6 });
+    if (!vCap.valid) throw new Error(`Capacidad de mascotas: ${vCap.message}`);
+    const vTar = validateNumberRange(data.tarifaInicial, { min: 20, max: 150 });
+    if (!vTar.valid) throw new Error(`Tarifa inicial: ${vTar.message}`);
 
     if (!data.aceptaTyc || !data.declaracionJurada) {
       throw new Error('Debes aceptar los Términos y marcar la Declaración Jurada de veracidad.');
@@ -336,16 +387,31 @@ export async function postularClinicaVeterinaria(data) {
   try {
     initPostulacionesUploaders();
 
+    if (!data.nombreClinica || String(data.nombreClinica).trim().length < 3) {
+      throw new Error('Ingresa la Razón Social o nombre comercial de la clínica (mínimo 3 caracteres).');
+    }
+    const vRuc = validateDocument('RUC', data.ruc);
+    if (!vRuc.valid) throw new Error(vRuc.message);
+    const vMail = validateEmail(data.email);
+    if (!vMail.valid) throw new Error(vMail.message);
+    const vPwd = validatePassword(data.password, { minLen: 8 });
+    if (!vPwd.valid) throw new Error(vPwd.message);
+    const vTel = validatePhone(data.telefonoEmergencia);
+    if (!vTel.valid) throw new Error(`Teléfono de emergencias: ${vTel.message}`);
+    if (!data.direccion || String(data.direccion).trim().length < 5) {
+      throw new Error('Ingresa la dirección física de la clínica en Cusco (mínimo 5 caracteres).');
+    }
+    const vCmvp = validateCmvp(data.colegiaturaCmvp);
+    if (!vCmvp.valid) throw new Error(vCmvp.message);
+    const vResp = validatePersonName(data.nombreResponsable);
+    if (!vResp.valid) throw new Error(`Médico responsable: ${vResp.message}`);
+    const vDniResp = validateDocument('DNI', data.dniResponsable);
+    if (!vDniResp.valid) throw new Error(`DNI del responsable: ${vDniResp.message}`);
+    const vTarifa = validateNumberRange(data.tarifaEmergencia, { min: 30, max: 250 });
+    if (!vTarifa.valid) throw new Error(`Tarifa consulta de emergencia: ${vTarifa.message}`);
+
     if (!data.aceptaTyc) {
       throw new Error('Debes aceptar los Términos de Afiliación de Clínicas Aliadas.');
-    }
-
-    if (!data.ruc || data.ruc.trim().length !== 11) {
-      throw new Error('El RUC institucional debe tener exactamente 11 dígitos.');
-    }
-
-    if (!data.colegiaturaCmvp) {
-      throw new Error('El N° de Colegiatura CMVP del médico veterinario es obligatorio.');
     }
 
     // 1. Subir fachada y constancia CMVP/RUC antes del signUp

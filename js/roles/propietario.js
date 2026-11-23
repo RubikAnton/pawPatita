@@ -14,7 +14,7 @@
  *  5. Mi Perfil (Edición de datos personales, interruptor Local/Turista, hotel en Cusco y contacto emergencia)
  */
 
-import { getSupabase, isSupabaseConfigured, subscribeRealtime, getFallbackSvgDataUri } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime, unsubscribeRealtime, getFallbackSvgDataUri } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { updateLocalSessionProfile } from '../auth/auth.js';
 import { navigateTo } from '../router.js';
@@ -39,9 +39,16 @@ import {
 } from '../components/carnet-digital.js';
 import { abrirWizardReserva } from '../components/wizard-reserva.js';
 import { obtenerReportesMuroPropietario, renderSeccionMuroFotos } from '../components/muro-fotos.js';
-import { obtenerAlertasSosPropietario, renderSeccionAlertasSos, abrirModalEmitirSos } from '../components/alerta-sos.js';
+import {
+  obtenerAlertasSosPropietario,
+  renderSeccionAlertasSos,
+  abrirModalEmitirSos,
+  calcularResumenFinancieroSos
+} from '../components/alerta-sos.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 
 const STORAGE_KEY_RESERVAS = 'paw_demo_reservas_owner_v5';
+let activeOwnerSessionHandler = null;
 
 // Semilla inicial sincronizada con supabase/06_seed.sql cubriendo todos los estados para pruebas E2E
 export const RESERVAS_SEED_OWNER = [
@@ -741,15 +748,60 @@ export async function renderPanelPropietario(container, profile) {
     hideSpinner();
   }
 
+  let isPanelMounted = true;
+  const handleOwnerAuthChanged = (ev) => {
+    const nextUser = ev?.detail?.user || null;
+    if (!nextUser || nextUser.id !== propProfile.id) {
+      isPanelMounted = false;
+      mascotas = [];
+      reservas = [];
+      reportesMuro = [];
+      alertasSos = [];
+      unsubscribeRealtime('canal-propietario-muro');
+      unsubscribeRealtime('canal-propietario-sos');
+      window.removeEventListener('paw:auth-changed', handleOwnerAuthChanged);
+      if (activeOwnerSessionHandler === handleOwnerAuthChanged) {
+        activeOwnerSessionHandler = null;
+      }
+    }
+  };
+  if (activeOwnerSessionHandler) {
+    window.removeEventListener('paw:auth-changed', activeOwnerSessionHandler);
+  }
+  activeOwnerSessionHandler = handleOwnerAuthChanged;
+  window.addEventListener('paw:auth-changed', handleOwnerAuthChanged);
+
   // Suscripción Realtime a nuevos reportes del Muro y cambios en Alertas S.O.S. (INSERT + UPDATE)
-  subscribeRealtime('canal-propietario-muro', 'reportes_seguimiento', 'INSERT', async () => {
+  const reservaIds = reservas.map((r) => r.id).filter(Boolean);
+  const mascotaIds = mascotas.map((m) => m.id).filter(Boolean);
+  const muroFilter = reservaIds.length > 0 ? `id_reserva=in.(${reservaIds.join(',')})` : null;
+  const sosFilter = mascotaIds.length > 0 ? `id_mascota=in.(${mascotaIds.join(',')})` : null;
+
+  subscribeRealtime('canal-propietario-muro', 'reportes_seguimiento', 'INSERT', async (payload) => {
+    if (!isPanelMounted) return;
+    const rec = payload?.new || {};
+    const misReservasSet = new Set(reservas.map((r) => r.id));
+    if (rec.id_reserva && misReservasSet.size > 0 && !misReservasSet.has(rec.id_reserva)) return;
+
     reportesMuro = await obtenerReportesMuroPropietario(reservas);
+    if (!isPanelMounted) return;
     showToast('📸 ¡Tu cuidador acaba de publicar una nueva foto en el Muro en Vivo!', 'info', 'Muro en Vivo');
     if (activeTab === 'muro') renderLayout();
-  });
+  }, muroFilter);
 
   subscribeRealtime('canal-propietario-sos', 'incidencias_emergencias', '*', async (payload) => {
+    if (!isPanelMounted) return;
+    const rec = payload?.new || payload?.old || {};
+    const misMascotasSet = new Set(mascotas.map((m) => m.id));
+    const misReservasSet = new Set(reservas.map((r) => r.id));
+    const pertenece =
+      (rec.id_mascota && misMascotasSet.has(rec.id_mascota)) ||
+      (rec.id_reserva && misReservasSet.has(rec.id_reserva)) ||
+      rec.reportado_por === propProfile.id;
+    if ((rec.id_mascota || rec.id_reserva || rec.reportado_por) && !pertenece) return;
+
     alertasSos = await obtenerAlertasSosPropietario(propProfile.id, mascotas.map((m) => m.id));
+    if (!isPanelMounted) return;
     const ev = payload?.eventType || 'UPDATE';
     showToast(
       ev === 'INSERT'
@@ -759,7 +811,7 @@ export async function renderPanelPropietario(container, profile) {
       'Central S.O.S. 24h'
     );
     renderLayout();
-  });
+  }, sosFilter);
 
   function renderLayout() {
     const iniciales = `${propProfile.nombre.charAt(0)}${(propProfile.apellido || 'P').charAt(0)}`.toUpperCase();
@@ -783,8 +835,8 @@ export async function renderPanelPropietario(container, profile) {
                   <div class="panel-avatar-circle">${escapeHtml(iniciales)}</div>
                 `}
                 <div class="min-w-0">
-                  <h6 class="fw-bold text-white mb-0 text-truncate">${escapeHtml(propProfile.nombre)} ${escapeHtml(propProfile.apellido)}</h6>
-                  <div class="small text-white-50 text-truncate">${escapeHtml(propProfile.email)}</div>
+                  <h6 class="fw-bold text-white mb-0 panel-user-name">${escapeHtml(propProfile.nombre)} ${escapeHtml(propProfile.apellido)}</h6>
+                  <div class="small text-white-50 panel-user-email">${escapeHtml(propProfile.email)}</div>
                   <div class="small text-warning fw-semibold">
                     ${escapeHtml(propProfile.tipo_documento)}: ${escapeHtml(propProfile.num_documento)}
                   </div>
@@ -799,7 +851,12 @@ export async function renderPanelPropietario(container, profile) {
               </div>
             </div>
 
-            <nav class="panel-nav-menu" aria-label="Menú del Propietario">
+            <button type="button" class="panel-mobile-toggle" id="btn-toggle-panel-menu-prop" aria-expanded="false" aria-controls="panel-nav-menu-prop">
+              <span><i class="bi bi-list-nested me-2 text-warning"></i>Menú del Panel</span>
+              <i class="bi bi-chevron-down toggle-chevron"></i>
+            </button>
+
+            <nav class="panel-nav-menu" id="panel-nav-menu-prop" aria-label="Menú del Propietario">
               <button type="button" class="panel-nav-btn ${activeTab === 'resumen' ? 'active' : ''}" data-tab="resumen">
                 <span class="nav-icon-wrap"><i class="bi bi-calendar2-check-fill"></i>Resumen y Reservas</span>
                 <span class="badge rounded-pill bg-secondary">${reservas.length}</span>
@@ -830,6 +887,10 @@ export async function renderPanelPropietario(container, profile) {
                 <span class="nav-icon-wrap"><i class="bi bi-search-heart text-primary"></i>Explorar Catálogo Cusco</span>
                 <i class="bi bi-arrow-up-right small"></i>
               </button>
+
+              <button type="button" class="panel-nav-btn" data-help-role="propietario">
+                <span class="nav-icon-wrap"><i class="bi bi-question-circle-fill text-warning"></i>Centro de Ayuda & FAQ</span>
+              </button>
             </nav>
           </aside>
 
@@ -840,6 +901,15 @@ export async function renderPanelPropietario(container, profile) {
     `;
 
     // Listeners de navegación en sidebar
+    const toggleBtn = container.querySelector('#btn-toggle-panel-menu-prop');
+    const navMenu = container.querySelector('#panel-nav-menu-prop');
+    if (toggleBtn && navMenu) {
+      toggleBtn.addEventListener('click', () => {
+        const isShown = navMenu.classList.toggle('show');
+        toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
+      });
+    }
+
     container.querySelectorAll('.panel-nav-btn[data-tab]').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeTab = btn.getAttribute('data-tab');
@@ -856,17 +926,21 @@ export async function renderPanelPropietario(container, profile) {
 
   function renderKpisHeader() {
     const moneda = localStorage.getItem('paw_currency') || 'PEN';
+    const tc = CUSCO_CONFIG.DEFAULT_TIPO_CAMBIO || 3.75;
     const activasCount = reservas.filter((r) => ['pendiente_confirmacion', 'confirmada', 'en_curso'].includes(r.estado_reserva)).length;
     const validadasCount = mascotas.filter((m) => m.estado_validacion_vet === 'validado').length;
     const totalInvertido = reservas
       .filter((r) => r.estado_reserva !== 'cancelada')
       .reduce((acc, r) => acc + Number(r.monto_total || 0), 0);
+    const finSos = calcularResumenFinancieroSos(alertasSos);
+    const pendUsd = (finSos.montoPendiente / tc).toFixed(2);
+    const concUsd = (finSos.montoRegularizadoYConciliado / tc).toFixed(2);
 
     return `
       <div class="panel-hero-banner d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge bg-warning text-dark">PANEL UNIFICADO PROPIETARIO v5.0</span>
+            <span class="badge bg-warning text-dark">PANEL UNIFICADO PROPIETARIO v5.2</span>
             ${propProfile.es_turista && propProfile.hospedaje_hotel_cusco ? `
               <span class="badge bg-info-subtle text-info border">
                 <i class="bi bi-building me-1"></i>Hospedaje en Cusco: ${escapeHtml(propProfile.hospedaje_hotel_cusco)}
@@ -919,6 +993,24 @@ export async function renderPanelPropietario(container, profile) {
           </div>
         </div>
       </div>
+
+      ${(finSos.montoPendiente > 0 || finSos.montoRegularizadoYConciliado > 0) ? `
+        <div class="alert ${finSos.montoPendiente > 0 ? 'alert-danger border-danger-subtle' : 'alert-light border'} d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 shadow-xs">
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi ${finSos.montoPendiente > 0 ? 'bi-exclamation-circle-fill text-danger' : 'bi-receipt-cutoff text-success'} fs-3"></i>
+            <div class="small">
+              <div class="fw-bold text-dark">Historial Médico y Cargos Clínicos S.O.S.</div>
+              <div class="text-secondary">
+                Saldo pendiente: <strong class="${finSos.montoPendiente > 0 ? 'text-danger' : 'text-dark'}">S/ ${finSos.montoPendiente.toFixed(2)} ($ ${pendUsd} USD)</strong>
+                • Regularizado / Conciliado: <strong class="text-success">S/ ${finSos.montoRegularizadoYConciliado.toFixed(2)} ($ ${concUsd} USD)</strong>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn ${finSos.montoPendiente > 0 ? 'btn-danger' : 'btn-outline-secondary'} btn-sm fw-bold" id="btn-resumen-ir-sos-cargos">
+            <i class="bi bi-cash-coin me-1"></i>${finSos.montoPendiente > 0 ? 'Regularizar Cargo Clínico' : 'Ver Historial S.O.S.'}
+          </button>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -981,7 +1073,7 @@ export async function renderPanelPropietario(container, profile) {
                       ${renderBadgeEstadoReserva(r.estado_reserva)}
                     </div>
                     <h6 class="fw-bold text-dark mb-0 mt-1">
-                      ${escapeHtml(r.tipo_servicio)} — Cuidador(a): ${escapeHtml(r.cuidador_nombre)} (${escapeHtml(r.cuidador_distrito)})
+                      ${escapeHtml(r.tipo_servicio)} — Cuidador: ${escapeHtml(r.cuidador_nombre)} (${escapeHtml(r.cuidador_distrito)})
                     </h6>
                   </div>
                 </div>
@@ -1126,15 +1218,16 @@ export async function renderPanelPropietario(container, profile) {
 
             <div class="col-md-4">
               <label class="form-label small fw-bold">Nombres *</label>
-              <input type="text" class="form-control" id="prof-nombre" required value="${escapeHtml(propProfile.nombre)}">
+              <input type="text" class="form-control" id="prof-nombre" required data-validate="person-name" maxlength="60" value="${escapeHtml(propProfile.nombre)}">
             </div>
             <div class="col-md-4">
               <label class="form-label small fw-bold">Apellidos *</label>
-              <input type="text" class="form-control" id="prof-apellido" required value="${escapeHtml(propProfile.apellido)}">
+              <input type="text" class="form-control" id="prof-apellido" required data-validate="person-name" maxlength="60" value="${escapeHtml(propProfile.apellido)}">
             </div>
             <div class="col-md-4">
               <label class="form-label small fw-bold">Teléfono / WhatsApp *</label>
-              <input type="text" class="form-control" id="prof-telefono" required value="${escapeHtml(propProfile.telefono)}">
+              <input type="tel" class="form-control" id="prof-telefono" required inputmode="numeric" maxlength="16" data-validate="phone" value="${escapeHtml(propProfile.telefono)}">
+              <div class="form-text small">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
             </div>
 
             <div class="col-md-4">
@@ -1149,7 +1242,8 @@ export async function renderPanelPropietario(container, profile) {
             </div>
             <div class="col-md-4">
               <label class="form-label small fw-bold">Número de Documento *</label>
-              <input type="text" class="form-control" id="prof-num-doc" required value="${escapeHtml(propProfile.num_documento)}">
+              <input type="text" class="form-control" id="prof-num-doc" required inputmode="numeric" data-validate="doc-number" data-doc-type-selector="#prof-tipo-doc" value="${escapeHtml(propProfile.num_documento)}">
+              <div class="form-text small">DNI: 8 dígitos • CE: 9–12 alfanum. • Pasaporte: 6–12 alfanum.</div>
             </div>
             <div class="col-md-4">
               <label class="form-label small fw-bold">Distrito en Cusco *</label>
@@ -1162,7 +1256,7 @@ export async function renderPanelPropietario(container, profile) {
 
             <div class="col-12">
               <label class="form-label small fw-bold">Dirección en Cusco</label>
-              <input type="text" class="form-control" id="prof-direccion" value="${escapeHtml(propProfile.direccion)}"
+              <input type="text" class="form-control" id="prof-direccion" maxlength="160" value="${escapeHtml(propProfile.direccion)}"
                 placeholder="Ej. Urb. Magisterio K-12, Wanchaq o Calle San Agustín 400">
             </div>
 
@@ -1180,7 +1274,7 @@ export async function renderPanelPropietario(container, profile) {
                 <div class="row g-3 mt-1 ${propProfile.es_turista ? '' : 'd-none'}" id="prof-campos-turista">
                   <div class="col-md-4">
                     <label class="form-label small fw-bold">País de Origen</label>
-                    <input type="text" class="form-control bg-white" id="prof-pais" value="${escapeHtml(propProfile.pais_origen)}"
+                    <input type="text" class="form-control bg-white" id="prof-pais" data-validate="person-name-optional" value="${escapeHtml(propProfile.pais_origen)}"
                       placeholder="Ej. Francia, Estados Unidos, Perú (Lima)">
                   </div>
                   <div class="col-md-3">
@@ -1192,7 +1286,7 @@ export async function renderPanelPropietario(container, profile) {
                   </div>
                   <div class="col-md-5">
                     <label class="form-label small fw-bold">Hotel / Airbnb en Cusco (Para recojo de mascota)</label>
-                    <input type="text" class="form-control bg-white" id="prof-hotel"
+                    <input type="text" class="form-control bg-white" id="prof-hotel" maxlength="120"
                       value="${escapeHtml(propProfile.hospedaje_hotel_cusco)}"
                       placeholder="Ej. Hotel Palacio del Inka, Selina Cusco, Airbnb San Blas">
                   </div>
@@ -1202,15 +1296,16 @@ export async function renderPanelPropietario(container, profile) {
 
             <div class="col-md-6">
               <label class="form-label small fw-bold">Contacto de Emergencia (Nombre y Parentesco)</label>
-              <input type="text" class="form-control" id="prof-emerg-nombre"
+              <input type="text" class="form-control" id="prof-emerg-nombre" data-validate="person-name-optional" maxlength="80"
                 value="${escapeHtml(propProfile.contacto_emergencia_nombre)}"
                 placeholder="Ej. Carlos Mendoza (Hermano) o Recepción Hotel">
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-bold">Teléfono de Emergencia (Visible al escanear QR PAW-ID)</label>
-              <input type="text" class="form-control" id="prof-emerg-tel"
+              <input type="tel" class="form-control" id="prof-emerg-tel" inputmode="numeric" maxlength="16" data-validate="phone-optional"
                 value="${escapeHtml(propProfile.contacto_emergencia_tel)}"
-                placeholder="Ej. +51 984 998 877">
+                placeholder="Ej. 984998877 o +51984998877">
+              <div class="form-text small">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
             </div>
 
             <div class="col-12 text-end pt-2">
@@ -1222,6 +1317,9 @@ export async function renderPanelPropietario(container, profile) {
         </form>
       </div>
     `;
+
+    const formPerfil = workspace.querySelector('#form-perfil-propietario');
+    attachFormValidation(formPerfil);
 
     const avatarUploader = mountFileUploader(workspace.querySelector('#uploader-prop-avatar'), {
       label: 'Fotografía de Perfil (Avatar)',
@@ -1237,8 +1335,9 @@ export async function renderPanelPropietario(container, profile) {
       boxTurista?.classList.toggle('d-none', !checkTurista.checked);
     });
 
-    workspace.querySelector('#form-perfil-propietario')?.addEventListener('submit', async (e) => {
+    formPerfil?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!validateFormNow(formPerfil).valid) return;
       showSpinner('Actualizando tu perfil unificado de propietario...');
       try {
         const avatarUrl = await avatarUploader.uploadIfPending();
@@ -1299,6 +1398,12 @@ export async function renderPanelPropietario(container, profile) {
         onNuevaAlerta: (nueva) => {
           alertasSos.unshift(nueva);
           renderLayout();
+        },
+        onCargoRegularizado: (actualizada) => {
+          alertasSos = alertasSos.map((item) => (
+            item.id === actualizada.id || item.codigo_sos === actualizada.codigo_sos ? actualizada : item
+          ));
+          renderLayout();
         }
       });
     } else if (activeTab === 'perfil') {
@@ -1332,11 +1437,18 @@ export async function renderPanelPropietario(container, profile) {
     workspace.querySelector('#btn-tabla-nueva-reserva')?.addEventListener('click', () => lanzarWizardReserva());
     workspace.querySelector('#btn-empty-reservar')?.addEventListener('click', () => lanzarWizardReserva());
 
+    // Acceso rápido desde banner de Cargos Clínicos S.O.S. en Resumen
+    workspace.querySelector('#btn-resumen-ir-sos-cargos')?.addEventListener('click', () => {
+      activeTab = 'sos';
+      renderLayout();
+    });
+
     // Botón rápido S.O.S. en Hero
     workspace.querySelector('#btn-hero-sos-rapido')?.addEventListener('click', () => {
       abrirModalEmitirSos({
         reservas,
         distritoPropietario: propProfile.distrito_cusco,
+        roleContext: 'propietario',
         onSosEmitido: (nueva) => {
           alertasSos.unshift(nueva);
           activeTab = 'sos';

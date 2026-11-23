@@ -1383,12 +1383,17 @@ SET search_path = public, auth
 AS $$
 DECLARE
     v_res record;
+    v_rol text;
     v_id_clinica uuid;
     v_nombre_clinica text;
     v_id_sos uuid;
     v_codigo_sos text;
     v_ubicacion_final text;
 BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Debes iniciar sesión para emitir una alerta S.O.S.';
+    END IF;
+
     IF p_descripcion IS NULL OR LENGTH(TRIM(p_descripcion)) < 5 THEN
         RAISE EXCEPTION 'Describa los síntomas o la emergencia veterinaria.';
     END IF;
@@ -1402,6 +1407,17 @@ BEGIN
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'No se encontró la reserva asociada a la alerta S.O.S.';
+    END IF;
+
+    v_rol := public.get_my_role();
+
+    IF auth.uid() NOT IN (v_res.id_propietario, v_res.cuidador_user_id)
+       AND v_rol IS DISTINCT FROM 'administrador' THEN
+        RAISE EXCEPTION 'Acceso denegado: no estás autorizado para emitir una alerta S.O.S. sobre esta reserva.';
+    END IF;
+
+    IF v_rol = 'cuidador' AND v_res.estado_reserva != 'en_curso' THEN
+        RAISE EXCEPTION 'Solo puedes emitir una alerta S.O.S. para mascotas que estén actualmente En Curso bajo tu custodia activa.';
     END IF;
 
     -- Si no se especifica clínica, asignar automáticamente la primera clínica 24 Horas activa en Cusco
@@ -1510,6 +1526,10 @@ BEGIN
         RAISE EXCEPTION 'Acceso denegado: solo una Clínica Veterinaria Aliada o un Administrador pueden actualizar el estado clínico S.O.S.';
     END IF;
 
+    IF p_costo IS NOT NULL AND p_costo < 0 THEN
+        RAISE EXCEPTION 'El costo clínico referencial no puede ser negativo.';
+    END IF;
+
     -- Bloquear únicamente la fila de incidencias_emergencias (FOR UPDATE OF i)
     SELECT
         i.*,
@@ -1595,6 +1615,11 @@ BEGIN
             ELSE COALESCE(NULLIF(TRIM(p_informe), ''), i.informe_resolucion)
         END,
         costo_atencion_ref = COALESCE(p_costo, i.costo_atencion_ref, 0.00),
+        estado_cobro_sos = CASE
+            WHEN COALESCE(p_costo, i.costo_atencion_ref, 0) > 0 AND i.estado_cobro_sos = 'sin_cargo'
+                THEN 'pendiente_pago'
+            ELSE i.estado_cobro_sos
+        END,
         fecha_atencion = COALESCE(i.fecha_atencion, now()),
         fecha_estabilizacion = CASE
             WHEN v_nuevo_estado IN ('estabilizada', 'resuelta') THEN COALESCE(i.fecha_estabilizacion, now())
@@ -1626,8 +1651,14 @@ BEGIN
             UPPER(v_nuevo_estado::text),
             COALESCE(NULLIF(TRIM(v_updated.diagnostico_clinico), ''), 'En evaluación clínica'),
             CASE
-                WHEN COALESCE(v_updated.costo_atencion_ref, 0) > 0
-                THEN ' • Costo ref.: S/ ' || to_char(v_updated.costo_atencion_ref, 'FM999990.00')
+                WHEN COALESCE(v_updated.costo_atencion_ref, 0) > 0 THEN
+                    CASE
+                        WHEN u.id = v_propietario_id THEN
+                            ' • Costo ref.: S/ ' || to_char(v_updated.costo_atencion_ref, 'FM999990.00') ||
+                            ' (Cobro: ' || v_updated.estado_cobro_sos || ')'
+                        ELSE
+                            ' • Costo ref.: S/ ' || to_char(v_updated.costo_atencion_ref, 'FM999990.00')
+                    END
                 ELSE ''
             END
         ),
@@ -1646,6 +1677,7 @@ BEGIN
         'codigo_sos', v_updated.codigo_sos,
         'estado_sos', v_updated.estado_sos,
         'estado_nuevo', v_updated.estado_sos,
+        'estado_cobro_sos', v_updated.estado_cobro_sos,
         'diagnostico_clinico', v_updated.diagnostico_clinico,
         'tratamiento_aplicado', v_updated.tratamiento_aplicado,
         'informe_resolucion', v_updated.informe_resolucion,
@@ -1656,6 +1688,249 @@ BEGIN
         'fecha_resolucion', v_updated.fecha_resolucion,
         'updated_at', v_updated.updated_at,
         'mensaje', format('Alerta S.O.S. %s actualizada a estado "%s".', v_updated.codigo_sos, v_updated.estado_sos)
+    );
+END;
+$$;
+
+-- =============================================================================
+-- 13B. rpc_propietario_regularizar_sos
+-- Propietario reporta método y comprobante de pago para cargo clínico S.O.S.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.rpc_propietario_regularizar_sos(
+    p_id_incidencia uuid,
+    p_metodo_pago text,
+    p_comprobante text,
+    p_observacion text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+    v_sos record;
+    v_updated record;
+    v_propietario_id uuid;
+    v_metodo text := TRIM(COALESCE(p_metodo_pago, ''));
+    v_comprobante text := TRIM(COALESCE(p_comprobante, ''));
+    v_obs text := NULLIF(TRIM(COALESCE(p_observacion, '')), '');
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Debes iniciar sesión para regularizar un cargo clínico S.O.S.';
+    END IF;
+
+    IF LENGTH(v_metodo) < 2 THEN
+        RAISE EXCEPTION 'Selecciona o indica el método de pago utilizado.';
+    END IF;
+
+    IF LENGTH(v_comprobante) < 3 THEN
+        RAISE EXCEPTION 'Ingresa el número de operación o comprobante de pago.';
+    END IF;
+
+    SELECT
+        i.*,
+        r.id_propietario AS reserva_propietario_id,
+        m.id_propietario AS mascota_propietario_id,
+        m.nombre AS mascota_nombre
+    INTO v_sos
+    FROM public.incidencias_emergencias i
+    LEFT JOIN public.reservas r ON r.id = i.id_reserva
+    LEFT JOIN public.mascotas m ON m.id = i.id_mascota
+    WHERE i.id = p_id_incidencia
+    FOR UPDATE OF i;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Incidencia S.O.S. (%) no encontrada.', p_id_incidencia;
+    END IF;
+
+    v_propietario_id := COALESCE(v_sos.reserva_propietario_id, v_sos.mascota_propietario_id);
+
+    IF auth.uid() IS DISTINCT FROM v_propietario_id AND auth.uid() IS DISTINCT FROM v_sos.mascota_propietario_id THEN
+        RAISE EXCEPTION 'Acceso denegado: solo el propietario de la mascota puede regularizar este cargo clínico.';
+    END IF;
+
+    IF COALESCE(v_sos.costo_atencion_ref, 0) <= 0 THEN
+        RAISE EXCEPTION 'Esta incidencia S.O.S. no tiene un cargo clínico pendiente por regularizar.';
+    END IF;
+
+    IF v_sos.estado_cobro_sos IN ('conciliado', 'exonerado') THEN
+        RAISE EXCEPTION 'Este cargo clínico S.O.S. ya se encuentra en estado "%".', v_sos.estado_cobro_sos;
+    END IF;
+
+    UPDATE public.incidencias_emergencias
+    SET
+        estado_cobro_sos = 'reportado_propietario',
+        metodo_pago_sos = v_metodo,
+        comprobante_pago_sos = v_comprobante,
+        fecha_pago_sos = now(),
+        observacion_cobro_sos = COALESCE(v_obs, observacion_cobro_sos),
+        updated_at = now()
+    WHERE id = p_id_incidencia
+    RETURNING * INTO v_updated;
+
+    INSERT INTO public.notificaciones (
+        id_usuario_destino,
+        tipo,
+        titulo,
+        mensaje,
+        referencia_entidad,
+        referencia_id
+    )
+    SELECT DISTINCT
+        u.id,
+        'pago',
+        format('Regularización de Cargo S.O.S. %s', v_updated.codigo_sos),
+        format(
+            'El propietario reportó el pago de S/ %s para %s (%s • Op.: %s). Pendiente de conciliación.',
+            to_char(v_updated.costo_atencion_ref, 'FM999990.00'),
+            COALESCE(v_sos.mascota_nombre, 'Mascota'),
+            v_metodo,
+            v_comprobante
+        ),
+        'incidencias_emergencias',
+        p_id_incidencia::text
+    FROM public.perfiles_usuarios u
+    WHERE u.estado_cuenta = 'activo'
+      AND (
+          (v_sos.id_clinica_derivada IS NOT NULL AND u.id_clinica_asociada = v_sos.id_clinica_derivada)
+          OR u.rol = 'administrador'
+      );
+
+    RETURN jsonb_build_object(
+        'ok', true,
+        'exito', true,
+        'id_incidencia', v_updated.id,
+        'codigo_sos', v_updated.codigo_sos,
+        'estado_cobro_sos', v_updated.estado_cobro_sos,
+        'metodo_pago_sos', v_updated.metodo_pago_sos,
+        'comprobante_pago_sos', v_updated.comprobante_pago_sos,
+        'fecha_pago_sos', v_updated.fecha_pago_sos,
+        'observacion_cobro_sos', v_updated.observacion_cobro_sos,
+        'costo_atencion_ref', COALESCE(v_updated.costo_atencion_ref, 0.00),
+        'mensaje', format('Pago de cargo clínico S.O.S. %s reportado correctamente.', v_updated.codigo_sos)
+    );
+END;
+$$;
+
+-- =============================================================================
+-- 13C. rpc_admin_conciliar_cobro_sos
+-- Administrador concilia o exonera el cobro clínico S.O.S. y notifica a Propietario/Clínica
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.rpc_admin_conciliar_cobro_sos(
+    p_id_incidencia uuid,
+    p_accion text,
+    p_observacion text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+    v_sos record;
+    v_updated record;
+    v_propietario_id uuid;
+    v_accion text := LOWER(TRIM(COALESCE(p_accion, '')));
+    v_nuevo_estado text;
+    v_obs text := NULLIF(TRIM(COALESCE(p_observacion, '')), '');
+BEGIN
+    IF public.get_my_role() IS DISTINCT FROM 'administrador' THEN
+        RAISE EXCEPTION 'Acceso denegado: solo un Administrador puede conciliar o exonerar cargos clínicos S.O.S.';
+    END IF;
+
+    IF v_accion IN ('conciliar', 'conciliado') THEN
+        v_nuevo_estado := 'conciliado';
+    ELSIF v_accion IN ('exonerar', 'exonerado') THEN
+        v_nuevo_estado := 'exonerado';
+    ELSE
+        RAISE EXCEPTION 'Acción "%" no reconocida. Use "conciliar" o "exonerar".', p_accion;
+    END IF;
+
+    SELECT
+        i.*,
+        r.id_propietario AS reserva_propietario_id,
+        m.id_propietario AS mascota_propietario_id,
+        m.nombre AS mascota_nombre
+    INTO v_sos
+    FROM public.incidencias_emergencias i
+    LEFT JOIN public.reservas r ON r.id = i.id_reserva
+    LEFT JOIN public.mascotas m ON m.id = i.id_mascota
+    WHERE i.id = p_id_incidencia
+    FOR UPDATE OF i;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Incidencia S.O.S. (%) no encontrada.', p_id_incidencia;
+    END IF;
+
+    IF v_nuevo_estado = 'conciliado' AND COALESCE(v_sos.costo_atencion_ref, 0) <= 0 THEN
+        RAISE EXCEPTION 'No se puede conciliar un cargo S.O.S. sin monto clínico registrado.';
+    END IF;
+
+    v_propietario_id := COALESCE(v_sos.reserva_propietario_id, v_sos.mascota_propietario_id);
+
+    UPDATE public.incidencias_emergencias
+    SET
+        estado_cobro_sos = v_nuevo_estado,
+        fecha_pago_sos = CASE
+            WHEN v_nuevo_estado = 'conciliado' THEN COALESCE(fecha_pago_sos, now())
+            ELSE fecha_pago_sos
+        END,
+        observacion_cobro_sos = COALESCE(
+            v_obs,
+            observacion_cobro_sos,
+            CASE
+                WHEN v_nuevo_estado = 'exonerado' THEN 'Cargo clínico exonerado por administración.'
+                ELSE 'Cargo clínico conciliado por administración.'
+            END
+        ),
+        updated_at = now()
+    WHERE id = p_id_incidencia
+    RETURNING * INTO v_updated;
+
+    INSERT INTO public.notificaciones (
+        id_usuario_destino,
+        tipo,
+        titulo,
+        mensaje,
+        referencia_entidad,
+        referencia_id
+    )
+    SELECT DISTINCT
+        u.id,
+        'pago',
+        format(
+            'Cargo S.O.S. %s %s',
+            v_updated.codigo_sos,
+            CASE WHEN v_nuevo_estado = 'exonerado' THEN 'Exonerado' ELSE 'Conciliado' END
+        ),
+        format(
+            'El cargo clínico de S/ %s para %s fue marcado como %s.%s',
+            to_char(COALESCE(v_updated.costo_atencion_ref, 0), 'FM999990.00'),
+            COALESCE(v_sos.mascota_nombre, 'Mascota'),
+            UPPER(v_nuevo_estado),
+            CASE WHEN v_obs IS NOT NULL THEN ' • Obs.: ' || v_obs ELSE '' END
+        ),
+        'incidencias_emergencias',
+        p_id_incidencia::text
+    FROM public.perfiles_usuarios u
+    WHERE u.estado_cuenta = 'activo'
+      AND (
+          u.id = v_propietario_id
+          OR (v_sos.id_clinica_derivada IS NOT NULL AND u.id_clinica_asociada = v_sos.id_clinica_derivada)
+      );
+
+    RETURN jsonb_build_object(
+        'ok', true,
+        'exito', true,
+        'id_incidencia', v_updated.id,
+        'codigo_sos', v_updated.codigo_sos,
+        'estado_cobro_sos', v_updated.estado_cobro_sos,
+        'fecha_pago_sos', v_updated.fecha_pago_sos,
+        'observacion_cobro_sos', v_updated.observacion_cobro_sos,
+        'costo_atencion_ref', COALESCE(v_updated.costo_atencion_ref, 0.00),
+        'mensaje', format('Cargo clínico S.O.S. %s actualizado a "%s".', v_updated.codigo_sos, v_updated.estado_cobro_sos)
     );
 END;
 $$;
@@ -2328,6 +2603,8 @@ GRANT EXECUTE ON FUNCTION public.rpc_solicitar_retiro TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_admin_procesar_liquidacion TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_emitir_sos TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_vet_actualizar_sos TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_propietario_regularizar_sos TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_admin_conciliar_cobro_sos TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_admin_reasignar_sos TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_vet_dictaminar_ficha TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_admin_aprobar_cuidador TO authenticated;

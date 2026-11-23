@@ -26,7 +26,7 @@
  *     - Edición de teléfono 24h, horario, tarifa de consulta de urgencia, dirección/distrito y especialidades.
  */
 
-import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime, unsubscribeRealtime } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { mountFileUploader, abrirVisorDocumento } from '../components/file-uploader.js';
 import {
@@ -51,7 +51,12 @@ import {
   abrirModalCarnetPawId,
   MASCOTAS_SEED_OWNER
 } from '../components/carnet-digital.js';
-import { CLINICAS_CUSCO_SOS, SOS_SEED_OWNER } from '../components/alerta-sos.js';
+import {
+  CLINICAS_CUSCO_SOS,
+  SOS_SEED_OWNER,
+  renderBadgeEstadoCobroSos
+} from '../components/alerta-sos.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 
 const STORAGE_KEY_SOS = 'paw_demo_sos_owner_v5';
 const STORAGE_KEY_MASCOTAS = 'paw_demo_mascotas_v5';
@@ -187,6 +192,29 @@ const vetState = {
   historialValidaciones: []
 };
 
+function resetVetState() {
+  vetState.activeTab = 'central-sos';
+  vetState.filtroSosEstado = 'todos';
+  vetState.filtroPawIdTab = 'pendientes';
+  vetState.busquedaPawId = '';
+  vetState.profile = null;
+  vetState.clinica = { ...CLINICA_DEFAULT_DEMO };
+  vetState.alertasSos = [];
+  vetState.mascotas = [];
+  vetState.historialValidaciones = [];
+  unsubscribeRealtime('canal-vet-sos-live');
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('paw:auth-changed', (ev) => {
+    const nextUser = ev?.detail?.user || null;
+    const nextRole = ev?.detail?.profile?.rol || null;
+    if (!nextUser || (nextRole && nextRole !== 'veterinaria') || (vetState.profile?.id && nextUser.id !== vetState.profile.id)) {
+      resetVetState();
+    }
+  });
+}
+
 /**
  * Registra un evento en la bitácora local de auditoría para trazabilidad en vivo con el Panel Admin
  */
@@ -298,6 +326,19 @@ function normalizarIncidenciaSosVeterinaria(inc) {
     tratamiento_aplicado: inc.tratamiento_aplicado || null,
     informe_resolucion: inc.informe_resolucion || null,
     costo_atencion_ref: Number(inc.costo_atencion_ref || 0),
+    estado_cobro_sos: (() => {
+      const costo = Number(inc.costo_atencion_ref || 0);
+      const raw = inc.estado_cobro_sos ? String(inc.estado_cobro_sos).toLowerCase() : null;
+      if (raw && !(raw === 'sin_cargo' && costo > 0)) return raw;
+      if (costo > 0) {
+        return (inc.codigo_sos === 'SOS-2026-0102' && estado === 'resuelta') ? 'conciliado' : 'pendiente_pago';
+      }
+      return 'sin_cargo';
+    })(),
+    metodo_pago_sos: inc.metodo_pago_sos || null,
+    comprobante_pago_sos: inc.comprobante_pago_sos || null,
+    fecha_pago_sos: inc.fecha_pago_sos || null,
+    observacion_cobro_sos: inc.observacion_cobro_sos || null,
     fecha_incidencia: inc.fecha_incidencia || inc.created_at || new Date().toISOString(),
     fecha_atencion: inc.fecha_atencion || null,
     fecha_resolucion: inc.fecha_resolucion || null
@@ -465,15 +506,23 @@ async function cargarDatosPanelVeterinaria(profile) {
  * Configura la suscripción Supabase Realtime para nuevas emergencias S.O.S.
  */
 function inicializarRealtimeVeterinaria(container) {
-  subscribeRealtime('canal-vet-sos-live', 'incidencias_emergencias', '*', async () => {
+  const clinicaId = vetState.clinica?.id || vetState.profile?.id_clinica_asociada || null;
+  const sosFilter = clinicaId ? `id_clinica_derivada=eq.${clinicaId}` : null;
+
+  subscribeRealtime('canal-vet-sos-live', 'incidencias_emergencias', '*', async (payload) => {
+    if (!vetState.profile || vetState.profile.rol !== 'veterinaria') return;
+    const rec = payload?.new || payload?.old || {};
+    if (clinicaId && rec.id_clinica_derivada && rec.id_clinica_derivada !== clinicaId) return;
+
     await cargarDatosPanelVeterinaria(vetState.profile);
+    if (!vetState.profile) return;
     renderContenidoPanelVeterinaria(container);
     showToast(
       '🚨 Actualización en tiempo real recibida en la Central S.O.S. Veterinaria.',
       'danger',
       'Central S.O.S. Cusco 24h'
     );
-  });
+  }, sosFilter);
 }
 
 /**
@@ -535,10 +584,10 @@ function renderContenidoPanelVeterinaria(container) {
                 <span class="badge bg-warning text-dark fw-bold mb-1">
                   ${escapeHtml(c.codigo_clinica || 'VET-001')} • ${escapeHtml(c.horario_atencion || '24 Horas')}
                 </span>
-                <h6 class="fw-bold text-white mb-0 text-truncate" title="${escapeHtml(c.nombre)}">
+                <h6 class="fw-bold text-white mb-0 panel-user-name" title="${escapeHtml(c.nombre)}">
                   ${escapeHtml(c.nombre)}
                 </h6>
-                <div class="small text-white-50 text-truncate">
+                <div class="small text-white-50 panel-user-email">
                   <i class="bi bi-geo-alt-fill text-warning me-1"></i>Sede ${escapeHtml(c.distrito_cusco)} — Cusco
                 </div>
               </div>
@@ -560,7 +609,12 @@ function renderContenidoPanelVeterinaria(container) {
             </div>
           </div>
 
-          <nav class="panel-nav-menu" aria-label="Menú Clínica Veterinaria">
+          <button type="button" class="panel-mobile-toggle" id="btn-toggle-panel-menu-vet" aria-expanded="false" aria-controls="panel-nav-menu-vet">
+            <span><i class="bi bi-list-nested me-2 text-warning"></i>Menú Médico</span>
+            <i class="bi bi-chevron-down toggle-chevron"></i>
+          </button>
+
+          <nav class="panel-nav-menu" id="panel-nav-menu-vet" aria-label="Menú Clínica Veterinaria">
             <button type="button" class="panel-nav-btn nav-btn-sos ${vetState.activeTab === 'central-sos' ? 'active' : ''}" data-vet-tab="central-sos">
               <span class="nav-icon-wrap">
                 <i class="bi bi-heart-pulse-fill"></i>
@@ -593,6 +647,13 @@ function renderContenidoPanelVeterinaria(container) {
               </span>
               <i class="bi bi-arrow-up-right small"></i>
             </a>
+
+            <button type="button" class="panel-nav-btn" data-help-role="veterinaria">
+              <span class="nav-icon-wrap">
+                <i class="bi bi-question-circle-fill text-warning"></i>
+                <span>Centro de Ayuda & FAQ</span>
+              </span>
+            </button>
           </nav>
         </aside>
 
@@ -678,6 +739,15 @@ function renderContenidoPanelVeterinaria(container) {
   `;
 
   // Navegación entre pestañas
+  const toggleBtn = container.querySelector('#btn-toggle-panel-menu-vet');
+  const navMenu = container.querySelector('#panel-nav-menu-vet');
+  if (toggleBtn && navMenu) {
+    toggleBtn.addEventListener('click', () => {
+      const isShown = navMenu.classList.toggle('show');
+      toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
+    });
+  }
+
   container.querySelectorAll('[data-vet-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
       vetState.activeTab = btn.getAttribute('data-vet-tab');
@@ -785,7 +855,7 @@ function renderSeccionCentralSosVeterinaria(workspace, rootContainer) {
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 border-bottom mb-3">
         <div>
           <span class="badge bg-danger-subtle text-danger fw-bold mb-1">
-            <i class="bi bi-broadcast me-1"></i>CANAL REALTIME CONECTADO • TRIAJE VETERINARIO CUSCO
+            <i class="bi bi-broadcast me-1"></i>CANAL EN VIVO CONECTADO • TRIAJE VETERINARIO CUSCO
           </span>
           <h5 class="fw-bold mb-1">
             <i class="bi bi-hospital-fill text-danger me-2"></i>Central S.O.S. Veterinaria — Bandeja de Incidencias Derivadas (${filtradas.length})
@@ -815,7 +885,7 @@ function renderSeccionCentralSosVeterinaria(workspace, rootContainer) {
         <div class="text-center py-5 bg-light rounded-3 border">
           <i class="bi bi-shield-check text-success fs-1 d-block mb-2"></i>
           <h6 class="fw-bold">No hay incidencias S.O.S. para el filtro seleccionado</h6>
-          <p class="text-secondary small mb-0">La Central Realtime está activa y notificará al instante cualquier derivación en Cusco.</p>
+          <p class="text-secondary small mb-0">La Central S.O.S. en Vivo está activa y notificará al instante cualquier derivación en Cusco.</p>
         </div>
       ` : filtradas.map((s) => {
         const sevBadge = s.nivel_severidad === 'critica'
@@ -834,6 +904,7 @@ function renderSeccionCentralSosVeterinaria(workspace, rootContainer) {
                   <span class="badge bg-dark font-monospace fs-6">${escapeHtml(s.codigo_sos)}</span>
                   <span class="badge ${sevBadge} text-uppercase">Severidad: ${escapeHtml(s.nivel_severidad)}</span>
                   ${renderBadgeEstadoSosVet(s.estado_sos)}
+                  ${renderBadgeEstadoCobroSos(s.estado_cobro_sos, s.costo_atencion_ref)}
                   <span class="badge bg-secondary font-monospace">Reserva: ${escapeHtml(s.codigo_reserva)}</span>
                 </div>
                 <h5 class="fw-bold text-dark mb-0 mt-2">
@@ -944,9 +1015,21 @@ function renderSeccionCentralSosVeterinaria(workspace, rootContainer) {
                     ` : ''}
                   </div>
 
-                  <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-                    <span class="text-muted">Costo Clínico Referencial:</span>
-                    <strong class="fs-6 text-dark">${formatMoneda(s.costo_atencion_ref || vetState.clinica.tarifa_consulta_emergencia || 60, moneda)}</strong>
+                  <div class="pt-2 border-top mt-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                      <span class="text-muted">Costo Clínico Referencial:</span>
+                      <strong class="fs-6 text-dark">${formatMoneda(s.costo_atencion_ref || vetState.clinica.tarifa_consulta_emergencia || 60, moneda)}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mt-1">
+                      <span class="text-muted" style="font-size:0.75rem;">Estado Cobro Clínico:</span>
+                      ${renderBadgeEstadoCobroSos(s.estado_cobro_sos, s.costo_atencion_ref)}
+                    </div>
+                    ${s.comprobante_pago_sos ? `
+                      <div class="text-secondary mt-1" style="font-size:0.74rem;">
+                        <i class="bi bi-receipt me-1"></i><strong>${escapeHtml(s.metodo_pago_sos || 'Pago')}:</strong>
+                        <span class="font-monospace">${escapeHtml(s.comprobante_pago_sos)}</span>
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -1132,7 +1215,7 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
         ${accion === 'resuelta' ? `
           <div class="col-md-8">
             <label class="form-label small fw-bold">Informe de Resolución / Recomendaciones de Alta Médica *</label>
-            <textarea class="form-control" id="vet-sos-informe" rows="2" required
+            <textarea class="form-control" id="vet-sos-informe" rows="2" required minlength="5" maxlength="500"
               placeholder="Ej. Paciente dado de alta en condición estable. Mantener vendaje seco por 24 horas...">${escapeHtml(s.informe_resolucion || 'Alta médica veterinaria conforme. Mascota apta para continuar custodia con reposo relativo.')}</textarea>
           </div>
           <div class="col-md-4">
@@ -1140,18 +1223,19 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
             <div class="input-group">
               <span class="input-group-text">S/</span>
               <input type="number" step="0.50" min="0" max="5000" class="form-control fw-bold" id="vet-sos-costo"
-                value="${Number(costoSugerido).toFixed(2)}" required>
+                data-validate="number-range" value="${Number(costoSugerido).toFixed(2)}" required>
             </div>
-            <div class="form-text small">Tarifa base urgencia sede: S/ ${Number(vetState.clinica?.tarifa_consulta_emergencia || 60).toFixed(2)}</div>
+            <div class="form-text small">Tarifa base sede: S/ ${Number(vetState.clinica?.tarifa_consulta_emergencia || 60).toFixed(2)} (0–5000).</div>
           </div>
         ` : `
           <div class="col-md-6">
             <label class="form-label small fw-bold">Costo Estimado de Atención (S/ PEN)</label>
             <div class="input-group input-group-sm">
               <span class="input-group-text">S/</span>
-              <input type="number" step="0.50" min="0" class="form-control" id="vet-sos-costo"
-                value="${Number(costoSugerido).toFixed(2)}">
+              <input type="number" step="0.50" min="0" max="5000" class="form-control" id="vet-sos-costo"
+                data-validate="number-range" value="${Number(costoSugerido).toFixed(2)}">
             </div>
+            <div class="form-text small">Rango válido: S/ 0 a S/ 5000.</div>
           </div>
         `}
       </div>
@@ -1175,7 +1259,12 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
     headerOscuro: configModal.headerOscuro
   });
 
+  const formVetSos = modal.el.querySelector('#form-vet-actualizar-sos');
+  attachFormValidation(formVetSos);
+
   modal.el.querySelector('#btn-confirmar-sos-rpc')?.addEventListener('click', async () => {
+    if (!validateFormNow(formVetSos).valid) return;
+
     const diagnostico = modal.el.querySelector('#vet-sos-diagnostico')?.value.trim() || '';
     const tratamiento = modal.el.querySelector('#vet-sos-tratamiento')?.value.trim() || '';
     const informe = modal.el.querySelector('#vet-sos-informe')?.value.trim() || (
@@ -1216,6 +1305,8 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
       } else {
         vetState.alertasSos = vetState.alertasSos.map((item) => {
           if (item.id === s.id || item.codigo_sos === s.codigo_sos) {
+            const cobroPrevio = item.estado_cobro_sos || 'sin_cargo';
+            const nuevoCobro = (costo > 0 && cobroPrevio === 'sin_cargo') ? 'pendiente_pago' : cobroPrevio;
             return normalizarIncidenciaSosVeterinaria({
               ...item,
               estado_sos: accion,
@@ -1223,6 +1314,7 @@ function abrirModalAccionClinicaSos(incidencia, accionRaw, onUpdated) {
               tratamiento_aplicado: tratamiento || item.tratamiento_aplicado || 'Protocolo clínico aplicado',
               informe_resolucion: accion === 'resuelta' ? informe : item.informe_resolucion,
               costo_atencion_ref: costo,
+              estado_cobro_sos: nuevoCobro,
               fecha_atencion: item.fecha_atencion || ahoraIso,
               fecha_resolucion: accion === 'resuelta' ? ahoraIso : item.fecha_resolucion
             });
@@ -1727,8 +1819,9 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
         <div class="row g-3 mb-3">
           <div class="col-md-6">
             <label class="form-label small fw-bold">Fecha de Vigencia Sanitaria Otorgada *</label>
-            <input type="date" class="form-control" id="vet-input-vigencia" required
+            <input type="date" class="form-control" id="vet-input-vigencia" required data-validate="future-date"
               min="${getHoyIso()}" value="${escapeHtml(vigenciaDefault)}">
+            <div class="form-text small">Debe ser igual o posterior a hoy.</div>
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-bold">Sello y Colegiatura Oficial CMVP</label>
@@ -1739,7 +1832,7 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
 
         <div class="mb-2">
           <label class="form-label small fw-bold">Dictamen y Observaciones Médicas de Conformidad</label>
-          <textarea class="form-control" id="vet-input-observaciones" rows="2"
+          <textarea class="form-control" id="vet-input-observaciones" rows="2" maxlength="400"
             placeholder="Escribe el dictamen sanitario que aparecerá en el Carné Digital PAW-ID...">${escapeHtml(
               `Vacunas Séxtuple, Antirrábica y KC verificadas conforme por ${c.nombre} (${c.colegiatura_cmvp}). Apto para custodia y paseos en Cusco.`
             )}</textarea>
@@ -1747,7 +1840,7 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
       ` : `
         <div class="mb-3">
           <label class="form-label small fw-bold">Detalle de Vacunas Encontradas / Faltantes *</label>
-          <input type="text" class="form-control" id="vet-input-vacunas-texto" required
+          <input type="text" class="form-control" id="vet-input-vacunas-texto" required minlength="4" maxlength="200"
             value="Cartilla con vacuna pendiente de refuerzo o sello ilegible"
             placeholder="Ej. Falta refuerzo anual de vacuna Antirrábica">
         </div>
@@ -1756,7 +1849,7 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
           <label class="form-label small fw-bold text-danger">
             Motivo Médico Obligatorio de la Observación * (Mínimo 8 caracteres)
           </label>
-          <textarea class="form-control border-danger" id="vet-input-observaciones" rows="3" required minlength="8"
+          <textarea class="form-control border-danger" id="vet-input-observaciones" rows="3" required minlength="8" maxlength="400"
             placeholder="Indica claramente al propietario qué vacuna está vencida o qué documento debe volver a subir..."></textarea>
           <div class="form-text small">
             El propietario recibirá esta observación en su panel para subsanar la cartilla de <strong>${escapeHtml(m.nombre)}</strong>.
@@ -1786,6 +1879,9 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
     headerOscuro: true
   });
 
+  const formDictamen = modal.el.querySelector('#form-vet-dictaminar-ficha');
+  attachFormValidation(formDictamen);
+
   // Sincronizar checkboxes de vacunas con el campo de texto
   modal.el.querySelectorAll('.vet-chk-vacuna').forEach((chk) => {
     chk.addEventListener('change', () => {
@@ -1797,18 +1893,15 @@ function abrirModalDictaminarFichaPawId(mascota, resultado = 'validado', onCompl
     });
   });
 
-  // Ejecutar rpc_vet_dictaminar_ficha
+  // Ejecutar dictamen sanitario
   modal.el.querySelector('#btn-confirmar-dictamen-rpc')?.addEventListener('click', async () => {
+    if (!validateFormNow(formDictamen).valid) return;
+
     const vacunas = modal.el.querySelector('#vet-input-vacunas-texto')?.value.trim() || 'Séxtuple y Antirrábica';
     const vigencia = esValidar
       ? (modal.el.querySelector('#vet-input-vigencia')?.value || vigenciaDefault)
       : null;
     const observaciones = modal.el.querySelector('#vet-input-observaciones')?.value.trim() || '';
-
-    if (!esValidar && observaciones.length < 8) {
-      showToast('Es obligatorio detallar el motivo médico de la observación (mínimo 8 caracteres).', 'warning');
-      return;
-    }
 
     const obsFinal = observaciones || `Cartilla verificada conforme por ${c.nombre} (${c.colegiatura_cmvp}).`;
 
@@ -1923,7 +2016,7 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label small fw-bold">Razón Social / Nombre de la Clínica Veterinaria *</label>
-            <input type="text" class="form-control" id="cfg-vet-nombre" required value="${escapeHtml(c.nombre)}">
+            <input type="text" class="form-control" id="cfg-vet-nombre" required minlength="3" maxlength="100" value="${escapeHtml(c.nombre)}">
           </div>
           <div class="col-md-3">
             <label class="form-label small fw-bold">RUC (11 dígitos)</label>
@@ -1931,7 +2024,7 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
           </div>
           <div class="col-md-3">
             <label class="form-label small fw-bold">Colegiatura CMVP Cusco *</label>
-            <input type="text" class="form-control font-monospace" id="cfg-vet-cmvp" required value="${escapeHtml(c.colegiatura_cmvp)}">
+            <input type="text" class="form-control font-monospace" id="cfg-vet-cmvp" required data-validate="cmvp" value="${escapeHtml(c.colegiatura_cmvp)}">
           </div>
 
           <div class="col-md-4">
@@ -1944,12 +2037,13 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
           </div>
           <div class="col-md-8">
             <label class="form-label small fw-bold">Dirección Exacta de la Sede en Cusco *</label>
-            <input type="text" class="form-control" id="cfg-vet-direccion" required value="${escapeHtml(c.direccion)}">
+            <input type="text" class="form-control" id="cfg-vet-direccion" required minlength="5" maxlength="160" value="${escapeHtml(c.direccion)}">
           </div>
 
           <div class="col-md-4">
             <label class="form-label small fw-bold">Teléfono de Emergencias S.O.S. *</label>
-            <input type="text" class="form-control" id="cfg-vet-telefono" required value="${escapeHtml(c.telefono_emergencia)}">
+            <input type="tel" class="form-control" id="cfg-vet-telefono" required inputmode="numeric" maxlength="16" data-validate="phone" value="${escapeHtml(c.telefono_emergencia)}">
+            <div class="form-text small">Perú: 9 dígitos (inicia en 9) o formato +código país.</div>
           </div>
           <div class="col-md-4">
             <label class="form-label small fw-bold">Régimen Horario de Atención *</label>
@@ -1964,8 +2058,9 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
             <div class="input-group">
               <span class="input-group-text">S/</span>
               <input type="number" step="1" min="20" max="500" class="form-control fw-bold" id="cfg-vet-tarifa"
-                value="${Number(c.tarifa_consulta_emergencia || 60).toFixed(2)}" required>
+                data-validate="number-range" value="${Number(c.tarifa_consulta_emergencia || 60).toFixed(2)}" required>
             </div>
+            <div class="form-text small">Rango permitido: S/ 20 a S/ 500.</div>
           </div>
 
           <div class="col-12">
@@ -1997,6 +2092,9 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
     </div>
   `;
 
+  const formConfigSede = workspace.querySelector('#form-vet-config-sede');
+  attachFormValidation(formConfigSede);
+
   const uploaderFachada = mountFileUploader(workspace.querySelector('#uploader-cfg-vet-fachada'), {
     label: 'Fotografía de Fachada de la Sede Clínica',
     accept: 'image/*',
@@ -2014,8 +2112,9 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
     helpText: 'Imagen o documento PDF • Máx. 10 MB'
   });
 
-  workspace.querySelector('#form-vet-config-sede')?.addEventListener('submit', async (e) => {
+  formConfigSede?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateFormNow(formConfigSede).valid) return;
     const nombre = workspace.querySelector('#cfg-vet-nombre').value.trim();
     const colegiatura_cmvp = workspace.querySelector('#cfg-vet-cmvp').value.trim();
     const distrito_cusco = workspace.querySelector('#cfg-vet-distrito').value;
@@ -2027,11 +2126,6 @@ function renderSeccionConfiguracionSede(workspace, rootContainer) {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-
-    if (!nombre || !direccion || !telefono_emergencia) {
-      showToast('Completa el nombre, dirección y teléfono de emergencias de la clínica.', 'warning');
-      return;
-    }
 
     showSpinner('Actualizando datos y archivos de la sede veterinaria en Cusco...');
     try {

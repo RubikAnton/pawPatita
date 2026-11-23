@@ -137,19 +137,19 @@ export async function renderPawIdPublico(container, pawId) {
   if (estadoVet === 'validado') {
     badgeSanitarioHtml = `
       <span class="badge badge-sanitario-validado px-3 py-2 rounded-pill fw-bold">
-        <i class="bi bi-shield-check text-success me-1"></i> Sanitariamente Validado
+        <i class="bi bi-shield-check text-success me-1"></i> ${t('paw_id.validado')}
       </span>
     `;
   } else if (estadoVet === 'observado') {
     badgeSanitarioHtml = `
       <span class="badge badge-sanitario-observado px-3 py-2 rounded-pill fw-bold">
-        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Observación Sanitaria Activa
+        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> ${t('paw_id.observado')}
       </span>
     `;
   } else {
     badgeSanitarioHtml = `
       <span class="badge badge-sanitario-pendiente px-3 py-2 rounded-pill fw-bold">
-        <i class="bi bi-hourglass-split text-warning me-1"></i> Validación Veterinaria Pendiente
+        <i class="bi bi-hourglass-split text-warning me-1"></i> ${t('paw_id.pendiente')}
       </span>
     `;
   }
@@ -206,21 +206,21 @@ export async function renderPawIdPublico(container, pawId) {
           <!-- Cuadrícula de Información Física y Médica -->
           <div class="paw-id-info-grid">
             <div class="paw-id-info-item">
-              <span class="paw-id-label">Tamaño / Peso</span>
+              <span class="paw-id-label" data-i18n="paw_id.tamano_peso">Tamaño / Peso</span>
               <span class="paw-id-valor">${escapeHtml(m.tamano || 'Mediano')} (${escapeHtml(m.peso_kg || 15)} kg)</span>
             </div>
             <div class="paw-id-info-item">
-              <span class="paw-id-label">Esterilizado</span>
-              <span class="paw-id-valor">${m.esterilizado ? 'Sí (Operado)' : 'No'}</span>
+              <span class="paw-id-label" data-i18n="paw_id.esterilizado">Esterilizado</span>
+              <span class="paw-id-valor">${m.esterilizado ? t('paw_id.si') : t('paw_id.no')}</span>
             </div>
             <div class="paw-id-info-item">
-              <span class="paw-id-label">Vacunación</span>
+              <span class="paw-id-label" data-i18n="paw_id.vacunacion">Vacunación</span>
               <span class="paw-id-valor text-success">
-                <i class="bi bi-check-circle-fill me-1"></i>${m.vacunas_al_dia ? 'Al día' : 'Pendiente'}
+                <i class="bi bi-check-circle-fill me-1"></i>${m.vacunas_al_dia ? t('paw_id.al_dia') : 'Pendiente'}
               </span>
             </div>
             <div class="paw-id-info-item">
-              <span class="paw-id-label">Vigencia Vacunas</span>
+              <span class="paw-id-label" data-i18n="paw_id.vigencia_vacunas">Vigencia Vacunas</span>
               <span class="paw-id-valor">${m.fecha_venc_vacunas ? formatFechaEs(m.fecha_venc_vacunas) : 'Vigente'}</span>
             </div>
           </div>
@@ -229,7 +229,7 @@ export async function renderPawIdPublico(container, pawId) {
           ${(m.alergias_restricciones || m.medicacion_actual) ? `
             <div class="paw-id-alerta-medica">
               <div class="fw-bold text-danger mb-1">
-                <i class="bi bi-exclamation-octagon-fill me-1"></i> Alergias y Medicación Crítica
+                <i class="bi bi-exclamation-octagon-fill me-1"></i> <span data-i18n="paw_id.alergias_titulo">Alergias y Medicación Crítica</span>
               </div>
               ${m.alergias_restricciones ? `<div class="small text-dark mb-1"><strong>Alergias:</strong> ${escapeHtml(m.alergias_restricciones)}</div>` : ''}
               ${m.medicacion_actual ? `<div class="small text-dark"><strong>Medicación:</strong> ${escapeHtml(m.medicacion_actual)}</div>` : ''}
@@ -238,9 +238,9 @@ export async function renderPawIdPublico(container, pawId) {
 
           <!-- Conducta y Comportamiento -->
           <div class="p-3 border rounded bg-light small mb-3">
-            <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle me-1"></i> Conducta y Temperamento</strong>
+            <strong class="text-dark d-block mb-1"><i class="bi bi-info-circle me-1"></i> <span data-i18n="paw_id.conducta_titulo">Conducta y Temperamento</span></strong>
             <p class="text-muted mb-0">
-              ${escapeHtml(m.conducta_observaciones || 'Mascota amigable y dócil. Acercarse con calma y sin movimientos bruscos.')}
+              ${escapeHtml(m.conducta_observaciones || t('paw_id.conducta_default'))}
             </p>
           </div>
 
@@ -248,7 +248,7 @@ export async function renderPawIdPublico(container, pawId) {
           ${m.clinica_validadora_nombre ? `
             <div class="p-3 border rounded border-success bg-white small mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
-                <strong class="text-success"><i class="bi bi-patch-check-fill me-1"></i> Ficha Validada por Clínica Colegiada</strong>
+                <strong class="text-success"><i class="bi bi-patch-check-fill me-1"></i> <span data-i18n="paw_id.clinica_validada_titulo">Ficha Validada por Clínica Colegiada</span></strong>
                 <span class="badge bg-light text-dark border">${escapeHtml(m.clinica_validadora_cmvp || 'CMVP')}</span>
               </div>
               <div class="text-dark fw-semibold">${escapeHtml(m.clinica_validadora_nombre)}</div>
@@ -259,7 +259,7 @@ export async function renderPawIdPublico(container, pawId) {
           <!-- Contacto Secundario de Emergencia -->
           ${m.contacto_emergencia_tel ? `
             <div class="border-top pt-3 d-flex justify-content-between align-items-center text-muted small">
-              <span>Contacto de Auxilio: <strong>${escapeHtml(m.contacto_emergencia_nombre || 'Familiar')}</strong></span>
+              <span><span data-i18n="paw_id.contacto_auxilio">Contacto de Auxilio:</span> <strong>${escapeHtml(m.contacto_emergencia_nombre || 'Familiar')}</strong></span>
               <a href="tel:${escapeHtml(m.contacto_emergencia_tel?.replace(/\s+/g, '') || '')}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-telephone"></i> ${escapeHtml(m.contacto_emergencia_tel)}
               </a>
@@ -268,7 +268,7 @@ export async function renderPawIdPublico(container, pawId) {
 
           <!-- Nota de Privacidad -->
           <div class="text-center text-muted small mt-4 pt-2 border-top">
-            <i class="bi bi-shield-shaded me-1"></i> Por seguridad, el DNI y la dirección domiciliaria del propietario están protegidos bajo la Ley N° 29733.
+            <i class="bi bi-shield-shaded me-1"></i> <span data-i18n="paw_id.nota_privacidad">Por seguridad, el DNI y la dirección domiciliaria del propietario están protegidos bajo la Ley N° 29733.</span>
           </div>
         </div>
       </div>

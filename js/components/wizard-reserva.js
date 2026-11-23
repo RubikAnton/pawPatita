@@ -17,6 +17,7 @@ import { CUIDADORES_SEED } from '../public/catalogo.js';
 import { normalizarMascota, renderBadgeSanitario, abrirModalComprobantePago } from './carnet-digital.js';
 import { formatMoneda, formatFechaEs, escapeHtml, getHoyIso, sumarDiasIso, parseFechaLocal } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { attachFormValidation, validateFormNow, setFieldValidity } from '../utils/validators.js';
 
 const BLOQUES_WIZARD = [
   { id: 'todo_el_dia', etiqueta: 'Estadía Completa (24h • 08:00 - 20:00)', inicio: '08:00:00', fin: '20:00:00', icono: 'bi-sun-fill' },
@@ -677,7 +678,7 @@ export async function abrirWizardReserva({
           </div>
 
           <div class="p-3 bg-white rounded-3 border small">
-            <div class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i>Política Escalonada de Cancelación v5.1</div>
+            <div class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i>Política Escalonada de Cancelación v5.2</div>
             <ul class="mb-0 ps-3 text-secondary">
               <li><strong>&gt; 48 horas antes (o sin confirmar):</strong> 100% de reembolso inmediato.</li>
               <li><strong>Entre 24h y 48h antes:</strong> 70% de reembolso (30% penalidad).</li>
@@ -695,6 +696,7 @@ export async function abrirWizardReserva({
     const etiquetaBloque = BLOQUE_LABELS_MAP[state.bloqueHorario] || BLOQUE_LABELS_MAP.todo_el_dia;
 
     return `
+      <form id="form-wizard-paso4" novalidate>
       <div class="row g-4">
         <div class="col-md-7">
           <div class="p-3 bg-light rounded-3 border">
@@ -727,8 +729,9 @@ export async function abrirWizardReserva({
                 </div>
                 <div class="mt-3">
                   <label class="form-label small fw-bold">Código / Número de Operación ${escapeHtml(state.metodoPago)} *</label>
-                  <input type="text" class="form-control" id="wiz-num-operacion" required
+                  <input type="text" class="form-control font-monospace" id="wiz-num-operacion" required data-validate="operation-code" maxlength="30"
                     value="${escapeHtml(state.numOperacion)}" placeholder="Ej. YAPE-884920">
+                  <div class="form-text small">6 a 30 caracteres (letras, números o guiones).</div>
                 </div>
               </div>
             ` : `
@@ -740,7 +743,8 @@ export async function abrirWizardReserva({
                   </div>
                   <div class="col-sm-4">
                     <label class="form-label small fw-bold">Últimos 4 Dígitos *</label>
-                    <input type="text" class="form-control" id="wiz-ultimos-4" maxlength="4" value="${escapeHtml(state.ultimos4)}">
+                    <input type="text" class="form-control font-monospace" id="wiz-ultimos-4" required inputmode="numeric" maxlength="4" data-validate="card-last4" value="${escapeHtml(state.ultimos4)}" placeholder="4242">
+                    <div class="form-text small">Exactamente 4 dígitos.</div>
                   </div>
                 </div>
               </div>
@@ -756,9 +760,9 @@ export async function abrirWizardReserva({
               </div>
               <div class="col-sm-6 d-flex align-items-end">
                 <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" id="wiz-check-tyc" ${state.aceptaTyc ? 'checked' : ''}>
+                  <input class="form-check-input" type="checkbox" id="wiz-check-tyc" required data-validate="required-check" ${state.aceptaTyc ? 'checked' : ''}>
                   <label class="form-check-label small fw-semibold" for="wiz-check-tyc">
-                    Acepto los <a href="javascript:void(0)" class="fw-bold text-primary text-decoration-underline" data-legal-tab="terminos">Términos de Custodia v5.1</a> y la Política Escalonada de Cancelación.
+                    Acepto los <a href="javascript:void(0)" class="fw-bold text-primary text-decoration-underline" data-legal-tab="terminos">Términos de Custodia v5.2</a> y la Política Escalonada de Cancelación.
                   </label>
                 </div>
               </div>
@@ -770,7 +774,7 @@ export async function abrirWizardReserva({
           <div class="p-3 bg-white rounded-3 border shadow-sm">
             <h6 class="fw-bold border-bottom pb-2 mb-3">Resumen Final de tu Reserva</h6>
             <div class="small mb-2"><strong>Mascota:</strong> ${escapeHtml(state.mascota?.nombre)} (${escapeHtml(state.mascota?.paw_id)})</div>
-            <div class="small mb-2"><strong>Cuidador(a):</strong> ${escapeHtml(state.cuidador?.nombre_completo)} (${escapeHtml(state.cuidador?.distrito_cusco)})</div>
+            <div class="small mb-2"><strong>Cuidador:</strong> ${escapeHtml(state.cuidador?.nombre_completo)} (${escapeHtml(state.cuidador?.distrito_cusco)})</div>
             <div class="small mb-2"><strong>Servicio:</strong> ${escapeHtml(state.oferta?.tipo_servicio)} (${escapeHtml(state.oferta?.hu_ecode)})</div>
             <div class="small mb-2"><strong>Fechas:</strong> Del ${formatFechaEs(state.fechaInicio)} al ${formatFechaEs(state.fechaFin)} (${escapeHtml(cot.dias_calculados)} día(s))</div>
             <div class="small mb-3"><strong>Régimen Horario:</strong> ${escapeHtml(etiquetaBloque)}</div>
@@ -782,6 +786,7 @@ export async function abrirWizardReserva({
           </div>
         </div>
       </div>
+      </form>
     `;
   }
 
@@ -908,7 +913,16 @@ export async function abrirWizardReserva({
       state.notasPropietario = e.target.value;
     });
 
-    // Eventos Paso 4
+    // Eventos Paso 4 + motor de validación estricta
+    const formPaso4 = root.querySelector('#form-wizard-paso4');
+    if (formPaso4) {
+      attachFormValidation(formPaso4);
+      formPaso4.addEventListener('submit', (e) => {
+        e.preventDefault();
+        root.querySelector('#wiz-btn-confirmar')?.click();
+      });
+    }
+
     root.querySelectorAll('[data-select-metodo]').forEach((card) => {
       card.addEventListener('click', () => {
         state.metodoPago = card.getAttribute('data-select-metodo');
@@ -959,7 +973,22 @@ export async function abrirWizardReserva({
         state.paso = 2;
         renderWizard();
       } else if (state.paso === 2) {
-        if (!state.fechaInicio || !state.fechaFin || state.fechaFin < state.fechaInicio) {
+        const elIni = root.querySelector('#wiz-fecha-inicio');
+        const elFin = root.querySelector('#wiz-fecha-fin');
+        const hoyIso = getHoyIso();
+        if (!state.fechaInicio || state.fechaInicio < hoyIso) {
+          if (elIni) {
+            setFieldValidity(elIni, false, 'La fecha de inicio debe ser hoy o una fecha futura.');
+            elIni.focus();
+          }
+          showToast('Selecciona una fecha de inicio válida (hoy o posterior).', 'warning');
+          return;
+        }
+        if (!state.fechaFin || state.fechaFin < state.fechaInicio) {
+          if (elFin) {
+            setFieldValidity(elFin, false, 'La fecha de fin debe ser igual o posterior a la fecha de inicio.');
+            elFin.focus();
+          }
           showToast('Verifica que la fecha de fin sea igual o posterior a la fecha de inicio.', 'warning');
           return;
         }
@@ -988,8 +1017,14 @@ export async function abrirWizardReserva({
 
     // Confirmación Final Paso 4
     root.querySelector('#wiz-btn-confirmar')?.addEventListener('click', async () => {
+      const formP4 = root.querySelector('#form-wizard-paso4');
+      const check = validateFormNow(formP4);
+      if (!check.valid) return;
+      state.numOperacion = root.querySelector('#wiz-num-operacion')?.value.trim() || state.numOperacion;
+      state.ultimos4 = root.querySelector('#wiz-ultimos-4')?.value.trim() || state.ultimos4;
+      state.aceptaTyc = Boolean(root.querySelector('#wiz-check-tyc')?.checked);
       if (!state.aceptaTyc) {
-        showToast('Debes aceptar los Términos y Condiciones de Custodia v5.1 para confirmar.', 'warning');
+        showToast('Debes aceptar los Términos y Condiciones de Custodia v5.2 para confirmar.', 'warning');
         return;
       }
 

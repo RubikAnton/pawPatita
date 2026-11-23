@@ -7,12 +7,20 @@
  * y notificación de cambios de estado a la Navbar y al Router.
  */
 
-import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, clearAllRealtimeSubscriptions } from '../supabase-client.js';
 import { showSpinner, hideSpinner, showToast, handleSupabaseError, showConfirmModal } from '../utils/ui-helpers.js';
 
 let currentUser = null;
 let currentProfile = null;
 const authStateListeners = new Set();
+
+function dispatchAuthChangedEvent(user, profile) {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('paw:auth-changed', {
+      detail: { user: user || null, profile: profile || null }
+    }));
+  }
+}
 
 /**
  * Suscribe un callback a cambios de estado de autenticación
@@ -27,6 +35,7 @@ export function onAuthStateChanged(listener) {
 }
 
 function notifyAuthStateListeners() {
+  dispatchAuthChangedEvent(currentUser, currentProfile);
   authStateListeners.forEach((fn) => {
     try {
       fn({ user: currentUser, profile: currentProfile });
@@ -174,6 +183,10 @@ export async function loginWithEmail(email, password) {
   const supabase = getSupabase();
   const normalizedEmail = email.trim().toLowerCase();
 
+  // Purgar canales Realtime y cachés de sesión previa antes de autenticar una nueva cuenta
+  clearAllRealtimeSubscriptions();
+  dispatchAuthChangedEvent(null, null);
+
   try {
     if (!supabase || !isSupabaseConfigured()) {
       console.warn('⚠️ Supabase no configurado: evaluando credenciales en modo demostración local.');
@@ -267,6 +280,7 @@ export async function logout() {
   showSpinner('Cerrando sesión de forma segura...');
   const supabase = getSupabase();
   try {
+    clearAllRealtimeSubscriptions();
     if (supabase && isSupabaseConfigured()) {
       await supabase.auth.signOut();
     }

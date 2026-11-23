@@ -19,6 +19,7 @@
 import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
 import { formatMoneda, formatFechaEs, escapeHtml, exportarCsv } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 
 const STORAGE_KEY_LIQUIDACIONES = 'paw_demo_liquidaciones_cuidador_v5';
 
@@ -408,11 +409,12 @@ export function abrirModalSolicitarRetiro({
           Número de Cuenta / CCI / Celular Yape-Plin *
         </label>
         <input type="text" class="form-control font-monospace" id="retiro-input-numero"
-          required minlength="6" maxlength="28"
+          required inputmode="numeric" maxlength="24"
+          data-validate="bank-account" data-bank-type-selector="#retiro-select-banco"
           value="${escapeHtml(cuentaNumeroDefault)}"
-          placeholder="Ingresa tu número de cuenta o celular afiliado">
-        <div class="form-text small">
-          El Administrador de Paw Patita Cusco verificará la titularidad y registrará el N° de operación bancaria al transferir.
+          placeholder="Ej. 984311111">
+        <div class="form-text small" id="retiro-hint-cuenta">
+          Yape/Plin: 9 dígitos empezando en 9 • CCI: 20 dígitos • Cuenta bancaria: mínimo 10 dígitos.
         </div>
       </div>
 
@@ -443,23 +445,38 @@ export function abrirModalSolicitarRetiro({
     footerHtml
   });
 
+  const formRetiro = modal.el.querySelector('#form-solicitar-retiro-rpc');
+  attachFormValidation(formRetiro);
+
   const selectBanco = modal.el.querySelector('#retiro-select-banco');
   const inputNumero = modal.el.querySelector('#retiro-input-numero');
-  selectBanco?.addEventListener('change', () => {
-    const info = ENTIDADES_BANCARIAS_PERU.find((b) => b.id === selectBanco.value);
+  const hintCuenta = modal.el.querySelector('#retiro-hint-cuenta');
+
+  const syncHintBanco = () => {
+    const info = ENTIDADES_BANCARIAS_PERU.find((b) => b.id === selectBanco?.value);
     if (info && inputNumero) {
       inputNumero.placeholder = info.placeholder;
     }
-  });
+    if (hintCuenta && selectBanco) {
+      const v = selectBanco.value;
+      if (v === 'Yape' || v === 'Plin') {
+        hintCuenta.textContent = `${v}: ingresa exactamente 9 dígitos numéricos empezando en 9 (ej. 984311111).`;
+      } else if (v === 'CCI') {
+        hintCuenta.textContent = 'CCI: ingresa exactamente 20 dígitos numéricos sin espacios ni guiones.';
+      } else {
+        hintCuenta.textContent = `${v}: ingresa tu número de cuenta soles (mínimo 10 dígitos, solo números y guiones).`;
+      }
+    }
+  };
+  syncHintBanco();
+  selectBanco?.addEventListener('change', syncHintBanco);
 
   modal.el.querySelector('#btn-confirmar-retiro-rpc')?.addEventListener('click', async () => {
+    const check = validateFormNow(formRetiro);
+    if (!check.valid) return;
+
     const cuentaTipo = selectBanco.value;
     const cuentaNumero = inputNumero.value.trim();
-
-    if (cuentaNumero.length < 6) {
-      showToast('Por favor ingresa un número de cuenta, CCI o celular válido (mínimo 6 dígitos).', 'warning');
-      return;
-    }
 
     showSpinner('Enviando solicitud de retiro bancario...');
     try {
@@ -728,7 +745,7 @@ export function renderSeccionBilleteraCuidador(container, {
               <i class="bi bi-bank2 text-success me-2"></i>Entidades Soportadas en Perú
             </h6>
             <p class="small text-secondary mb-3">
-              En Paw Patita Cusco v5.0 puedes retirar tus ganancias sin comisiones ocultas hacia:
+              En Paw Patita Cusco v5.2 puedes retirar tus ganancias sin comisiones ocultas hacia:
             </p>
             <div class="d-flex flex-wrap gap-2 mb-3">
               ${ENTIDADES_BANCARIAS_PERU.map((b) => `

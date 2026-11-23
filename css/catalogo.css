@@ -571,6 +571,21 @@
    4. MODAL DETALLE COMPLETO DEL CUIDADOR
    ============================================================================= */
 
+#modal-perfil-cuidador-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+@supports (max-height: 90dvh) {
+  #modal-perfil-cuidador-content {
+    max-height: 90dvh;
+  }
+}
+
 .modal-perfil-header {
   position: relative;
   height: 150px;
@@ -579,6 +594,38 @@
   display: flex;
   align-items: flex-end;
   padding: 1rem 1.65rem;
+  flex-shrink: 0;
+}
+
+#modal-perfil-cuidador-content .modal-footer {
+  flex-shrink: 0;
+}
+
+#modal-perfil-cuidador-content .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 93, 36, 0.45) transparent;
+}
+
+#modal-perfil-cuidador-content .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+#modal-perfil-cuidador-content .modal-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+#modal-perfil-cuidador-content .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(232, 93, 36, 0.45);
+  border-radius: 4px;
+}
+
+#modal-perfil-cuidador-content .modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 93, 36, 0.75);
 }
 
 .modal-avatar-wrapper {

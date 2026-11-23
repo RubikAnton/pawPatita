@@ -90,7 +90,7 @@ const TESTIMONIOS = [
   },
   {
     autor: 'Camila Rojas Yábar',
-    origen: 'Cuidadora Certificada • San Sebastián',
+    origen: 'Cuidador Certificado • San Sebastián',
     mascota: 'Especialista en hospedaje familiar',
     texto: 'Paw Patita me permite brindar hospedaje familiar seguro con ingresos justos (85% neto) y el respaldo de clínicas 24h si ocurre cualquier eventualidad.',
     estrellas: 5,
@@ -148,7 +148,7 @@ export async function renderLanding(container) {
             <h1 class="display-5 fw-bold text-dark mb-3" style="letter-spacing: -0.02em; line-height: 1.18;" data-i18n="landing.hero_title">
               Cuidado Familiar y Amor Real para tu Mascota en Cusco
             </h1>
-            <p class="lead text-secondary mb-4" data-i18n="landing.hero_lead">
+            <p class="lead text-secondary mb-4" data-i18n="landing.hero_lead" data-i18n-html>
               Conectamos a cuidadores independientes verificados con propietarios locales y turistas.
               Con carné digital <strong>PAW-ID</strong>, cobertura de emergencias con clínicas aliadas 24h y fotos en vivo durante todo el servicio.
             </p>
@@ -205,16 +205,16 @@ export async function renderLanding(container) {
                 <div class="card-img-overlay d-flex flex-column justify-content-between p-3" style="background: linear-gradient(to top, rgba(11,17,32,0.7) 0%, transparent 60%);">
                   <div class="d-flex justify-content-between align-items-center">
                     <span class="badge bg-light text-dark shadow-sm">
-                      <i class="bi bi-geo-alt-fill text-danger me-1"></i> Valle Sagrado & Cusco
+                      <i class="bi bi-geo-alt-fill text-danger me-1"></i> <span data-i18n="landing.hero_badge_valle">Valle Sagrado & Cusco</span>
                     </span>
                     <span class="badge bg-success shadow-sm">
-                      <i class="bi bi-check-circle-fill me-1"></i> 100% Amor Familiar
+                      <i class="bi bi-check-circle-fill me-1"></i> <span data-i18n="landing.hero_badge_love">100% Amor Familiar</span>
                     </span>
                   </div>
                   <div class="text-white">
                     <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="badge bg-warning text-dark fw-bold">PAW-ID Activo</span>
-                      <small class="opacity-90">Custodia Verificada</small>
+                      <span class="badge bg-warning text-dark fw-bold" data-i18n="landing.hero_badge_pawid">PAW-ID Activo</span>
+                      <small class="opacity-90" data-i18n="landing.hero_badge_custodia">Custodia Verificada</small>
                     </div>
                     <h5 class="fw-bold mb-0 text-white">Inti & Toby en Cusco</h5>
                   </div>
@@ -227,8 +227,8 @@ export async function renderLanding(container) {
                   <i class="bi bi-heart-pulse-fill text-danger"></i>
                 </div>
                 <div>
-                  <strong class="d-block text-dark small">Oxigenación & Altura</strong>
-                  <span class="small text-muted" style="font-size: 0.75rem;">Protocolo veterinario Cusco 3,400 msnm</span>
+                  <strong class="d-block text-dark small" data-i18n="landing.hero_altitude_title">Oxigenación & Altura</strong>
+                  <span class="small text-muted" style="font-size: 0.75rem;" data-i18n="landing.hero_altitude_desc">Protocolo veterinario Cusco 3,400 msnm</span>
                 </div>
               </div>
             </div>
@@ -243,19 +243,19 @@ export async function renderLanding(container) {
         <div class="row g-3 text-center">
           <div class="col-6 col-md-3">
             <div class="h3 fw-bold text-primary mb-0">100%</div>
-            <div class="small text-muted">Cuidadores Verificados</div>
+            <div class="small text-muted" data-i18n="landing.stats_verified">Cuidadores Verificados</div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="h3 fw-bold text-success mb-0">6 Distritos</div>
-            <div class="small text-muted">Cusco Centro a San Jerónimo</div>
+            <div class="h3 fw-bold text-success mb-0" data-i18n="landing.stats_districts_num">6 Distritos</div>
+            <div class="small text-muted" data-i18n="landing.stats_districts">Cusco Centro a San Jerónimo</div>
           </div>
           <div class="col-6 col-md-3">
             <div class="h3 fw-bold text-danger mb-0">24 / 7</div>
-            <div class="small text-muted">Central S.O.S. en Vivo</div>
+            <div class="small text-muted" data-i18n="landing.stats_sos">Central S.O.S. en Vivo</div>
           </div>
           <div class="col-6 col-md-3">
             <div class="h3 fw-bold text-secondary mb-0">15%</div>
-            <div class="small text-muted">Comisión Justa y Transparente</div>
+            <div class="small text-muted" data-i18n="landing.stats_commission">Comisión Justa y Transparente</div>
           </div>
         </div>
       </div>
@@ -264,8 +264,8 @@ export async function renderLanding(container) {
     <!-- PROPUESTA DE VALOR DUAL: LOCALES Y TURISTAS -->
     <section class="container py-5">
       <div class="text-center mb-5">
-        <h2 class="fw-bold mb-2">Diseñado para la Realidad Única de Cusco</h2>
-        <p class="text-muted col-lg-7 mx-auto">
+        <h2 class="fw-bold mb-2" data-i18n="landing.value_title">Diseñado para la Realidad Única de Cusco</h2>
+        <p class="text-muted col-lg-7 mx-auto" data-i18n="landing.value_lead">
           Ya sea que vivas en Wanchaq o estés visitando Machu Picchu y el Valle Sagrado, garantizamos la mejor experiencia de cuidado ético.
         </p>
       </div>
@@ -279,17 +279,17 @@ export async function renderLanding(container) {
                 <i class="bi bi-house-heart-fill"></i>
               </div>
               <div>
-                <span class="badge bg-warning text-dark mb-1">Para Familias Cusqueñas</span>
-                <h4 class="fw-bold mb-0">Cuidado Cercano y Familiar</h4>
+                <span class="badge bg-warning text-dark mb-1" data-i18n="landing.local_badge">Para Familias Cusqueñas</span>
+                <h4 class="fw-bold mb-0" data-i18n="landing.local_title">Cuidado Cercano y Familiar</h4>
               </div>
             </div>
             <ul class="list-unstyled d-flex flex-column gap-2 text-secondary small mb-4">
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Cuidadores independientes en tu propio distrito (San Sebastián, Wanchaq, Santiago).</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Reportes continuos en el <strong>Muro en Vivo</strong> con fotos y estado de ánimo.</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>Carné Digital PAW-ID</strong> que certifica vacunas y controles médicos con clínicas locales.</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Sin sobrecostos: tarifas justas acordadas por día y por bloque horario.</li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.local_b1" data-i18n-html>Cuidadores independientes en tu propio distrito (San Sebastián, Wanchaq, Santiago).</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.local_b2" data-i18n-html>Reportes continuos en el <strong>Muro en Vivo</strong> con fotos y estado de ánimo.</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.local_b3" data-i18n-html><strong>Carné Digital PAW-ID</strong> que certifica vacunas y controles médicos con clínicas locales.</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.local_b4" data-i18n-html>Sin sobrecostos: tarifas justas acordadas por día y por bloque horario.</span></li>
             </ul>
-            <a href="#/catalogo" class="btn btn-paw-outline mt-auto">Buscar en mi Distrito</a>
+            <a href="#/catalogo" class="btn btn-paw-outline mt-auto" data-i18n="landing.local_btn">Buscar en mi Distrito</a>
           </div>
         </div>
 
@@ -301,17 +301,17 @@ export async function renderLanding(container) {
                 <i class="bi bi-airplane-fill"></i>
               </div>
               <div>
-                <span class="badge bg-info text-white mb-1">Para Viajeros y Turistas</span>
-                <h4 class="fw-bold mb-0">Disfruta Cusco sin Preocupaciones</h4>
+                <span class="badge bg-info text-white mb-1" data-i18n="landing.tourist_badge">Para Viajeros y Turistas</span>
+                <h4 class="fw-bold mb-0" data-i18n="landing.tourist_title">Disfruta Cusco sin Preocupaciones</h4>
               </div>
             </div>
             <ul class="list-unstyled d-flex flex-column gap-2 text-secondary small mb-4">
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>Cuidado en Hotel o Airbnb:</strong> Los cuidadores pueden recoger a tu mascota en tu hospedaje.</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Visita <strong>Machu Picchu, Sacsayhuamán y Vinicunca</strong> sabiendo que tu mascota está segura.</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Cuidadores bilingües (Inglés / Español) y protocolo de adaptación a la altura.</li>
-              <li><i class="bi bi-check-circle-fill text-success me-2"></i> Pagos con conversión en USD y garantía de cancelación flexible.</li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.tourist_b1" data-i18n-html><strong>Cuidado en Hotel o Airbnb:</strong> Los cuidadores pueden recoger a tu mascota en tu hospedaje.</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.tourist_b2" data-i18n-html>Visita <strong>Machu Picchu, Sacsayhuamán y Vinicunca</strong> sabiendo que tu mascota está segura.</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.tourist_b3" data-i18n-html>Cuidadores bilingües (Inglés / Español) y protocolo de adaptación a la altura.</span></li>
+              <li class="d-flex align-items-start gap-2"><i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i> <span data-i18n="landing.tourist_b4" data-i18n-html>Pagos con conversión en USD y garantía de cancelación flexible.</span></li>
             </ul>
-            <a href="#/catalogo" class="btn btn-paw mt-auto">Ver Cuidadores para Turistas</a>
+            <a href="#/catalogo" class="btn btn-paw mt-auto" data-i18n="landing.tourist_btn">Ver Cuidadores para Turistas</a>
           </div>
         </div>
       </div>
@@ -322,9 +322,9 @@ export async function renderLanding(container) {
       <div class="container">
         <div class="row align-items-center g-5">
           <div class="col-lg-6">
-            <span class="badge bg-danger text-white px-3 py-1 rounded-pill mb-2">Tecnología & Seguridad</span>
-            <h2 class="fw-bold mb-3">Carné Digital PAW-ID y Central S.O.S. en Tiempo Real</h2>
-            <p class="text-secondary mb-4">
+            <span class="badge bg-danger text-white px-3 py-1 rounded-pill mb-2" data-i18n="landing.pawid_badge">Tecnología & Seguridad</span>
+            <h2 class="fw-bold mb-3" data-i18n="landing.pawid_title">Carné Digital PAW-ID y Central S.O.S. en Tiempo Real</h2>
+            <p class="text-secondary mb-4" data-i18n="landing.pawid_desc">
               Cada mascota registrada en Paw Patita cuenta con su identificador único <code>PAW-XXXX</code> y un carné con código QR. Si tu mascota se extravía o sufre un accidente, cualquier veterinaria o transeúnte puede escanear el carné y contactarte de inmediato sin exponer tus datos privados.
             </p>
             <div class="d-flex flex-column gap-3">
@@ -347,7 +347,7 @@ export async function renderLanding(container) {
           <div class="col-lg-6 text-center">
             <div class="card card-paw p-4 border-0 shadow-lg d-inline-block text-start" style="max-width: 440px;">
               <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                <span class="fw-bold text-dark"><i class="bi bi-paw-fill text-warning me-1"></i> PAW-ID Digital</span>
+                <span class="fw-bold text-dark"><i class="bi bi-paw-fill text-warning me-1"></i> <span data-i18n="landing.pawid_preview_title">PAW-ID Digital</span></span>
                 <span class="badge bg-success" data-i18n="paw_id.validado">Sanitariamente Validado</span>
               </div>
               <div class="d-flex gap-3 align-items-center mb-3">
@@ -363,11 +363,11 @@ export async function renderLanding(container) {
                 </div>
               </div>
               <div class="small bg-light p-2 rounded mb-3">
-                <div><strong>Clínica Validadora:</strong> San Francisco Cusco 24h</div>
-                <div><strong>Vacunas:</strong> Al día (Vigencia 2027)</div>
+                <div data-i18n="landing.pawid_preview_vet"><strong>Clínica Validadora:</strong> San Francisco Cusco 24h</div>
+                <div data-i18n="landing.pawid_preview_vax"><strong>Vacunas:</strong> Al día (Vigencia 2027)</div>
               </div>
               <a href="#/paw-id/PAW-6858" class="btn btn-outline-dark btn-sm w-100">
-                <i class="bi bi-eye me-1"></i> Simular Escaneo de Código QR
+                <i class="bi bi-eye me-1"></i> <span data-i18n="landing.pawid_preview_btn">Simular Escaneo de Código QR</span>
               </a>
             </div>
           </div>
@@ -379,12 +379,12 @@ export async function renderLanding(container) {
     <section class="container py-5">
       <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-2">
         <div>
-          <span class="badge bg-danger text-white px-3 py-1 rounded-pill mb-2">Red de Urgencias Cusco</span>
-          <h2 class="fw-bold mb-1">Clínicas Veterinarias Aliadas</h2>
-          <p class="text-muted mb-0">Nuestra red oficial de atención médica presencial y emergencias S.O.S. en Cusco.</p>
+          <span class="badge bg-danger text-white px-3 py-1 rounded-pill mb-2" data-i18n="landing.vets_badge">Red de Urgencias Cusco</span>
+          <h2 class="fw-bold mb-1" data-i18n="landing.vets_title">Clínicas Veterinarias Aliadas</h2>
+          <p class="text-muted mb-0" data-i18n="landing.vets_subtitle">Nuestra red oficial de atención médica presencial y emergencias S.O.S. en Cusco.</p>
         </div>
         <button class="btn btn-paw-outline" data-bs-toggle="modal" data-bs-target="#modal-postular-clinica">
-          <i class="bi bi-hospital me-1"></i> ¿Tienes una veterinaria? Postula aquí
+          <i class="bi bi-hospital me-1"></i> <span data-i18n="landing.vets_cta_btn">¿Tienes una veterinaria? Postula aquí</span>
         </button>
       </div>
 
@@ -403,26 +403,26 @@ export async function renderLanding(container) {
           <div class="col-lg-6">
             <div class="card card-paw h-100 p-4 border-0 shadow-sm">
               <h5 class="fw-bold text-dark mb-3">
-                <i class="bi bi-calendar-event text-warning me-2"></i>Temporadas Turísticas en Cusco
+                <i class="bi bi-calendar-event text-warning me-2"></i><span data-i18n="landing.seasons_title">Temporadas Turísticas en Cusco</span>
               </h5>
-              <p class="small text-muted">
+              <p class="small text-muted" data-i18n="landing.seasons_desc">
                 Durante festividades de alta afluencia se aplican recargos moderados aprobados en plataforma para garantizar cuidadores dedicados:
               </p>
               <ul class="list-group list-group-flush small">
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                  <span><strong>Fiestas del Cusco e Inti Raymi</strong> (Junio)</span>
+                  <span data-i18n="landing.season_inti" data-i18n-html><strong>Fiestas del Cusco e Inti Raymi</strong> (Junio)</span>
                   <span class="badge bg-warning text-dark">+20%</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                  <span><strong>Fiestas Patrias Perú</strong> (Julio - Agosto)</span>
+                  <span data-i18n="landing.season_patrias" data-i18n-html><strong>Fiestas Patrias Perú</strong> (Julio - Agosto)</span>
                   <span class="badge bg-warning text-dark">+15%</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                  <span><strong>Navidad y Año Nuevo en los Andes</strong> (Diciembre)</span>
+                  <span data-i18n="landing.season_navidad" data-i18n-html><strong>Navidad y Año Nuevo en los Andes</strong> (Diciembre)</span>
                   <span class="badge bg-warning text-dark">+25%</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                  <span><strong>Temporada de Lluvias</strong> (Enero - Febrero)</span>
+                  <span data-i18n="landing.season_lluvias" data-i18n-html><strong>Temporada de Lluvias</strong> (Enero - Febrero)</span>
                   <span class="badge bg-info text-white">+10% (Secado especial)</span>
                 </li>
               </ul>
@@ -432,32 +432,32 @@ export async function renderLanding(container) {
           <div class="col-lg-6">
             <div class="card card-paw h-100 p-4 border-0 shadow-sm">
               <h5 class="fw-bold text-dark mb-3">
-                <i class="bi bi-shield-lock text-success me-2"></i>Política Escalonada de Cancelación
+                <i class="bi bi-shield-lock text-success me-2"></i><span data-i18n="landing.cancel_title">Política Escalonada de Cancelación</span>
               </h5>
-              <p class="small text-muted">
+              <p class="small text-muted" data-i18n="landing.cancel_desc">
                 Transparencia total para proteger el tiempo del cuidador y el presupuesto del propietario:
               </p>
               <div class="d-flex flex-column gap-2 small">
                 <div class="p-2 border rounded bg-white d-flex justify-content-between align-items-center">
                   <div>
-                    <strong>Más de 48 horas de anticipación:</strong>
-                    <div class="text-muted">Reembolso del 100% al propietario.</div>
+                    <strong data-i18n="landing.cancel_48_title">Más de 48 horas de anticipación:</strong>
+                    <div class="text-muted" data-i18n="landing.cancel_48_desc">Reembolso del 100% al propietario.</div>
                   </div>
-                  <span class="badge bg-success">100% Reembolso</span>
+                  <span class="badge bg-success" data-i18n="landing.cancel_48_badge">100% Reembolso</span>
                 </div>
                 <div class="p-2 border rounded bg-white d-flex justify-content-between align-items-center">
                   <div>
-                    <strong>Entre 24 y 48 horas de anticipación:</strong>
-                    <div class="text-muted">70% reembolso • 15% cuidador • 15% plataforma.</div>
+                    <strong data-i18n="landing.cancel_24_title">Entre 24 y 48 horas de anticipación:</strong>
+                    <div class="text-muted" data-i18n="landing.cancel_24_desc">70% reembolso • 15% cuidador • 15% plataforma.</div>
                   </div>
-                  <span class="badge bg-warning text-dark">70% Reembolso</span>
+                  <span class="badge bg-warning text-dark" data-i18n="landing.cancel_24_badge">70% Reembolso</span>
                 </div>
                 <div class="p-2 border rounded bg-white d-flex justify-content-between align-items-center">
                   <div>
-                    <strong>Menos de 24 horas de anticipación:</strong>
-                    <div class="text-muted">50% reembolso • 35% cuidador • 15% plataforma.</div>
+                    <strong data-i18n="landing.cancel_less_title">Menos de 24 horas de anticipación:</strong>
+                    <div class="text-muted" data-i18n="landing.cancel_less_desc">50% reembolso • 35% cuidador • 15% plataforma.</div>
                   </div>
-                  <span class="badge bg-danger">50% Reembolso</span>
+                  <span class="badge bg-danger" data-i18n="landing.cancel_less_badge">50% Reembolso</span>
                 </div>
               </div>
             </div>
@@ -469,9 +469,9 @@ export async function renderLanding(container) {
     <!-- TESTIMONIOS REALES -->
     <section class="container py-5">
       <div class="text-center mb-5">
-        <span class="badge bg-warning text-dark px-3 py-1 rounded-pill mb-2">Comunidad Paw Patita</span>
-        <h2 class="fw-bold mb-2">Historias Reales de Cuidado en Cusco</h2>
-        <p class="text-muted">La voz de propietarios y cuidadores que ya confían en nuestra red.</p>
+        <span class="badge bg-warning text-dark px-3 py-1 rounded-pill mb-2" data-i18n="landing.testimonials_badge">Comunidad Paw Patita</span>
+        <h2 class="fw-bold mb-2" data-i18n="landing.testimonials_title">Historias Reales de Cuidado en Cusco</h2>
+        <p class="text-muted" data-i18n="landing.testimonials_lead">La voz de propietarios y cuidadores que ya confían en nuestra red.</p>
       </div>
 
       <div class="row g-4">
@@ -554,7 +554,7 @@ async function cargarClinicasGrid(currentCurrency) {
                style="width: 100%; height: 100%; object-fit: cover;"
                onerror="this.onerror=null; this.src='${SVG_CLINICA_FALLBACK}';">
           <span class="badge ${c.horario_atencion?.includes('24') ? 'bg-danger' : 'bg-secondary'} position-absolute top-0 end-0 m-2 shadow-sm">
-            ${escapeHtml(c.horario_atencion || 'Atención Regular')}
+            ${c.horario_atencion?.includes('24') ? '24 Horas' : t('landing.vets_regular')}
           </span>
         </div>
         <div class="p-3 d-flex flex-column flex-grow-1">
@@ -572,11 +572,11 @@ async function cargarClinicasGrid(currentCurrency) {
 
           <div class="mt-auto border-top pt-2 d-flex justify-content-between align-items-center">
             <div>
-              <div class="small text-muted" style="font-size: 0.7rem;">Urgencia desde:</div>
+              <div class="small text-muted" style="font-size: 0.7rem;">${t('landing.vets_urgency_from')}</div>
               <strong class="text-danger small">${formatMoneda(c.tarifa_consulta_emergencia || 50, currentCurrency)}</strong>
             </div>
             <a href="tel:${escapeHtml(c.telefono_emergencia?.replace(/\s+/g, '') || '')}" class="btn btn-outline-danger btn-sm">
-              <i class="bi bi-telephone-fill me-1"></i> Llamar
+              <i class="bi bi-telephone-fill me-1"></i> ${t('landing.vets_call')}
             </a>
           </div>
         </div>

@@ -145,7 +145,7 @@ BEGIN
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Rodrigo","apellido":"Quispe Monzón","rol":"administrador","estado_cuenta":"activo","num_documento":"44112233","distrito_cusco":"Cusco Centro"}'::jsonb, now(), now()),
 
-        -- 2. Propietaria Local Cusco (Demo Propietario)
+        -- 2. Propietario Local Cusco (Demo Propietario)
         (v_instance_id, '50000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated',
          'lucia.mendoza@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
@@ -689,7 +689,9 @@ INSERT INTO public.incidencias_emergencias (
     id, codigo_sos, id_reserva, id_mascota, reportado_por, id_clinica_derivada,
     atendido_por_vet, nivel_severidad, tipo_incidencia, descripcion,
     ubicacion_emergencia, estado_sos, diagnostico_clinico, tratamiento_aplicado,
-    informe_resolucion, costo_atencion_ref, fecha_incidencia, fecha_atencion, fecha_resolucion
+    informe_resolucion, costo_atencion_ref, estado_cobro_sos, metodo_pago_sos,
+    comprobante_pago_sos, fecha_pago_sos, observacion_cobro_sos,
+    fecha_incidencia, fecha_atencion, fecha_resolucion
 )
 VALUES
     (
@@ -701,7 +703,8 @@ VALUES
         'Parque Marianito Ferro, Wanchaq', 'en_atencion',
         'Cuerpo extraño superficial (espina vegetal) en almohadilla metacarpiana derecha sin sangrado profundo.',
         'Extracción aséptica, lavado con clorhexidina al 2% y vendaje protector ligero.',
-        NULL, 60.00, now() - INTERVAL '45 minutes', now() - INTERVAL '30 minutes', NULL
+        NULL, 60.00, 'pendiente_pago', NULL, NULL, NULL, NULL,
+        now() - INTERVAL '45 minutes', now() - INTERVAL '30 minutes', NULL
     ),
     (
         '95000000-0000-0000-0000-000000000002', 'SOS-2026-0102', '90000000-0000-0000-0000-000000000001',
@@ -713,6 +716,8 @@ VALUES
         'Signos vitales normales; saturación de oxígeno al 96% y frecuencia cardíaca fisiológica.',
         'Hidratación oral con electrolitos y reposo de 2 horas.',
         'Alta médica inmediata sin hallazgos patológicos.', 50.00,
+        'conciliado', 'Yape', 'YAPE-SOS-0102', now() - INTERVAL '9 days',
+        'Cargo clínico histórico conciliado.',
         now() - INTERVAL '9 days', now() - INTERVAL '9 days', now() - INTERVAL '9 days'
     )
 ON CONFLICT (codigo_sos) DO NOTHING;

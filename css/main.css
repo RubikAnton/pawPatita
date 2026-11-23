@@ -76,6 +76,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   line-height: 1.5;
 }
@@ -226,6 +227,17 @@ img {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 576px) {
+  .navbar-controls {
+    width: 100%;
+    margin-left: 0 !important;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--pp-border-color);
+    justify-content: flex-start;
+  }
 }
 
 .btn-pill-control {
@@ -307,8 +319,8 @@ img {
 
 /* Dropdown de Notificaciones */
 .notifications-dropdown {
-  width: 340px;
-  max-width: 92vw;
+  width: min(350px, calc(100vw - 1.5rem));
+  max-width: calc(100vw - 1.5rem);
   max-height: 440px;
   overflow-y: auto;
   border-radius: var(--pp-radius-md);
@@ -735,8 +747,17 @@ img {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  max-width: 380px;
+  max-width: min(380px, calc(100vw - 1.5rem));
   pointer-events: none;
+}
+
+@media (max-width: 576px) {
+  #toast-container {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
+  }
 }
 
 .toast-paw, .toast {
@@ -747,6 +768,7 @@ img {
   overflow: hidden;
   background-color: #FFFFFF;
   backdrop-filter: blur(8px);
+  max-width: calc(100vw - 1.5rem);
 }
 
 #global-spinner-overlay {
@@ -784,6 +806,51 @@ img {
   border: 1px solid var(--pp-border-color);
   box-shadow: var(--pp-shadow-xl);
   overflow: hidden;
+}
+
+.modal-dialog-scrollable .modal-content {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@supports (max-height: 90dvh) {
+  .modal-dialog-scrollable .modal-content {
+    max-height: 90dvh;
+  }
+}
+
+.modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .modal-footer {
+  flex-shrink: 0;
+}
+
+.modal-dialog-scrollable .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 93, 36, 0.45) transparent;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(232, 93, 36, 0.45);
+  border-radius: 4px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 93, 36, 0.75);
 }
 
 .modal-backdrop.show {

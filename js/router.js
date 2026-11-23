@@ -10,6 +10,7 @@
 import { getSessionData } from './auth/auth.js';
 import { showToast } from './utils/ui-helpers.js';
 import { escapeHtml } from './utils/formatters.js';
+import { attachFormValidation } from './utils/validators.js';
 import { renderLanding } from './public/landing.js';
 import { renderCatalogo, aplicarFiltros } from './public/catalogo.js';
 import { renderPawIdPublico } from './public/paw-id-publico.js';
@@ -176,20 +177,21 @@ function renderRouteView(hash, profile) {
                   <h3 class="fw-bold mt-2">Nueva Contraseña</h3>
                   <p class="text-secondary small">Ingresa tu nueva contraseña para acceder a Paw Patita Cusco.</p>
                 </div>
-                <form id="form-reset-password">
+                <form id="form-reset-password" novalidate>
                   <div class="mb-3">
-                    <label for="input-new-pwd" class="form-label small fw-bold">Nueva Contraseña</label>
+                    <label for="input-new-pwd" class="form-label small fw-bold">Nueva Contraseña *</label>
                     <div class="input-password-wrapper">
-                      <input type="password" id="input-new-pwd" class="form-control" required minlength="6" placeholder="Mínimo 6 caracteres">
+                      <input type="password" id="input-new-pwd" class="form-control" required minlength="8" data-validate="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
                       <button type="button" class="toggle-pwd-btn" data-toggle-password="input-new-pwd" aria-label="Mostrar u ocultar nueva contraseña" aria-pressed="false" title="Mostrar contraseña">
                         <i class="bi bi-eye"></i>
                       </button>
                     </div>
+                    <div class="form-text small">Usa al menos 8 caracteres combinando letras y números.</div>
                   </div>
                   <div class="mb-4">
-                    <label for="input-confirm-pwd" class="form-label small fw-bold">Confirmar Nueva Contraseña</label>
+                    <label for="input-confirm-pwd" class="form-label small fw-bold">Confirmar Nueva Contraseña *</label>
                     <div class="input-password-wrapper">
-                      <input type="password" id="input-confirm-pwd" class="form-control" required minlength="6" placeholder="Repite la contraseña">
+                      <input type="password" id="input-confirm-pwd" class="form-control" required minlength="8" data-validate="password-confirm" data-match="#input-new-pwd" autocomplete="new-password" placeholder="Repite exactamente la contraseña">
                       <button type="button" class="toggle-pwd-btn" data-toggle-password="input-confirm-pwd" aria-label="Mostrar u ocultar confirmación de contraseña" aria-pressed="false" title="Mostrar contraseña">
                         <i class="bi bi-eye"></i>
                       </button>
@@ -204,6 +206,7 @@ function renderRouteView(hash, profile) {
           </div>
         </div>
       `;
+      attachFormValidation(document.getElementById('form-reset-password'));
       break;
 
     case '#/propietario':

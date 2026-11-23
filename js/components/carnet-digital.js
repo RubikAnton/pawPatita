@@ -15,6 +15,7 @@ import { getSupabase, isSupabaseConfigured, getFallbackSvgDataUri } from '../sup
 import { CUSCO_CONFIG } from '../config.js';
 import { calcularEdadDinamica, formatFechaEs, formatMoneda, escapeHtml, getHoyIso } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, showConfirmModal, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 import { mountFileUploader, abrirVisorDocumento } from './file-uploader.js';
 
 const BLOQUE_HORARIO_LABELS = {
@@ -363,18 +364,20 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
       <div class="row g-3">
         <div class="col-md-5">
           <label class="form-label small fw-bold">Nombre de la Mascota *</label>
-          <input type="text" class="form-control" id="pet-nombre" required maxlength="60"
+          <input type="text" class="form-control" id="pet-nombre" required maxlength="60" data-validate="person-name"
             value="${escapeHtml(m.nombre)}" placeholder="Ej. Inti, Killa, Toby">
+          <div class="form-text small">Solo letras (mínimo 2 caracteres).</div>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Raza *</label>
-          <input type="text" class="form-control" id="pet-raza" required maxlength="60"
+          <input type="text" class="form-control" id="pet-raza" required maxlength="60" data-validate="person-name"
             value="${escapeHtml(m.raza)}" placeholder="Ej. Golden Retriever, Mestizo">
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-bold">Fecha de Nacimiento *</label>
-          <input type="date" class="form-control" id="pet-nacimiento" required max="${hoy}"
+          <input type="date" class="form-control" id="pet-nacimiento" required max="${hoy}" data-validate="past-date"
             value="${escapeHtml(m.fecha_nacimiento)}">
+          <div class="form-text small">No puede ser futura.</div>
         </div>
 
         <div class="col-md-4">
@@ -394,8 +397,9 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Peso Aproximado (kg) *</label>
-          <input type="number" step="0.1" min="0.5" max="110" class="form-control" id="pet-peso" required
+          <input type="number" step="0.1" min="0.3" max="100" class="form-control" id="pet-peso" required data-validate="number-range"
             value="${escapeHtml(m.peso_kg)}">
+          <div class="form-text small">Rango válido: 0.3 a 100 kg.</div>
         </div>
 
         <div class="col-md-4">
@@ -468,6 +472,9 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
     tamano: 'modal-lg'
   });
 
+  const formMascota = modal.el.querySelector('#form-crud-mascota');
+  attachFormValidation(formMascota);
+
   // Montar dropzones de Fotografía y Cartilla de Vacunación (Imagen o PDF)
   const fotoUploader = mountFileUploader(modal.el.querySelector('#uploader-pet-foto'), {
     label: 'Fotografía de la Mascota',
@@ -498,15 +505,13 @@ export function abrirModalFormularioMascota(mascotaExistente = null, idPropietar
 
   // Guardar mascota
   modal.el.querySelector('#btn-guardar-mascota-modal')?.addEventListener('click', async () => {
+    const check = validateFormNow(formMascota);
+    if (!check.valid) return;
+
     const nombre = modal.el.querySelector('#pet-nombre').value.trim();
     const raza = modal.el.querySelector('#pet-raza').value.trim();
     const fechaNacimiento = modal.el.querySelector('#pet-nacimiento').value;
-    const peso = parseFloat(modal.el.querySelector('#pet-peso').value) || 10;
-
-    if (!nombre || !raza || !fechaNacimiento) {
-      showToast('Por favor completa el nombre, raza y fecha de nacimiento de tu mascota.', 'warning');
-      return;
-    }
+    const peso = parseFloat(modal.el.querySelector('#pet-peso').value);
 
     showSpinner(esEdicion ? 'Actualizando ficha médica PAW-ID...' : 'Generando Carné Digital PAW-ID...');
     try {

@@ -243,7 +243,7 @@ export const CUIDADORES_SEED = [
     apellido: 'Aguilar Bellido',
     distrito_cusco: 'Santiago',
     telefono: '+51 984 555 666',
-    presentacion_corta: 'Adiestradora canina básica y cuidadora con 6 años de experiencia en Santiago.',
+    presentacion_corta: 'Especialista en adiestramiento canino y cuidador certificado con 6 años de experiencia en Santiago.',
     descripcion_experiencia: 'Cuento con formación en etología canina y refuerzo positivo. Trato perritos tímidos o con ansiedad por separación con calma y rutinas estructuradas.',
     anios_experiencia: 6,
     especialidades: ['Adiestramiento positivo', 'Ansiedad por separación', 'Perritos rescatados', 'Primeros auxilios'],
@@ -398,15 +398,15 @@ export async function renderCatalogo(container) {
       <!-- CABECERA DEL CATÁLOGO -->
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
-          <h2 class="fw-bold mb-1"><i class="bi bi-compass text-warning me-2"></i>Catálogo de Cuidadores en Cusco</h2>
-          <p class="text-secondary mb-0">Encuentra y reserva cuidadores verificados en tu distrito con disponibilidad y tarifas en vivo.</p>
+          <h2 class="fw-bold mb-1"><i class="bi bi-compass text-warning me-2"></i><span data-i18n="catalogo.title">Catálogo de Cuidadores en Cusco</span></h2>
+          <p class="text-secondary mb-0" data-i18n="catalogo.subtitle">Encuentra y reserva cuidadores verificados en tu distrito con disponibilidad y tarifas en vivo.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="badge bg-light text-dark border px-3 py-2 fs-6">
             <i class="bi bi-shield-check text-success me-1"></i> <span id="contador-cuidadores">Cargando...</span>
           </span>
           <button class="btn btn-outline-secondary btn-sm" id="btn-toggle-mapa" title="Alternar Mapa">
-            <i class="bi bi-map me-1"></i> Ver Mapa
+            <i class="bi bi-map me-1"></i> <span id="btn-toggle-mapa-text" data-i18n="catalogo.btn_mapa_ver">Ver Mapa</span>
           </button>
         </div>
       </div>
@@ -415,17 +415,17 @@ export async function renderCatalogo(container) {
       <div id="seccion-mapa-wrapper" class="mapa-seccion-card mb-4">
         <div class="mapa-header-toolbar">
           <div class="d-flex align-items-center gap-2">
-            <strong class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Mapa Georreferenciado de Cusco</strong>
-            <span class="badge bg-warning text-dark small"><i class="bi bi-map-fill me-1"></i>Distritos y Cobertura 24h</span>
+            <strong class="text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <span data-i18n="catalogo.mapa_title">Mapa Georreferenciado de Cusco</span></strong>
+            <span class="badge bg-warning text-dark small"><i class="bi bi-map-fill me-1"></i><span data-i18n="catalogo.mapa_badge">Distritos y Cobertura 24h</span></span>
           </div>
           <div class="mapa-leyenda">
             <div class="leyenda-item">
               <span class="badge rounded-circle p-1" style="background: var(--pp-primary); width: 14px; height: 14px; display: inline-block;"></span>
-              <span>Cuidador Aprobado</span>
+              <span data-i18n="catalogo.leyenda_cuid">Cuidador Aprobado</span>
             </div>
             <div class="leyenda-item">
               <span class="badge rounded-circle p-1" style="background: var(--pp-danger); width: 14px; height: 14px; display: inline-block;"></span>
-              <span>Clínica 24h / Urgencias</span>
+              <span data-i18n="catalogo.leyenda_vet">Clínica 24h / Urgencias</span>
             </div>
           </div>
         </div>
@@ -437,19 +437,19 @@ export async function renderCatalogo(container) {
         <!-- SIDEBAR DE FILTROS REACTIVOS -->
         <aside class="filtros-sidebar" aria-label="Filtros del Catálogo">
           <div class="filtros-header">
-            <span class="fw-bold text-dark"><i class="bi bi-funnel-fill text-warning me-1"></i> Filtros de Búsqueda</span>
+            <span class="fw-bold text-dark"><i class="bi bi-funnel-fill text-warning me-1"></i> <span data-i18n="catalogo.filtros_title">Filtros de Búsqueda</span></span>
             <button class="btn btn-link btn-sm text-muted p-0 text-decoration-none" id="btn-reset-filtros">
-              <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+              <i class="bi bi-arrow-counterclockwise"></i> <span data-i18n="catalogo.limpiar">Limpiar</span>
             </button>
           </div>
 
           <!-- Búsqueda por texto -->
           <div class="filtro-seccion">
             <label class="filtro-titulo" for="filtro-busqueda-input">
-              <i class="bi bi-search"></i> Buscar Cuidador
+              <i class="bi bi-search"></i> <span data-i18n="catalogo.buscar_label">Buscar Cuidador</span>
             </label>
             <div class="input-group input-group-sm">
-              <input type="text" class="form-control" id="filtro-busqueda-input" placeholder="Nombre, habilidad...">
+              <input type="text" class="form-control" id="filtro-busqueda-input" placeholder="Nombre, habilidad..." data-i18n-placeholder="catalogo.buscar_placeholder">
               <button class="btn btn-outline-secondary" type="button" id="btn-clear-search">
                 <i class="bi bi-x"></i>
               </button>
@@ -459,10 +459,10 @@ export async function renderCatalogo(container) {
           <!-- Filtro por Distrito de Cusco -->
           <div class="filtro-seccion">
             <div class="filtro-titulo">
-              <i class="bi bi-geo-alt"></i> Distrito de Cusco
+              <i class="bi bi-geo-alt"></i> <span data-i18n="catalogo.filtro_distrito">Distrito de Cusco</span>
             </div>
             <div class="distritos-chips" id="distritos-chips-container">
-              <span class="chip-distrito active" data-distrito="">Todos</span>
+              <span class="chip-distrito active" data-distrito="" data-i18n="catalogo.todos_distritos">Todos</span>
               ${CUSCO_CONFIG.DISTRITOS.map(d => `
                 <span class="chip-distrito" data-distrito="${escapeHtml(d)}">${escapeHtml(d)}</span>
               `).join('')}
@@ -472,11 +472,11 @@ export async function renderCatalogo(container) {
           <!-- Filtro por Categoría de Servicio -->
           <div class="filtro-seccion">
             <div class="filtro-titulo">
-              <i class="bi bi-tags"></i> Tipo de Servicio
+              <i class="bi bi-tags"></i> <span data-i18n="catalogo.filtro_servicio">Tipo de Servicio</span>
             </div>
             <div class="d-flex flex-column gap-1">
               <label class="filtro-item-check">
-                <span class="small"><i class="bi bi-grid text-muted me-1"></i> Todos los servicios</span>
+                <span class="small"><i class="bi bi-grid text-muted me-1"></i> <span data-i18n="catalogo.todos_servicios">Todos los servicios</span></span>
                 <input type="radio" name="filtro-categoria" value="" checked>
               </label>
               ${CUSCO_CONFIG.SERVICIOS_CATEGORIAS.map(cat => `
@@ -493,7 +493,7 @@ export async function renderCatalogo(container) {
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="filtro-recojo-hotel">
               <label class="form-check-label small fw-bold text-dark" for="filtro-recojo-hotel">
-                <i class="bi bi-building text-info me-1"></i> Con recojo en hotel / Airbnb
+                <i class="bi bi-building text-info me-1"></i> <span data-i18n="catalogo.filtro_recojo_hotel">Con recojo en hotel / Airbnb</span>
               </label>
             </div>
           </div>
@@ -501,7 +501,7 @@ export async function renderCatalogo(container) {
           <!-- Filtro por Rango de Precio Máximo -->
           <div class="filtro-seccion">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <div class="filtro-titulo mb-0"><i class="bi bi-cash"></i> Tarifa Máxima</div>
+              <div class="filtro-titulo mb-0"><i class="bi bi-cash"></i> <span data-i18n="catalogo.tarifa_maxima">Tarifa Máxima</span></div>
               <span class="badge bg-light text-dark border fw-bold" id="label-precio-max">
                 ${formatMoneda(80, currentCurrency)}
               </span>
@@ -516,10 +516,10 @@ export async function renderCatalogo(container) {
           <!-- Filtro por Calificación Mínima (Estrellas) -->
           <div class="filtro-seccion mb-0">
             <div class="filtro-titulo">
-              <i class="bi bi-star"></i> Calificación Mínima
+              <i class="bi bi-star"></i> <span data-i18n="catalogo.calificacion_min">Calificación Mínima</span>
             </div>
             <div class="estrellas-selector" id="filtro-estrellas-container">
-              <button type="button" class="estrella-btn active" data-stars="0">Todas</button>
+              <button type="button" class="estrella-btn active" data-stars="0" data-i18n="catalogo.todas_calif">Todas</button>
               <button type="button" class="estrella-btn" data-stars="4">4.0 ★</button>
               <button type="button" class="estrella-btn" data-stars="4.5">4.5 ★</button>
               <button type="button" class="estrella-btn" data-stars="5">5.0 ★</button>
@@ -535,12 +535,12 @@ export async function renderCatalogo(container) {
               Mostrando todos los cuidadores verificados en Cusco.
             </div>
             <div class="d-flex align-items-center gap-2">
-              <label for="select-ordenar-cuidadores" class="small fw-bold text-muted mb-0">Ordenar por:</label>
+              <label for="select-ordenar-cuidadores" class="small fw-bold text-muted mb-0" data-i18n="catalogo.ordenar_por">Ordenar por:</label>
               <select id="select-ordenar-cuidadores" class="form-select form-select-sm" style="width: auto;">
-                <option value="rating_desc">Mejor calificados (Estrellas)</option>
-                <option value="price_asc">Menor tarifa diaria</option>
-                <option value="price_desc">Mayor tarifa diaria</option>
-                <option value="exp_desc">Más años de experiencia</option>
+                <option value="rating_desc" data-i18n="catalogo.orden_rating">Mejor calificados (Estrellas)</option>
+                <option value="price_asc" data-i18n="catalogo.orden_precio_asc">Menor tarifa diaria</option>
+                <option value="price_desc" data-i18n="catalogo.orden_precio_desc">Mayor tarifa diaria</option>
+                <option value="exp_desc" data-i18n="catalogo.orden_exp">Más años de experiencia</option>
               </select>
             </div>
           </div>
@@ -757,14 +757,14 @@ export function aplicarFiltros() {
   // Actualizar contador y resumen
   const contadorEl = document.getElementById('contador-cuidadores');
   if (contadorEl) {
-    contadorEl.textContent = `${cuidadoresFiltrados.length} disponibles`;
+    contadorEl.textContent = t('catalogo.cuidadores_disponibles', { n: cuidadoresFiltrados.length });
   }
 
   const resumenTextoEl = document.getElementById('resumen-filtros-texto');
   if (resumenTextoEl) {
     const distritoTxt = filtrosActivos.distrito ? `en ${filtrosActivos.distrito}` : 'en todo Cusco';
     const catTxt = filtrosActivos.categoria ? `para ${filtrosActivos.categoria}` : 'para todos los servicios';
-    resumenTextoEl.innerHTML = `Mostrando <strong>${cuidadoresFiltrados.length}</strong> cuidadores aprobados ${distritoTxt} ${catTxt}.`;
+    resumenTextoEl.innerHTML = t('catalogo.mostrando_cuidadores', { n: cuidadoresFiltrados.length, distrito: distritoTxt, cat: catTxt });
   }
 
   // Renderizar tarjetas y actualizar pines en el mapa
@@ -787,12 +787,12 @@ function renderizarTarjetasCuidadores(cuidadores) {
       <div class="col-12 text-center py-5">
         <div class="card card-paw p-5 border-0 shadow-sm mx-auto" style="max-width: 480px;">
           <i class="bi bi-search text-muted fs-1 mb-2"></i>
-          <h5 class="fw-bold text-dark">No se encontraron cuidadores con estos filtros</h5>
+          <h5 class="fw-bold text-dark">${t('catalogo.sin_resultados')}</h5>
           <p class="text-secondary small mb-3">
-            Intenta ampliar el rango de precio, seleccionar "Todos los distritos" o borrar el término de búsqueda.
+            ${t('catalogo.sin_resultados_desc')}
           </p>
           <button class="btn btn-paw-outline btn-sm mx-auto" onclick="document.getElementById('btn-reset-filtros')?.click()">
-            <i class="bi bi-arrow-counterclockwise me-1"></i> Restablecer Filtros
+            <i class="bi bi-arrow-counterclockwise me-1"></i> ${t('catalogo.btn_reset')}
           </button>
         </div>
       </div>
@@ -835,7 +835,7 @@ function renderizarTarjetasCuidadores(cuidadores) {
           <div class="cuidador-distrito">
             <i class="bi bi-geo-alt-fill text-danger"></i>
             <span>${escapeHtml(c.distrito_cusco || 'Cusco')}</span>
-            <span class="text-muted">• ${escapeHtml(c.anios_experiencia || 1)} años exp.</span>
+            <span class="text-muted">• ${t('catalogo.anios_exp', { n: c.anios_experiencia || 1 })}</span>
           </div>
 
           <!-- Puntuación visual con estrellas -->
@@ -846,7 +846,7 @@ function renderizarTarjetasCuidadores(cuidadores) {
               ${'<i class="bi bi-star"></i>'.repeat(estrellasVacias)}
               <span class="score-num">${estrellas}</span>
             </div>
-            <span class="resenas-count">(${escapeHtml(c.total_resenas || 0)} reseñas)</span>
+            <span class="resenas-count">(${t('catalogo.resenas', { n: c.total_resenas || 0 })})</span>
           </div>
 
           <p class="cuidador-bio">
@@ -860,7 +860,7 @@ function renderizarTarjetasCuidadores(cuidadores) {
             `).join('')}
             ${c.ofrece_recojo_hotel ? `
               <span class="tag-servicio tag-hotel" title="Recojo disponible en hospedajes de Cusco">
-                <i class="bi bi-building me-1"></i>Recojo en hotel
+                <i class="bi bi-building me-1"></i>${t('catalogo.filtro_recojo_hotel')}
               </span>
             ` : ''}
             ${(c.especialidades || []).slice(0, 2).map(esp => `
@@ -871,19 +871,19 @@ function renderizarTarjetasCuidadores(cuidadores) {
           <!-- Pie de tarjeta con precio y CTA -->
           <div class="cuidador-footer">
             <div class="cuidador-precio-box">
-              <span class="precio-desde-label">Desde</span>
+              <span class="precio-desde-label">${t('catalogo.desde')}</span>
               <div>
                 <span class="precio-monto">${formatMoneda(c.tarifa_minima || 35, currentCurrency)}</span>
-                <span class="precio-unidad">/ día</span>
+                <span class="precio-unidad"> ${t('catalogo.dia')}</span>
               </div>
             </div>
 
             <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" onclick="window.abrirModalPerfil('${escapeHtml(c.codigo_cuidador)}')" title="Ver Perfil Completo">
-                <i class="bi bi-eye"></i> Perfil
+              <button class="btn btn-outline-secondary btn-sm" onclick="window.abrirModalPerfil('${escapeHtml(c.codigo_cuidador)}')" title="${t('catalogo.ver_perfil')}">
+                <i class="bi bi-eye"></i> ${t('catalogo.ver_perfil')}
               </button>
               <button class="btn btn-reservar-cuidador btn-sm" onclick="window.iniciarReservaCon('${escapeHtml(c.codigo_cuidador)}', '${escapeHtml(c.id_cuidador)}')">
-                <i class="bi bi-calendar-check me-1"></i> Reservar
+                <i class="bi bi-calendar-check me-1"></i> ${t('catalogo.reservar')}
               </button>
             </div>
           </div>
@@ -914,9 +914,9 @@ window.abrirModalPerfil = async function(codigoCuidador) {
         .from('resenas')
         .select('*')
         .eq('id_cuidador', cuidador.id_cuidador)
-        .eq('publicada', true)
+        .eq('visible', true)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(5);
       if (!error && Array.isArray(data)) {
         resenas = data;
       }
@@ -931,14 +931,14 @@ window.abrirModalPerfil = async function(codigoCuidador) {
         <div class="p-3 border rounded bg-light small mb-2">
           <div class="d-flex justify-content-between mb-1">
             <strong>${escapeHtml(r.nombre_propietario || 'Propietario Verificado')}</strong>
-            <span class="text-warning"><i class="bi bi-star-fill"></i> ${(Number(r.calificacion) || 5).toFixed(1)}</span>
+            <span class="text-warning"><i class="bi bi-star-fill"></i> ${(Number(r.calificacion_estrellas ?? r.calificacion) || 5).toFixed(1)}</span>
           </div>
           <p class="text-muted fst-italic mb-1">
             "${escapeHtml(r.comentario || 'Excelente atención y comunicación continua durante el servicio.')}"
           </p>
           ${r.respuesta_cuidador ? `
             <div class="text-primary fw-bold" style="font-size: 0.75rem;">
-              <i class="bi bi-arrow-return-right me-1"></i>Respuesta de ${escapeHtml(cuidador.nombre)}: "${escapeHtml(r.respuesta_cuidador)}"
+              <i class="bi bi-arrow-return-right me-1"></i>Respuesta de ${escapeHtml(cuidador.nombre_completo || cuidador.nombre || 'Cuidador')}: "${escapeHtml(r.respuesta_cuidador)}"
             </div>
           ` : ''}
         </div>
@@ -946,7 +946,7 @@ window.abrirModalPerfil = async function(codigoCuidador) {
     : `
         <div class="p-3 border rounded bg-light small mb-3 text-center text-muted">
           <i class="bi bi-chat-square-heart text-warning fs-4 d-block mb-1"></i>
-          <span>Este cuidador aún no cuenta con reseñas públicas registradas. ¡Sé el primero en reservar y compartir tu experiencia!</span>
+          <span>${t('perfil.sin_resenas')}</span>
         </div>
       `;
 
@@ -963,15 +963,15 @@ window.abrirModalPerfil = async function(codigoCuidador) {
     <div class="modal-body p-4 pt-5">
       <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
         <div>
-          <h4 class="fw-bold mb-0 text-dark">${escapeHtml(cuidador.nombre_completo)}</h4>
+          <h4 class="fw-bold mb-0 text-dark" id="modalPerfilCuidadorTitle">${escapeHtml(cuidador.nombre_completo)}</h4>
           <div class="text-muted small">
             <i class="bi bi-geo-alt-fill text-danger me-1"></i>${escapeHtml(cuidador.distrito_cusco || 'Cusco')} •
-            <i class="bi bi-clock-history text-primary me-1"></i>${escapeHtml(cuidador.anios_experiencia || 1)} años de experiencia
+            <i class="bi bi-clock-history text-primary me-1"></i>${t('catalogo.anios_exp', { n: cuidador.anios_experiencia || 1 })}
           </div>
         </div>
         <div class="text-end">
           <div class="badge bg-warning text-dark fs-6 px-3 py-1">
-            <i class="bi bi-star-fill me-1"></i>${Number(cuidador.reputacion_promedio || 5.0).toFixed(1)} (${escapeHtml(cuidador.total_resenas || 0)} reseñas)
+            <i class="bi bi-star-fill me-1"></i>${Number(cuidador.reputacion_promedio || 5.0).toFixed(1)} (${t('catalogo.resenas', { n: cuidador.total_resenas || 0 })})
           </div>
           <div class="small text-muted mt-1">Código: <code>${escapeHtml(cuidador.codigo_cuidador)}</code></div>
         </div>
@@ -980,50 +980,50 @@ window.abrirModalPerfil = async function(codigoCuidador) {
       <hr class="my-3">
 
       <!-- Sobre mí y vivienda -->
-      <h6 class="fw-bold text-dark"><i class="bi bi-person-lines-fill text-warning me-2"></i>Sobre mi cuidado y experiencia</h6>
+      <h6 class="fw-bold text-dark"><i class="bi bi-person-lines-fill text-warning me-2"></i>${t('perfil.sobre_mi')}</h6>
       <p class="text-secondary small mb-3">${escapeHtml(cuidador.descripcion_experiencia || cuidador.presentacion_corta)}</p>
 
       <div class="row g-2 mb-4 small">
         <div class="col-sm-6">
           <div class="p-2 border rounded bg-light">
-            <strong>Tipo de Vivienda:</strong> ${escapeHtml(cuidador.tipo_vivienda || 'Casa familiar')}
+            <strong>${t('perfil.tipo_vivienda')}</strong> ${escapeHtml(cuidador.tipo_vivienda || 'Casa familiar')}
           </div>
         </div>
         <div class="col-sm-6">
           <div class="p-2 border rounded bg-light">
-            <strong>Capacidad Máxima:</strong> Hasta ${escapeHtml(cuidador.capacidad_max_mascotas || 2)} mascotas
+            <strong>${t('perfil.capacidad_max')}</strong> ${t('perfil.hasta_mascotas', { n: cuidador.capacidad_max_mascotas || 2 })}
           </div>
         </div>
         <div class="col-sm-6">
           <div class="p-2 border rounded bg-light">
-            <strong>Idiomas:</strong> ${(cuidador.idiomas || ['Español']).join(', ')}
+            <strong>${t('perfil.idiomas')}</strong> ${(cuidador.idiomas || ['Español']).join(', ')}
           </div>
         </div>
         <div class="col-sm-6">
           <div class="p-2 border rounded bg-light">
-            <strong>Recojo en Hotel:</strong> ${cuidador.ofrece_recojo_hotel ? 'Disponible' : 'Solo entrega en domicilio'}
+            <strong>${t('perfil.recojo_hotel')}</strong> ${cuidador.ofrece_recojo_hotel ? t('catalogo.recojo_disponible') : t('catalogo.solo_domicilio')}
           </div>
         </div>
       </div>
 
       <!-- Foto del Hogar -->
       ${cuidador.foto_hogar_url ? `
-        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-house-door text-warning me-2"></i>Espacio de Estadía en Cusco</h6>
+        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-house-door text-warning me-2"></i>${t('perfil.espacio_estadia')}</h6>
         <div class="mb-4 rounded overflow-hidden shadow-sm" style="max-height: 220px;">
           <img src="${escapeHtml(cuidador.foto_hogar_url)}" alt="Hogar del cuidador" style="width: 100%; height: 220px; object-fit: cover;">
         </div>
       ` : ''}
 
       <!-- Tabla de Servicios y Tarifas -->
-      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-list-check text-warning me-2"></i>Servicios Disponibles y Tarifas</h6>
+      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-list-check text-warning me-2"></i>${t('perfil.servicios_tarifas')}</h6>
       <div class="table-responsive mb-4">
         <table class="table table-bordered table-sm servicios-table mb-0 align-middle">
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Servicio</th>
-              <th>Descripción</th>
-              <th class="text-end">Tarifa</th>
+              <th>${t('perfil.th_codigo')}</th>
+              <th>${t('perfil.th_servicio')}</th>
+              <th>${t('perfil.th_descripcion')}</th>
+              <th class="text-end">${t('perfil.th_tarifa')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1040,21 +1040,21 @@ window.abrirModalPerfil = async function(codigoCuidador) {
       </div>
 
       <!-- Reseñas Verificadas -->
-      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-heart text-warning me-2"></i>Reseñas Verificadas de Propietarios</h6>
+      <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-heart text-warning me-2"></i>${t('perfil.resenas_titulo')}</h6>
       ${resenasHtml}
     </div>
 
     <!-- Footer del Modal -->
     <div class="modal-footer bg-light border-top d-flex justify-content-between">
       <div>
-        <span class="small text-muted">Desde </span>
+        <span class="small text-muted">${t('catalogo.desde')} </span>
         <strong class="h5 mb-0 text-dark">${formatMoneda(cuidador.tarifa_minima || 35, currentCurrency)}</strong>
-        <span class="small text-muted"> / día</span>
+        <span class="small text-muted"> ${t('catalogo.dia')}</span>
       </div>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('perfil.btn_cerrar')}</button>
         <button type="button" class="btn btn-paw" onclick="window.iniciarReservaCon('${escapeHtml(cuidador.codigo_cuidador)}', '${escapeHtml(cuidador.id_cuidador)}')">
-          <i class="bi bi-calendar-check me-1"></i> Reservar con este Cuidador
+          <i class="bi bi-calendar-check me-1"></i> ${t('perfil.btn_reservar')}
         </button>
       </div>
     </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paw Patita Cusco v5.1 — Cuidado Familiar & Central SOS 24h</title>
+  <title>Paw Patita Cusco v5.2 — Cuidado Familiar & Central SOS 24h</title>
   <meta name="description" content="Plataforma SaaS de cuidado confiable de mascotas en Cusco con Carné Digital PAW-ID, seguimiento fotográfico en vivo y red de emergencias veterinarias 24h.">
   
   <!-- Favicon Paw Patita -->
@@ -82,28 +82,38 @@
           <!-- Controles de Accesibilidad (Idioma, Moneda, Notificaciones y Auth) -->
           <div class="navbar-controls ms-lg-3 mt-3 mt-lg-0">
             <!-- Selector Moneda (PEN / USD) -->
-            <button class="btn btn-pill-control" id="btn-toggle-currency" title="Cambiar Moneda">
+            <button class="btn btn-pill-control" id="btn-toggle-currency" title="Cambiar Moneda" data-i18n-title="nav.cambiar_moneda">
               <i class="bi bi-cash-stack"></i> S/ PEN
             </button>
 
             <!-- Selector Idioma (ES / EN) -->
-            <button class="btn btn-pill-control" id="btn-toggle-lang" title="Cambiar Idioma">
+            <button class="btn btn-pill-control" id="btn-toggle-lang" title="Cambiar Idioma" data-i18n-title="nav.cambiar_idioma">
               <i class="bi bi-translate"></i> ES
+            </button>
+
+            <!-- Centro de Ayuda & FAQ (Heurística H10) -->
+            <button type="button" class="btn btn-pill-control" id="btn-navbar-help" data-help-role="auto" title="Centro de Ayuda y Preguntas Frecuentes" data-i18n-title="nav.ayuda_title">
+              <i class="bi bi-question-circle-fill text-warning"></i> <span data-i18n="nav.ayuda">Ayuda</span>
             </button>
 
             <!-- Campana de Notificaciones Realtime (visible solo autenticado) -->
             <div class="dropdown d-none" id="navbar-notification-bell">
-              <button class="btn btn-notification-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Centro de Notificaciones">
+              <button class="btn btn-notification-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Centro de Notificaciones" data-i18n-title="nav.centro_notif">
                 <i class="bi bi-bell-fill fs-5"></i>
                 <span class="badge-counter d-none" id="notif-badge-count">0</span>
               </button>
               <div class="dropdown-menu dropdown-menu-end notifications-dropdown shadow">
-                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
-                  <strong class="text-dark small"><i class="bi bi-bell me-1"></i> Notificaciones en Vivo</strong>
-                  <span class="badge bg-danger rounded-pill">Realtime</span>
+                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="text-dark small"><i class="bi bi-bell me-1"></i> <span data-i18n="nav.notificaciones">Notificaciones</span></strong>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" data-i18n="nav.en_vivo">En vivo</span>
+                  </div>
+                  <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold" id="btn-mark-all-notifs-read" data-i18n="nav.marcar_leidas">
+                    Marcar leídas
+                  </button>
                 </div>
                 <div id="notifications-list">
-                  <div class="p-3 text-center text-muted small">No tienes notificaciones pendientes.</div>
+                  <div class="p-3 text-center text-muted small" data-i18n="nav.no_notif">No tienes notificaciones pendientes.</div>
                 </div>
               </div>
             </div>
@@ -170,16 +180,19 @@
           <p class="small mb-2 footer-desc" data-i18n="footer.soporte_desc">
             En caso de urgencia médica en Cusco, nuestras clínicas aliadas atienden las 24 horas del día.
           </p>
-          <div class="badge bg-danger p-2 fs-6 w-100 text-center">
+          <div class="badge bg-danger p-2 fs-6 w-100 text-center mb-2">
             <i class="bi bi-telephone-fill me-1"></i> <span data-i18n="footer.central_sos">Central SOS Cusco 24h</span>
           </div>
+          <button type="button" class="btn btn-outline-light btn-sm w-100 fw-semibold" data-help-role="publico">
+            <i class="bi bi-life-preserver text-warning me-1"></i> <span data-i18n="footer.centro_ayuda">Centro de Ayuda & FAQ</span>
+          </button>
         </div>
       </div>
 
       <div class="border-top border-secondary mt-4 pt-3 d-flex justify-content-between align-items-center flex-wrap small footer-meta">
-        <div data-i18n="footer.derechos">© 2026 Paw Patita Cusco v5.1. Todos los derechos reservados.</div>
+        <div data-i18n="footer.derechos">© 2026 Paw Patita Cusco v5.2. Todos los derechos reservados.</div>
         <div class="d-flex gap-2 flex-wrap">
-          <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="terminos" data-i18n="legal.terminos_link">Términos de Servicio v5.1</a>
+          <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="terminos" data-i18n="legal.terminos_link">Términos de Servicio v5.2</a>
           <span>•</span>
           <a href="javascript:void(0)" class="footer-legal-link fw-semibold" data-legal-tab="privacidad" data-i18n="legal.privacidad_link">Políticas de Privacidad Cusco</a>
           <span>•</span>
@@ -195,7 +208,7 @@
 
   <!-- 1. MODAL DE LOGIN CON SELECTOR DEMO LIMPIO (4 ROLES ACTIVOS) -->
   <div class="modal fade" id="modal-login" tabindex="-1" aria-labelledby="modal-login-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered auth-modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable auth-modal-dialog">
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-login-title">
@@ -216,7 +229,7 @@
                 <span data-i18n="auth.demo_prop_desc">Lucía Mendoza (Local/Turista)</span>
               </button>
               <button type="button" class="btn-demo-badge" data-email="valeria.cuidadora@pawpatitacusco.pe" data-pass="PawPatita2026!">
-                <strong data-i18n="auth.demo_cuid">🏡 Cuidadora Aprobada</strong>
+                <strong data-i18n="auth.demo_cuid">🏡 Cuidador Aprobado</strong>
                 <span data-i18n="auth.demo_cuid_desc">Valeria Huamán (Wanchaq)</span>
               </button>
               <button type="button" class="btn-demo-badge" data-email="vet.sanfrancisco@pawpatitacusco.pe" data-pass="PawPatita2026!">
@@ -230,24 +243,24 @@
             </div>
           </div>
 
-          <div class="divider-or">O ingresa con tu correo</div>
+          <div class="divider-or" data-i18n="auth.or_email">O ingresa con tu correo</div>
 
           <!-- Formulario de Login -->
           <form id="form-login" novalidate>
             <div class="form-floating-paw mb-3">
-              <label for="login-email" class="form-label small fw-bold">Correo Electrónico</label>
-              <input type="email" class="form-control" id="login-email" required placeholder="tu@correo.com">
+              <label for="login-email" class="form-label small fw-bold" data-i18n="auth.email_label">Correo Electrónico</label>
+              <input type="email" class="form-control" id="login-email" required data-validate="email" autocomplete="email" placeholder="tu@correo.com" data-i18n-placeholder="auth.email_placeholder">
             </div>
 
             <div class="form-floating-paw mb-3">
               <div class="d-flex justify-content-between">
-                <label for="login-password" class="form-label small fw-bold">Contraseña</label>
-                <a href="javascript:void(0)" class="small fw-semibold" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-forgot-password">
+                <label for="login-password" class="form-label small fw-bold" data-i18n="auth.password_label">Contraseña</label>
+                <a href="javascript:void(0)" class="small fw-semibold" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-forgot-password" data-i18n="auth.forgot_password">
                   ¿Olvidaste tu contraseña?
                 </a>
               </div>
               <div class="input-password-wrapper">
-                <input type="password" class="form-control" id="login-password" required placeholder="Tu contraseña">
+                <input type="password" class="form-control" id="login-password" required data-validate="password-login" autocomplete="current-password" placeholder="Tu contraseña" data-i18n-placeholder="auth.password_placeholder">
                 <button type="button" class="toggle-pwd-btn" data-toggle-password="login-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
                   <i class="bi bi-eye"></i>
                 </button>
@@ -255,14 +268,14 @@
             </div>
 
             <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
-              <i class="bi bi-box-arrow-in-right me-1"></i> Entrar a Mi Cuenta
+              <i class="bi bi-box-arrow-in-right me-1"></i> <span data-i18n="auth.btn_login">Ingresar a mi Panel</span>
             </button>
           </form>
 
           <div class="text-center mt-3 small text-secondary">
-            ¿No tienes cuenta aún? 
-            <a href="javascript:void(0)" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario" class="fw-bold">
-              Crear cuenta de Propietario
+            <span data-i18n="auth.no_account">¿No tienes una cuenta aún?</span> 
+            <a href="javascript:void(0)" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-registro-propietario" class="fw-bold" data-i18n="auth.register_free">
+              Regístrate como Propietario
             </a>
           </div>
         </div>
@@ -272,29 +285,30 @@
 
   <!-- 2. MODAL OLVIDÉ MI CONTRASEÑA -->
   <div class="modal fade" id="modal-forgot-password" tabindex="-1" aria-labelledby="modal-forgot-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-forgot-title">
-            <i class="bi bi-shield-lock text-warning"></i> Recuperar Contraseña
+            <i class="bi bi-shield-lock text-warning"></i> <span data-i18n="auth.forgot_title">Recuperar Contraseña</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="auth-body">
-          <p class="text-secondary small mb-3">
+          <p class="text-secondary small mb-3" data-i18n="auth.forgot_desc">
             Ingresa el correo registrado con tu cuenta. Te enviaremos un enlace seguro para restablecer tu contraseña.
           </p>
-          <form id="form-forgot-password">
+          <form id="form-forgot-password" novalidate>
             <div class="mb-3">
-              <label for="forgot-email" class="form-label small fw-bold">Correo Electrónico</label>
-              <input type="email" class="form-control" id="forgot-email" required placeholder="ejemplo@gmail.com">
+              <label for="forgot-email" class="form-label small fw-bold" data-i18n="auth.email_label">Correo Electrónico</label>
+              <input type="email" class="form-control" id="forgot-email" required data-validate="email" autocomplete="email" placeholder="tu@correo.com" data-i18n-placeholder="auth.email_placeholder">
+              <div class="form-text small" data-i18n="hint.email">Formato válido: usuario@dominio.com</div>
             </div>
             <button type="submit" class="btn btn-paw w-100">
-              <i class="bi bi-envelope-paper me-1"></i> Enviar Enlace de Restablecimiento
+              <i class="bi bi-envelope-paper me-1"></i> <span data-i18n="auth.forgot_btn">Enviar Enlace de Restablecimiento</span>
             </button>
           </form>
           <div class="text-center mt-3">
-            <button type="button" class="btn btn-link btn-sm text-secondary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-login">
+            <button type="button" class="btn btn-link btn-sm text-secondary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#modal-login" data-i18n="auth.back_to_login">
               Volver al inicio de sesión
             </button>
           </div>
@@ -305,25 +319,25 @@
 
   <!-- 3. MODAL REGISTRO PROPIETARIO UNIFICADO (LOCAL / TURISTA) -->
   <div class="modal fade" id="modal-registro-propietario" tabindex="-1" aria-labelledby="modal-reg-prop-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-reg-prop-title">
-            <i class="bi bi-person-heart text-warning"></i> Registro de Propietario — Paw Patita Cusco
+            <i class="bi bi-person-heart text-warning"></i> <span data-i18n="reg_prop.title">Registro de Propietario — Paw Patita Cusco</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="auth-body">
-          <form id="form-registro-propietario">
+          <form id="form-registro-propietario" novalidate>
             <!-- Toggle Turista / Local -->
             <div class="tourist-toggle-card">
               <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" id="reg-prop-turista-check">
                 <label class="form-check-label fw-bold text-success" for="reg-prop-turista-check">
-                  <i class="bi bi-airplane me-1"></i> ¿Estás de visita o turismo en Cusco? Activa esta opción
+                  <i class="bi bi-airplane me-1"></i> <span data-i18n="reg_prop.turista_toggle">¿Estás de visita o turismo en Cusco? Activa esta opción</span>
                 </label>
               </div>
-              <small class="text-muted d-block mt-1">
+              <small class="text-muted d-block mt-1" data-i18n="reg_prop.turista_hint">
                 Te permitirá registrar tu hotel de hospedaje para coordinar recojos y asistencia en inglés si lo requieres.
               </small>
             </div>
@@ -331,53 +345,55 @@
             <!-- Campos Condicionales de Turista -->
             <div id="reg-prop-turista-fields" class="row g-2 mb-3 p-3 bg-light rounded d-none border">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">País de Origen</label>
-                <input type="text" class="form-control form-control-sm" id="reg-prop-pais" placeholder="Ej. España, EE.UU.">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.pais">País de Origen</label>
+                <input type="text" class="form-control form-control-sm" id="reg-prop-pais" data-validate="person-name-optional" placeholder="Ej. España, EE.UU." data-i18n-placeholder="reg_prop.pais_placeholder">
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Idioma Preferido</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.idioma_pref">Idioma Preferido</label>
                 <select class="form-select form-select-sm" id="reg-prop-idioma">
                   <option value="ES">Español</option>
                   <option value="EN">English</option>
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Hotel / Hospedaje en Cusco</label>
-                <input type="text" class="form-control form-control-sm" id="reg-prop-hotel" placeholder="Nombre de hotel o Airbnb">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.hotel">Hotel / Hospedaje en Cusco</label>
+                <input type="text" class="form-control form-control-sm" id="reg-prop-hotel" minlength="2" maxlength="100" placeholder="Nombre de hotel o Airbnb" data-i18n-placeholder="reg_prop.hotel_placeholder">
               </div>
             </div>
 
             <!-- Datos Personales Base -->
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Nombres</label>
-                <input type="text" class="form-control" id="reg-prop-nombre" required placeholder="Tus nombres">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.nombres">Nombres</label>
+                <input type="text" class="form-control" id="reg-prop-nombre" required data-validate="person-name" maxlength="60" placeholder="Tus nombres" data-i18n-placeholder="reg_prop.nombres_placeholder">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Apellidos</label>
-                <input type="text" class="form-control" id="reg-prop-apellido" required placeholder="Tus apellidos">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.apellidos">Apellidos</label>
+                <input type="text" class="form-control" id="reg-prop-apellido" required data-validate="person-name" maxlength="60" placeholder="Tus apellidos" data-i18n-placeholder="reg_prop.apellidos_placeholder">
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Correo Electrónico</label>
-                <input type="email" class="form-control" id="reg-prop-email" required placeholder="tu@correo.com">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.email">Correo Electrónico</label>
+                <input type="email" class="form-control" id="reg-prop-email" required data-validate="email" autocomplete="email" placeholder="tu@correo.com" data-i18n-placeholder="auth.email_placeholder">
+                <div class="form-text small" data-i18n="hint.email">Formato válido: usuario@dominio.com</div>
               </div>
               <div class="col-md-6">
-                <label for="reg-prop-password" class="form-label small fw-bold">Contraseña Segura</label>
+                <label for="reg-prop-password" class="form-label small fw-bold" data-i18n="reg_prop.password">Contraseña Segura</label>
                 <div class="input-password-wrapper">
-                  <input type="password" class="form-control" id="reg-prop-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <input type="password" class="form-control" id="reg-prop-password" required minlength="8" data-validate="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" data-i18n-placeholder="reg_prop.password_placeholder">
                   <button type="button" class="toggle-pwd-btn" data-toggle-password="reg-prop-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
+                <div class="form-text small" data-i18n="hint.password">Mínimo 8 caracteres seguros.</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tipo Documento</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.tipodoc">Tipo Documento</label>
                 <select class="form-select" id="reg-prop-tipodoc">
                   <option value="DNI">DNI (Perú)</option>
                   <option value="CE">Carné Extranjería</option>
@@ -385,18 +401,20 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Número de Documento</label>
-                <input type="text" class="form-control" id="reg-prop-numdoc" required placeholder="N° de identidad">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.numdoc">Número de Documento</label>
+                <input type="text" class="form-control" id="reg-prop-numdoc" required inputmode="numeric" maxlength="8" data-validate="doc-number" data-doc-type-selector="#reg-prop-tipodoc" placeholder="N° de identidad" data-i18n-placeholder="reg_prop.numdoc_placeholder">
+                <div class="form-text small" data-i18n="hint.doc">DNI: 8 dígitos • CE: 9–12 alfanum. • Pasaporte: 6–12 alfanum.</div>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
-                <input type="tel" class="form-control" id="reg-prop-tel" required placeholder="984 000 000">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.telefono">Teléfono / WhatsApp</label>
+                <input type="tel" class="form-control" id="reg-prop-tel" required inputmode="numeric" maxlength="16" data-validate="phone" placeholder="984000000" data-i18n-placeholder="reg_prop.telefono_placeholder">
+                <div class="form-text small" data-i18n="hint.phone">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-5">
-                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.distrito">Distrito en Cusco</label>
                 <select class="form-select" id="reg-prop-distrito">
                   <option value="Cusco Centro">Cusco Centro</option>
                   <option value="Wanchaq">Wanchaq</option>
@@ -407,33 +425,34 @@
                 </select>
               </div>
               <div class="col-md-7">
-                <label class="form-label small fw-bold">Dirección / Referencia</label>
-                <input type="text" class="form-control" id="reg-prop-direccion" placeholder="Calle, número o referencia">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.direccion">Dirección / Referencia</label>
+                <input type="text" class="form-control" id="reg-prop-direccion" maxlength="150" placeholder="Calle, número o referencia" data-i18n-placeholder="reg_prop.direccion_placeholder">
               </div>
             </div>
 
             <!-- Contacto de Emergencia -->
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Contacto de Emergencia (Nombre)</label>
-                <input type="text" class="form-control" id="reg-prop-contacto-nombre" placeholder="Familiar o amigo">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.emerg_nombre">Contacto de Emergencia (Nombre)</label>
+                <input type="text" class="form-control" id="reg-prop-contacto-nombre" data-validate="person-name-optional" maxlength="80" placeholder="Familiar o amigo" data-i18n-placeholder="reg_prop.emerg_nombre_placeholder">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Contacto de Emergencia (Teléfono)</label>
-                <input type="tel" class="form-control" id="reg-prop-contacto-tel" placeholder="Teléfono de emergencia">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.emerg_tel">Contacto de Emergencia (Teléfono)</label>
+                <input type="tel" class="form-control" id="reg-prop-contacto-tel" inputmode="numeric" maxlength="16" data-validate="phone-optional" placeholder="Teléfono de emergencia" data-i18n-placeholder="reg_prop.emerg_tel_placeholder">
+                <div class="form-text small" data-i18n="hint.phone">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
               </div>
             </div>
 
-            <!-- TyC v5.1 & Privacidad -->
+            <!-- TyC v5.2 & Privacidad -->
             <div class="form-check mb-4">
-              <input class="form-check-input" type="checkbox" id="reg-prop-tyc" required>
-              <label class="form-check-label small text-secondary" for="reg-prop-tyc">
-                He leído y acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos y Condiciones v5.1</a> y las <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="privacidad">Políticas de Privacidad (Ley N° 29733)</a> de Paw Patita Cusco.
+              <input class="form-check-input" type="checkbox" id="reg-prop-tyc" required data-validate="required-check">
+              <label class="form-check-label small text-secondary" for="reg-prop-tyc" data-i18n="reg_prop.tyc_html" data-i18n-html>
+                He leído y acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos y Condiciones v5.2</a> y las <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="privacidad">Políticas de Privacidad (Ley N° 29733)</a> de Paw Patita Cusco.
               </label>
             </div>
 
             <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
-              <i class="bi bi-check-circle-fill me-1"></i> Completar Registro y Crear Carné PAW-ID
+              <i class="bi bi-check-circle-fill me-1"></i> <span data-i18n="reg_prop.btn_submit">Completar Registro y Crear Carné PAW-ID</span>
             </button>
           </form>
         </div>
@@ -443,68 +462,72 @@
 
   <!-- 4. MODAL POSTULAR COMO CUIDADOR INDEPENDIENTE -->
   <div class="modal fade" id="modal-postular-cuidador" tabindex="-1" aria-labelledby="modal-post-cuid-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-post-cuid-title">
-            <i class="bi bi-heart-pulse-fill text-warning"></i> Postular a la Red de Cuidadores de Cusco
+            <i class="bi bi-heart-pulse-fill text-warning"></i> <span data-i18n="post_cuid.title">Postular a la Red de Cuidadores de Cusco</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="auth-body">
           <div class="alert alert-warning border-0 small mb-3">
-            <i class="bi bi-info-circle-fill me-1"></i> Tu postulación será evaluada por nuestro equipo administrativo. Tu cuenta quedará en estado <strong>Pendiente</strong> hasta la verificación de antecedentes.
+            <i class="bi bi-info-circle-fill me-1"></i> <span data-i18n="post_cuid.alert">Tu postulación será evaluada por nuestro equipo administrativo. Tu cuenta quedará en estado <strong>Pendiente</strong> hasta la verificación de antecedentes.</span>
           </div>
 
-          <form id="form-postular-cuidador">
+          <form id="form-postular-cuidador" novalidate>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Nombres</label>
-                <input type="text" class="form-control" id="post-cuid-nombre" required placeholder="Tus nombres">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.nombres">Nombres</label>
+                <input type="text" class="form-control" id="post-cuid-nombre" required data-validate="person-name" maxlength="60" placeholder="Tus nombres" data-i18n-placeholder="reg_prop.nombres_placeholder">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Apellidos</label>
-                <input type="text" class="form-control" id="post-cuid-apellido" required placeholder="Tus apellidos">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.apellidos">Apellidos</label>
+                <input type="text" class="form-control" id="post-cuid-apellido" required data-validate="person-name" maxlength="60" placeholder="Tus apellidos" data-i18n-placeholder="reg_prop.apellidos_placeholder">
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Correo Electrónico</label>
-                <input type="email" class="form-control" id="post-cuid-email" required placeholder="tu@correo.com">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.email">Correo Electrónico</label>
+                <input type="email" class="form-control" id="post-cuid-email" required data-validate="email" autocomplete="email" placeholder="tu@correo.com" data-i18n-placeholder="auth.email_placeholder">
+                <div class="form-text small" data-i18n="hint.email">Formato válido: usuario@dominio.com</div>
               </div>
               <div class="col-md-6">
-                <label for="post-cuid-password" class="form-label small fw-bold">Contraseña para tu Panel</label>
+                <label for="post-cuid-password" class="form-label small fw-bold" data-i18n="reg_prop.password">Contraseña para tu Panel</label>
                 <div class="input-password-wrapper">
-                  <input type="password" class="form-control" id="post-cuid-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <input type="password" class="form-control" id="post-cuid-password" required minlength="8" data-validate="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" data-i18n-placeholder="reg_prop.password_placeholder">
                   <button type="button" class="toggle-pwd-btn" data-toggle-password="post-cuid-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
+                <div class="form-text small" data-i18n="hint.password">Mínimo 8 caracteres seguros.</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tipo Documento</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.tipodoc">Tipo Documento</label>
                 <select class="form-select" id="post-cuid-tipodoc">
                   <option value="DNI">DNI (Perú)</option>
                   <option value="CE">Carné Extranjería</option>
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Número de Documento</label>
-                <input type="text" class="form-control" id="post-cuid-numdoc" required placeholder="8 dígitos">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.numdoc">Número de Documento</label>
+                <input type="text" class="form-control" id="post-cuid-numdoc" required inputmode="numeric" maxlength="8" data-validate="doc-number" data-doc-type-selector="#post-cuid-tipodoc" placeholder="8 dígitos" data-i18n-placeholder="reg_prop.numdoc_placeholder">
+                <div class="form-text small" data-i18n="hint.doc">DNI: 8 dígitos • CE: 9–12 alfanum. • Pasaporte: 6–12 alfanum.</div>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Teléfono Móvil</label>
-                <input type="tel" class="form-control" id="post-cuid-tel" required placeholder="984 000 000">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.telefono">Teléfono Móvil</label>
+                <input type="tel" class="form-control" id="post-cuid-tel" required inputmode="numeric" maxlength="16" data-validate="phone" placeholder="984000000" data-i18n-placeholder="reg_prop.telefono_placeholder">
+                <div class="form-text small" data-i18n="hint.phone">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.distrito">Distrito en Cusco</label>
                 <select class="form-select" id="post-cuid-distrito">
                   <option value="Wanchaq">Wanchaq</option>
                   <option value="Cusco Centro">Cusco Centro</option>
@@ -515,18 +538,18 @@
                 </select>
               </div>
               <div class="col-md-8">
-                <label class="form-label small fw-bold">Dirección de Residencia</label>
-                <input type="text" class="form-control" id="post-cuid-direccion" required placeholder="Calle, urbanización o sector">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.direccion">Dirección de Residencia</label>
+                <input type="text" class="form-control" id="post-cuid-direccion" required minlength="5" maxlength="150" placeholder="Calle, urbanización o sector" data-i18n-placeholder="reg_prop.direccion_placeholder">
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Años de Experiencia</label>
-                <input type="number" class="form-control" id="post-cuid-exp" min="1" max="30" value="2" required>
+                <label class="form-label small fw-bold" data-i18n="post_cuid.experiencia">Años de Experiencia</label>
+                <input type="number" class="form-control" id="post-cuid-exp" min="1" max="30" value="2" required data-validate="number-range">
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tipo de Vivienda</label>
+                <label class="form-label small fw-bold" data-i18n="post_cuid.vivienda">Tipo de Vivienda</label>
                 <select class="form-select" id="post-cuid-vivienda">
                   <option value="Casa con Jardín">Casa con Jardín</option>
                   <option value="Departamento Amplio">Departamento Amplio</option>
@@ -534,15 +557,15 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Capacidad Máx. Mascotas</label>
-                <input type="number" class="form-control" id="post-cuid-capacidad" min="1" max="6" value="3" required>
+                <label class="form-label small fw-bold" data-i18n="post_cuid.capacidad">Capacidad Máx. Mascotas</label>
+                <input type="number" class="form-control" id="post-cuid-capacidad" min="1" max="6" value="3" required data-validate="number-range">
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tarifa Paseo Inicial (S/ PEN)</label>
-                <input type="number" class="form-control" id="post-cuid-tarifa" min="20" max="150" value="35" required>
+                <label class="form-label small fw-bold" data-i18n="post_cuid.tarifa">Tarifa Paseo Inicial (S/ PEN)</label>
+                <input type="number" class="form-control" id="post-cuid-tarifa" min="20" max="150" value="35" required data-validate="number-range">
               </div>
               <div class="col-md-4">
                 <div id="uploader-cuid-foto-perfil"></div>
@@ -554,7 +577,7 @@
 
             <div class="p-3 rounded-3 border mb-3" style="background: var(--pp-bg-body, #FAF7F2);">
               <div class="small fw-bold text-dark mb-2">
-                <i class="bi bi-shield-check text-primary me-1"></i>Expediente de Verificación Legal (Imagen o PDF)
+                <i class="bi bi-shield-check text-primary me-1"></i><span data-i18n="post_cuid.expediente_legal">Expediente de Verificación Legal (Imagen o PDF)</span>
               </div>
               <div class="row g-2">
                 <div class="col-md-6">
@@ -575,8 +598,8 @@
             <!-- Declaración Jurada Obligatoria -->
             <div class="p-3 bg-light rounded border mb-3">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="post-cuid-declaracion" required>
-                <label class="form-check-label small fw-bold text-dark" for="post-cuid-declaracion">
+                <input class="form-check-input" type="checkbox" id="post-cuid-declaracion" required data-validate="required-check">
+                <label class="form-check-label small fw-bold text-dark" for="post-cuid-declaracion" data-i18n="post_cuid.declaracion_html" data-i18n-html>
                   DECLARACIÓN JURADA: Declaro bajo juramento no poseer antecedentes penales ni denuncias por maltrato animal en el Perú ni en el extranjero. (<a href="javascript:void(0)" class="text-primary text-decoration-underline" data-legal-tab="declaracion">Ver Declaración Jurada Completa</a>)
                 </label>
               </div>
@@ -584,14 +607,14 @@
 
             <!-- TyC -->
             <div class="form-check mb-4">
-              <input class="form-check-input" type="checkbox" id="post-cuid-tyc" required>
-              <label class="form-check-label small text-secondary" for="post-cuid-tyc">
-                Acepto el Código de Conducta de Cuidadores, los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Servicio v5.1</a> y la comisión del 15% de Paw Patita.
+              <input class="form-check-input" type="checkbox" id="post-cuid-tyc" required data-validate="required-check">
+              <label class="form-check-label small text-secondary" for="post-cuid-tyc" data-i18n="post_cuid.tyc_html" data-i18n-html>
+                Acepto el Código de Conducta de Cuidadores, los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Servicio v5.2</a> y la comisión del 15% de Paw Patita.
               </label>
             </div>
 
             <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
-              <i class="bi bi-send-fill me-1"></i> Enviar Postulación de Cuidador
+              <i class="bi bi-send-fill me-1"></i> <span data-i18n="post_cuid.btn_submit">Enviar Postulación de Cuidador</span>
             </button>
           </form>
         </div>
@@ -601,54 +624,58 @@
 
   <!-- 5. MODAL POSTULAR COMO CLÍNICA VETERINARIA ALIADA -->
   <div class="modal fade" id="modal-postular-clinica" tabindex="-1" aria-labelledby="modal-post-vet-title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
       <div class="modal-content auth-modal-content">
         <div class="auth-header">
           <h5 class="modal-title" id="modal-post-vet-title">
-            <i class="bi bi-hospital-fill text-warning"></i> Postulación de Clínica Veterinaria Aliada
+            <i class="bi bi-hospital-fill text-warning"></i> <span data-i18n="post_vet.title">Postulación de Clínica Veterinaria Aliada</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="auth-body">
-          <p class="text-secondary small mb-3">
+          <p class="text-secondary small mb-3" data-i18n="post_vet.subtitle">
             Únete a la red de validación de carné <strong>PAW-ID</strong> y atención de emergencias S.O.S. en Cusco.
           </p>
 
-          <form id="form-postular-clinica">
+          <form id="form-postular-clinica" novalidate>
             <div class="row g-3 mb-3">
               <div class="col-md-7">
-                <label class="form-label small fw-bold">Razón Social / Nombre Comercial</label>
-                <input type="text" class="form-control" id="post-vet-nombre" required placeholder="Ej. Veterinaria San Francisco Cusco">
+                <label class="form-label small fw-bold" data-i18n="post_vet.nombre">Razón Social / Nombre Comercial</label>
+                <input type="text" class="form-control" id="post-vet-nombre" required minlength="3" maxlength="100" placeholder="Ej. Veterinaria San Francisco Cusco" data-i18n-placeholder="post_vet.nombre_placeholder">
               </div>
               <div class="col-md-5">
-                <label class="form-label small fw-bold">RUC Institucional (11 dígitos)</label>
-                <input type="text" class="form-control" id="post-vet-ruc" required minlength="11" maxlength="11" placeholder="20XXXXXXXXX">
+                <label class="form-label small fw-bold" data-i18n="post_vet.ruc">RUC Institucional (11 dígitos)</label>
+                <input type="text" class="form-control font-monospace" id="post-vet-ruc" required inputmode="numeric" minlength="11" maxlength="11" data-validate="ruc" placeholder="20XXXXXXXXX" data-i18n-placeholder="post_vet.ruc_placeholder">
+                <div class="form-text small" data-i18n="hint.ruc">Exactamente 11 dígitos (inicia en 10, 15, 17 o 20).</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Correo Electrónico Institucional</label>
-                <input type="email" class="form-control" id="post-vet-email" required placeholder="clinica@ejemplo.com">
+                <label class="form-label small fw-bold" data-i18n="reg_prop.email">Correo Electrónico Institucional</label>
+                <input type="email" class="form-control" id="post-vet-email" required data-validate="email" autocomplete="email" placeholder="clinica@ejemplo.com" data-i18n-placeholder="post_vet.email_placeholder">
+                <div class="form-text small" data-i18n="hint.email">Formato válido: usuario@dominio.com</div>
               </div>
               <div class="col-md-6">
-                <label for="post-vet-password" class="form-label small fw-bold">Contraseña para el Panel Médico</label>
+                <label for="post-vet-password" class="form-label small fw-bold" data-i18n="post_vet.password">Contraseña para el Panel Médico</label>
                 <div class="input-password-wrapper">
-                  <input type="password" class="form-control" id="post-vet-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <input type="password" class="form-control" id="post-vet-password" required minlength="8" data-validate="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" data-i18n-placeholder="post_vet.password_placeholder">
                   <button type="button" class="toggle-pwd-btn" data-toggle-password="post-vet-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
+                <div class="form-text small" data-i18n="hint.password">Mínimo 8 caracteres seguros.</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Teléfono de Emergencias 24h</label>
-                <input type="tel" class="form-control" id="post-vet-tel" required placeholder="984 000 000">
+                <label class="form-label small fw-bold" data-i18n="post_vet.tel">Teléfono de Emergencias 24h</label>
+                <input type="tel" class="form-control" id="post-vet-tel" required inputmode="numeric" maxlength="16" data-validate="phone" placeholder="984000000" data-i18n-placeholder="post_vet.tel_placeholder">
+                <div class="form-text small" data-i18n="hint.phone">Perú: 9 dígitos empezando en 9 • Turistas: +código país</div>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Distrito en Cusco</label>
+                <label class="form-label small fw-bold" data-i18n="reg_prop.distrito">Distrito en Cusco</label>
                 <select class="form-select" id="post-vet-distrito">
                   <option value="Cusco Centro">Cusco Centro</option>
                   <option value="Wanchaq">Wanchaq</option>
@@ -658,7 +685,7 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Horario de Atención</label>
+                <label class="form-label small fw-bold" data-i18n="post_vet.horario">Horario de Atención</label>
                 <select class="form-select" id="post-vet-horario">
                   <option value="24 Horas">24 Horas Ininterrumpidas</option>
                   <option value="Extendido">Extendido (07:00 - 23:00)</option>
@@ -668,29 +695,31 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label small fw-bold">Dirección Física de la Clínica</label>
-              <input type="text" class="form-control" id="post-vet-direccion" required placeholder="Av. o Calle exacta en Cusco">
+              <label class="form-label small fw-bold" data-i18n="post_vet.direccion">Dirección Física de la Clínica</label>
+              <input type="text" class="form-control" id="post-vet-direccion" required minlength="5" maxlength="160" placeholder="Av. o Calle exacta en Cusco" data-i18n-placeholder="post_vet.direccion_placeholder">
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Colegiatura CMVP del Director</label>
-                <input type="text" class="form-control" id="post-vet-cmvp" required placeholder="Ej. CMVP-10452">
+                <label class="form-label small fw-bold" data-i18n="post_vet.cmvp">Colegiatura CMVP del Director</label>
+                <input type="text" class="form-control font-monospace" id="post-vet-cmvp" required data-validate="cmvp" placeholder="Ej. CMVP-10452" data-i18n-placeholder="post_vet.cmvp_placeholder">
+                <div class="form-text small" data-i18n="hint.cmvp">Código de colegiatura médica (ej. CMVP-10452).</div>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Médico Responsable (Nombre)</label>
-                <input type="text" class="form-control" id="post-vet-responsable" required placeholder="Dr(a). Nombre y Apellido">
+                <label class="form-label small fw-bold" data-i18n="post_vet.responsable">Médico Responsable (Nombre)</label>
+                <input type="text" class="form-control" id="post-vet-responsable" required data-validate="person-name" maxlength="80" placeholder="Dr(a). Nombre y Apellido" data-i18n-placeholder="post_vet.responsable_placeholder">
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">DNI del Responsable</label>
-                <input type="text" class="form-control" id="post-vet-dni-responsable" required placeholder="8 dígitos">
+                <label class="form-label small fw-bold" data-i18n="post_vet.dni">DNI del Responsable</label>
+                <input type="text" class="form-control font-monospace" id="post-vet-dni-responsable" required inputmode="numeric" maxlength="8" data-validate="dni" placeholder="8 dígitos" data-i18n-placeholder="post_vet.dni_placeholder">
+                <div class="form-text small" data-i18n="hint.dni">Exactamente 8 dígitos numéricos.</div>
               </div>
             </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tarifa Base Consulta de Emergencia (S/ PEN)</label>
-                <input type="number" class="form-control" id="post-vet-tarifa" min="30" max="250" value="60" required>
+                <label class="form-label small fw-bold" data-i18n="post_vet.tarifa">Tarifa Base Consulta de Emergencia (S/ PEN)</label>
+                <input type="number" class="form-control" id="post-vet-tarifa" min="30" max="250" value="60" required data-validate="number-range">
               </div>
               <div class="col-md-4">
                 <div id="uploader-vet-foto-fachada"></div>
@@ -701,14 +730,14 @@
             </div>
 
             <div class="form-check mb-4">
-              <input class="form-check-input" type="checkbox" id="post-vet-tyc" required>
-              <label class="form-check-label small text-secondary" for="post-vet-tyc">
-                Acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Afiliación Veterinaria v5.1</a>, la <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="declaracion">Declaración de Responsabilidad</a> y el Protocolo de Atención S.O.S. de Paw Patita Cusco.
+              <input class="form-check-input" type="checkbox" id="post-vet-tyc" required data-validate="required-check">
+              <label class="form-check-label small text-secondary" for="post-vet-tyc" data-i18n="post_vet.tyc_html" data-i18n-html>
+                Acepto los <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="terminos">Términos de Afiliación Veterinaria v5.2</a>, la <a href="javascript:void(0)" class="fw-bold text-decoration-underline" data-legal-tab="declaracion">Declaración de Responsabilidad</a> y el Protocolo de Atención S.O.S. de Paw Patita Cusco.
               </label>
             </div>
 
             <button type="submit" class="btn btn-paw w-100 py-2 fs-6">
-              <i class="bi bi-hospital me-1"></i> Enviar Solicitud de Afiliación
+              <i class="bi bi-hospital me-1"></i> <span data-i18n="post_vet.btn_submit">Enviar Solicitud de Afiliación</span>
             </button>
           </form>
         </div>

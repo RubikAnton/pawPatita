@@ -10,6 +10,7 @@
 import { CUSCO_CONFIG } from '../config.js';
 import { formatMoneda, escapeHtml } from '../utils/formatters.js';
 import { getSupabase, isSupabaseConfigured } from '../supabase-client.js';
+import { t } from '../i18n.js';
 
 let leafletMap = null;
 let markersLayerGroup = null;
@@ -182,10 +183,10 @@ async function renderizarMarcadoresClinicas() {
           <span class="small text-muted">${escapeHtml(c.distrito)}</span>
         </div>
         <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">${escapeHtml(c.nombre)}</h6>
-        <div class="small text-muted mb-2">Consulta de urgencia desde: <strong>${formatMoneda(c.tarifa_urgencia, currentCurrency)}</strong></div>
+        <div class="small text-muted mb-2">${t('mapa.consulta_urgencia_desde')} <strong>${formatMoneda(c.tarifa_urgencia, currentCurrency)}</strong></div>
         <div class="d-grid gap-1">
           <a href="tel:${escapeHtml(c.telefono?.replace(/\s+/g, '') || '')}" class="btn btn-danger btn-sm text-white">
-            <i class="bi bi-telephone-fill me-1"></i> Llamar a Emergencias (${escapeHtml(c.telefono || '')})
+            <i class="bi bi-telephone-fill me-1"></i> ${t('mapa.llamar_emergencias')} (${escapeHtml(c.telefono || '')})
           </a>
         </div>
       </div>
@@ -247,11 +248,11 @@ export function actualizarMarcadoresMapa(cuidadores = []) {
         </div>
         <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
           <div>
-            <div class="small text-muted" style="font-size: 0.7rem;">Tarifa desde:</div>
-            <strong class="text-dark small">${formatMoneda(c.tarifa_minima || 35, currentCurrency)}/día</strong>
+            <div class="small text-muted" style="font-size: 0.7rem;">${t('mapa.tarifa_desde')}</div>
+            <strong class="text-dark small">${formatMoneda(c.tarifa_minima || 35, currentCurrency)} ${t('catalogo.dia')}</strong>
           </div>
           <button class="btn btn-paw btn-sm py-1 px-2" onclick="window.abrirModalPerfil('${escapeHtml(c.codigo_cuidador)}')" style="font-size: 0.75rem;">
-            Ver Perfil
+            ${t('mapa.ver_perfil')}
           </button>
         </div>
       </div>

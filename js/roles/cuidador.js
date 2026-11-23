@@ -20,10 +20,11 @@
  *  5. Sección 5 — Mi Perfil Profesional, Servicios (HU-XXX CRUD) y Respuesta a Reseñas
  */
 
-import { getSupabase, isSupabaseConfigured, subscribeRealtime } from '../supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime, unsubscribeRealtime } from '../supabase-client.js';
 import { CUSCO_CONFIG } from '../config.js';
 import { formatMoneda, formatFechaEs, escapeHtml, getHoyIso, sumarDiasIso } from '../utils/formatters.js';
 import { showSpinner, hideSpinner, showToast, crearModalDinamico, handleSupabaseError } from '../utils/ui-helpers.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 import { mountFileUploader } from '../components/file-uploader.js';
 import {
   normalizarMascota,
@@ -49,6 +50,7 @@ const STORAGE_KEY_RESERVAS_OWNER = 'paw_demo_reservas_owner_v5';
 const STORAGE_KEY_MURO = 'paw_demo_muro_reportes_v5';
 const STORAGE_KEY_SERVICIOS_CUID = 'paw_demo_servicios_cuidador_v5';
 const STORAGE_KEY_RESENAS_CUID = 'paw_demo_resenas_cuidador_v5';
+let activeCaregiverSessionHandler = null;
 
 // Semilla de reservas asignadas a Valeria Huamán (CUID-001) sincronizada con `06_seed.sql`
 export const RESERVAS_SEED_CUIDADOR = [
@@ -1184,29 +1186,29 @@ function abrirModalServicioCuidador(servicioExistente = null, idCuidador, onSave
 
         <div class="col-md-7">
           <label class="form-label small fw-bold">Título Comercial del Servicio *</label>
-          <input type="text" class="form-control" id="srv-titulo" required maxlength="90"
+          <input type="text" class="form-control" id="srv-titulo" required minlength="4" maxlength="90"
             value="${escapeHtml(s.tipo_servicio)}"
             placeholder="Ej. Hospedaje Familiar con Jardín en Wanchaq">
         </div>
 
         <div class="col-12">
           <label class="form-label small fw-bold">Descripción Detallada de la Oferta *</label>
-          <textarea class="form-control" id="srv-descripcion" rows="2" required maxlength="280"
+          <textarea class="form-control" id="srv-descripcion" rows="2" required minlength="8" maxlength="280"
             placeholder="Detalla qué incluye tu servicio, frecuencia de paseos y reportes en el Muro...">${escapeHtml(s.descripcion_servicio)}</textarea>
         </div>
 
         <div class="col-md-4">
           <label class="form-label small fw-bold">Tarifa por Día/Sesión (S/ PEN) *</label>
           <input type="number" step="1" min="15" max="350" class="form-control fw-bold" id="srv-tarifa"
-            required value="${Number(s.tarifa_diaria_por_perro || 45)}">
-          <div class="form-text small">Recibirás el 85% neto en tu billetera.</div>
+            required data-validate="number-range" value="${Number(s.tarifa_diaria_por_perro || 45)}">
+          <div class="form-text small">Entre S/ 15 y S/ 350. Recibirás el 85% neto en tu billetera.</div>
         </div>
 
         <div class="col-md-4">
           <label class="form-label small fw-bold">Recargo Recojo en Hotel (S/)</label>
           <input type="number" step="1" min="0" max="80" class="form-control" id="srv-tarifa-recojo"
-            value="${Number(s.tarifa_recojo_extra || 0)}">
-          <div class="form-text small">0 si está incluido gratis.</div>
+            data-validate="number-range" value="${Number(s.tarifa_recojo_extra || 0)}">
+          <div class="form-text small">0 a S/ 80 (0 si está incluido gratis).</div>
         </div>
 
         <div class="col-md-4 d-flex flex-column justify-content-center gap-2 pt-2">
@@ -1238,19 +1240,19 @@ function abrirModalServicioCuidador(servicioExistente = null, idCuidador, onSave
     tamano: 'modal-lg'
   });
 
+  const formSrv = modal.el.querySelector('#form-crud-servicio-cuid');
+  attachFormValidation(formSrv);
+
   modal.el.querySelector('#btn-guardar-servicio-cuid')?.addEventListener('click', async () => {
+    if (!validateFormNow(formSrv).valid) return;
+
     const categoria = modal.el.querySelector('#srv-categoria').value;
     const tipoServicio = modal.el.querySelector('#srv-titulo').value.trim();
     const descripcion = modal.el.querySelector('#srv-descripcion').value.trim();
-    const tarifa = Math.max(15, Number(modal.el.querySelector('#srv-tarifa').value || 45));
-    const tarifaRecojo = Math.max(0, Number(modal.el.querySelector('#srv-tarifa-recojo').value || 0));
+    const tarifa = Number(modal.el.querySelector('#srv-tarifa').value);
+    const tarifaRecojo = Number(modal.el.querySelector('#srv-tarifa-recojo').value || 0);
     const incluyeRecojo = modal.el.querySelector('#srv-incluye-recojo').checked;
     const disponible = modal.el.querySelector('#srv-disponible').checked;
-
-    if (tipoServicio.length < 4 || descripcion.length < 8) {
-      showToast('Por favor completa el título comercial y la descripción del servicio.', 'warning');
-      return;
-    }
 
     const payload = {
       id_cuidador: idCuidador,
@@ -1340,18 +1342,58 @@ export async function renderPanelCuidador(container, userProfile) {
     hideSpinner();
   }
 
-  // Suscripciones Realtime a nuevas solicitudes de reserva y pagos de liquidaciones
-  subscribeRealtime('canal-cuidador-reservas', 'reservas', '*', async () => {
+  let isPanelMounted = true;
+  const cuidadorUserId = userProfile?.id || cuidadorProfile?.id_usuario;
+  const cuidadorEntityId = cuidadorProfile?.id;
+  const handleCaregiverAuthChanged = (ev) => {
+    const nextUser = ev?.detail?.user || null;
+    if (!nextUser || (cuidadorUserId && nextUser.id !== cuidadorUserId)) {
+      isPanelMounted = false;
+      reservas = [];
+      disponibilidad = [];
+      billeteraDatos = { resumen: {}, liquidaciones: [] };
+      servicios = [];
+      resenas = [];
+      reservaPreseleccionadaMuro = null;
+      cuidadorProfile = null;
+      unsubscribeRealtime('canal-cuidador-reservas');
+      unsubscribeRealtime('canal-cuidador-liquidaciones');
+      window.removeEventListener('paw:auth-changed', handleCaregiverAuthChanged);
+      if (activeCaregiverSessionHandler === handleCaregiverAuthChanged) {
+        activeCaregiverSessionHandler = null;
+      }
+    }
+  };
+  if (activeCaregiverSessionHandler) {
+    window.removeEventListener('paw:auth-changed', activeCaregiverSessionHandler);
+  }
+  activeCaregiverSessionHandler = handleCaregiverAuthChanged;
+  window.addEventListener('paw:auth-changed', handleCaregiverAuthChanged);
+
+  // Suscripciones Realtime a nuevas solicitudes de reserva y pagos de liquidaciones (filtradas por cuidador)
+  const cuidadorFilter = cuidadorEntityId ? `id_cuidador=eq.${cuidadorEntityId}` : null;
+
+  subscribeRealtime('canal-cuidador-reservas', 'reservas', '*', async (payload) => {
+    if (!isPanelMounted || !cuidadorProfile) return;
+    const rec = payload?.new || payload?.old || {};
+    if (cuidadorEntityId && rec.id_cuidador && rec.id_cuidador !== cuidadorEntityId) return;
+
     reservas = await obtenerReservasCuidador(cuidadorProfile.id);
+    if (!isPanelMounted) return;
     showToast('🐾 Actualización en tiempo real en tus Reservas asignadas.', 'info', 'Reservas en Vivo');
     if (activeTab === 'reservas') renderWorkspace();
-  });
+  }, cuidadorFilter);
 
-  subscribeRealtime('canal-cuidador-liquidaciones', 'liquidaciones_cuidadores', '*', async () => {
+  subscribeRealtime('canal-cuidador-liquidaciones', 'liquidaciones_cuidadores', '*', async (payload) => {
+    if (!isPanelMounted || !cuidadorProfile) return;
+    const rec = payload?.new || payload?.old || {};
+    if (cuidadorEntityId && rec.id_cuidador && rec.id_cuidador !== cuidadorEntityId) return;
+
     billeteraDatos = await obtenerDatosBilleteraCuidador(cuidadorProfile.id);
+    if (!isPanelMounted) return;
     showToast('💰 Actualización en tu Billetera Digital.', 'success', 'Billetera Cuidador');
     if (activeTab === 'billetera') renderWorkspace();
-  });
+  }, cuidadorFilter);
 
   function renderLayout() {
     const iniciales = `${(cuidadorProfile.nombre || 'V').charAt(0)}${(cuidadorProfile.apellido || 'H').charAt(0)}`.toUpperCase();
@@ -1370,8 +1412,8 @@ export async function renderPanelCuidador(container, userProfile) {
                   class="panel-avatar-circle"
                   onerror="this.outerHTML='<div class=\\'panel-avatar-circle\\'>${escapeHtml(iniciales)}</div>'">
                 <div class="min-w-0">
-                  <h6 class="fw-bold text-white mb-0 text-truncate">${escapeHtml(cuidadorProfile.nombre)} ${escapeHtml(cuidadorProfile.apellido)}</h6>
-                  <div class="small text-white-50 text-truncate">${escapeHtml(cuidadorProfile.email)}</div>
+                  <h6 class="fw-bold text-white mb-0 panel-user-name">${escapeHtml(cuidadorProfile.nombre)} ${escapeHtml(cuidadorProfile.apellido)}</h6>
+                  <div class="small text-white-50 panel-user-email">${escapeHtml(cuidadorProfile.email)}</div>
                   <div class="small text-warning fw-bold">
                     <i class="bi bi-star-fill me-1"></i>${Number(cuidadorProfile.reputacion_promedio || 4.95).toFixed(2)} (${cuidadorProfile.total_resenas || resenas.length} reseñas)
                   </div>
@@ -1385,7 +1427,12 @@ export async function renderPanelCuidador(container, userProfile) {
               </div>
             </div>
 
-            <nav class="panel-nav-menu" aria-label="Menú Operativo del Cuidador">
+            <button type="button" class="panel-mobile-toggle" id="btn-toggle-panel-menu-cuid" aria-expanded="false" aria-controls="panel-nav-menu-cuid">
+              <span><i class="bi bi-list-nested me-2 text-warning"></i>Menú del Panel</span>
+              <i class="bi bi-chevron-down toggle-chevron"></i>
+            </button>
+
+            <nav class="panel-nav-menu" id="panel-nav-menu-cuid" aria-label="Menú Operativo del Cuidador">
               <button type="button" class="panel-nav-btn ${activeTab === 'reservas' ? 'active' : ''}" data-tab="reservas">
                 <span class="nav-icon-wrap"><i class="bi bi-inboxes-fill"></i>1. Reservas y Clientes</span>
                 ${pendientesCount > 0
@@ -1414,7 +1461,15 @@ export async function renderPanelCuidador(container, userProfile) {
 
               <button type="button" class="panel-nav-btn nav-btn-sos mt-1" id="sidebar-cuid-btn-sos">
                 <span class="nav-icon-wrap"><i class="bi bi-exclamation-octagon-fill"></i>Emitir S.O.S. Veterinario</span>
-                <span class="badge rounded-pill bg-danger">24h</span>
+                <span class="badge rounded-pill ${enCursoCount > 0 ? 'bg-danger' : 'bg-secondary'}">
+                  ${enCursoCount > 0 ? `${enCursoCount} En Curso` : 'Solo En Curso'}
+                </span>
+              </button>
+
+              <hr class="my-1">
+
+              <button type="button" class="panel-nav-btn" data-help-role="cuidador">
+                <span class="nav-icon-wrap"><i class="bi bi-question-circle-fill text-warning"></i>Centro de Ayuda & FAQ</span>
               </button>
             </nav>
           </aside>
@@ -1424,6 +1479,15 @@ export async function renderPanelCuidador(container, userProfile) {
         </div>
       </div>
     `;
+
+    const toggleBtn = container.querySelector('#btn-toggle-panel-menu-cuid');
+    const navMenu = container.querySelector('#panel-nav-menu-cuid');
+    if (toggleBtn && navMenu) {
+      toggleBtn.addEventListener('click', () => {
+        const isShown = navMenu.classList.toggle('show');
+        toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
+      });
+    }
 
     container.querySelectorAll('.panel-nav-btn[data-tab]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1435,7 +1499,13 @@ export async function renderPanelCuidador(container, userProfile) {
     container.querySelector('#sidebar-cuid-btn-sos')?.addEventListener('click', () => {
       abrirModalEmitirSos({
         reservas,
-        distritoPropietario: cuidadorProfile.distrito_cusco
+        distritoPropietario: cuidadorProfile.distrito_cusco,
+        soloEnCurso: true,
+        roleContext: 'cuidador',
+        onIrAReservas: () => {
+          activeTab = 'reservas';
+          renderLayout();
+        }
       });
     });
 
@@ -1830,13 +1900,19 @@ export async function renderPanelCuidador(container, userProfile) {
       });
     });
 
-    // Acción: Emitir S.O.S. para esta reserva
+    // Acción: Emitir S.O.S. para esta reserva (estrictamente En Curso)
     ws.querySelectorAll('[data-action="sos-reserva"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         abrirModalEmitirSos({
           reservas,
           preselectedReservaId: btn.getAttribute('data-id'),
-          distritoPropietario: cuidadorProfile.distrito_cusco
+          distritoPropietario: cuidadorProfile.distrito_cusco,
+          soloEnCurso: true,
+          roleContext: 'cuidador',
+          onIrAReservas: () => {
+            activeTab = 'reservas';
+            renderLayout();
+          }
         });
       });
     });
@@ -1857,7 +1933,7 @@ export async function renderPanelCuidador(container, userProfile) {
         <div class="col-lg-6">
           <div class="card card-paw p-4 border-0 shadow-sm h-100">
             <div class="mb-3 pb-2 border-bottom">
-              <span class="badge bg-warning text-dark fw-bold mb-1">CONEXIÓN REALTIME CON EL PANEL DEL PROPIETARIO</span>
+              <span class="badge bg-warning text-dark fw-bold mb-1">CONEXIÓN EN VIVO CON EL PANEL DEL PROPIETARIO</span>
               <h5 class="fw-bold mb-1">
                 <i class="bi bi-camera-reels-fill text-warning me-2"></i>Publicar Fotos y Reporte en el Muro
               </h5>
@@ -1918,7 +1994,7 @@ export async function renderPanelCuidador(container, userProfile) {
 
                 <div class="mb-3">
                   <label class="form-label small fw-bold">4. Ubicación Referencial en Cusco *</label>
-                  <input type="text" class="form-control form-control-sm" id="muro-cuid-input-ubicacion" required
+                  <input type="text" class="form-control form-control-sm" id="muro-cuid-input-ubicacion" required minlength="4" maxlength="160"
                     value="Parque Marianito Ferro - ${escapeHtml(cuidadorProfile.distrito_cusco)}, Cusco"
                     placeholder="Ej. Urb. Magisterio - Wanchaq, Cusco">
                 </div>
@@ -1961,8 +2037,9 @@ export async function renderPanelCuidador(container, userProfile) {
 
                 <div class="mb-3">
                   <label class="form-label small fw-bold">6. Nota de Estado y Bienestar para el Dueño * (mín. 5 caracteres)</label>
-                  <textarea class="form-control" id="muro-cuid-input-nota" rows="3" required minlength="5"
+                  <textarea class="form-control" id="muro-cuid-input-nota" rows="3" required minlength="5" maxlength="400"
                     placeholder="Cuenta cómo estuvo su ánimo, alimentación, hidratación y paseo en Cusco..."></textarea>
+                  <div class="form-text small">Mínimo 5 caracteres describiendo el bienestar actual de la mascota.</div>
                 </div>
 
                 <button type="submit" class="btn btn-paw w-100 fw-bold py-2" ${sinReservasEnCurso ? 'disabled' : ''}>
@@ -2066,12 +2143,16 @@ export async function renderPanelCuidador(container, userProfile) {
     });
 
     // Submit del formulario de publicación al Muro
-    ws.querySelector('#form-publicar-muro-cuidador')?.addEventListener('submit', async (e) => {
+    const formMuro = ws.querySelector('#form-publicar-muro-cuidador');
+    attachFormValidation(formMuro);
+    formMuro?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (sinReservasEnCurso) {
         showToast('Solo puedes publicar en el Muro cuando tengas una reserva activa En Curso.', 'warning');
         return;
       }
+
+      if (!validateFormNow(formMuro).valid) return;
 
       const idReserva = ws.querySelector('#muro-cuid-select-reserva').value;
       const resObj = reservasEnCurso.find((r) => r.id === idReserva);
@@ -2084,11 +2165,6 @@ export async function renderPanelCuidador(container, userProfile) {
       const estadoAnimo = ws.querySelector('#muro-cuid-select-animo').value;
       const ubicacion = ws.querySelector('#muro-cuid-input-ubicacion').value.trim() || `${cuidadorProfile.distrito_cusco}, Cusco`;
       const notaEstado = ws.querySelector('#muro-cuid-input-nota').value.trim();
-
-      if (notaEstado.length < 5) {
-        showToast('Por favor escribe una nota de estado sobre la mascota (mínimo 5 caracteres).', 'warning');
-        return;
-      }
 
       showSpinner('Subiendo fotografías y publicando reporte en el Muro Privado del Propietario...');
       try {
@@ -2321,8 +2397,16 @@ export async function renderPanelCuidador(container, userProfile) {
       initialValue: cuidadorProfile.foto_hogar_url || ''
     });
 
-    ws.querySelector('#form-fotos-perfil-cuidador')?.addEventListener('submit', async (e) => {
+    const formFotosCuid = ws.querySelector('#form-fotos-perfil-cuidador');
+    attachFormValidation(formFotosCuid);
+
+    formFotosCuid?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!validateFormNow(formFotosCuid).valid) return;
+      if (!upAvatarCuid.hasValue() && !upHogarCuid.hasValue() && !cuidadorProfile.foto_url && !cuidadorProfile.foto_hogar_url) {
+        showToast('Selecciona al menos una fotografía de perfil o de tu hogar antes de guardar.', 'warning');
+        return;
+      }
       showSpinner('Guardando fotografías de perfil y hogar del cuidador...');
       try {
         const [nuevaFotoPerfil, nuevaFotoHogar] = await Promise.all([

@@ -9,16 +9,23 @@
 import { initAuthSession, loginWithEmail, logout, requestPasswordReset, updatePassword, onAuthStateChanged } from './auth/auth.js';
 import { registrarPropietario, postularCuidador, postularClinicaVeterinaria } from './auth/postulaciones.js';
 import { initRouter, navigateTo, handleRouteChange, getDefaultRoleRoute } from './router.js';
-import { subscribeRealtime } from './supabase-client.js';
+import { getSupabase, isSupabaseConfigured, subscribeRealtime, unsubscribeRealtime } from './supabase-client.js';
 import { CUSCO_CONFIG } from './config.js';
 import { showToast, showSpinner, hideSpinner } from './utils/ui-helpers.js';
 import { escapeHtml } from './utils/formatters.js';
+import { attachFormValidation, validateFormNow, resetFormValidation } from './utils/validators.js';
 import { initLegalModal } from './components/legal-modal.js';
+import { initHelpModal } from './components/help-modal.js';
 import { getCurrentLang, setLanguage, applyTranslations, t } from './i18n.js';
 
 let appCurrency = localStorage.getItem('paw_currency') || 'PEN';
 let appLanguage = getCurrentLang();
 let unreadNotificationsCount = 0;
+let activeNotifUserId = null;
+let activeNotifChannelName = null;
+let activeNotifEmail = null;
+let currentNotifications = [];
+let notificationsUseSupabase = false;
 
 /**
  * Actualiza el Navbar según el estado de autenticación y rol
@@ -88,59 +95,280 @@ function updateNavbar(session) {
   }
 }
 
-/**
- * Inicializa la campana de notificaciones y la suscripción Realtime a emergencias SOS (INSERT y UPDATE)
- */
-function initRealtimeAlerts() {
+function getDemoNotifsStorageKey(emailOrId) {
+  const safeKey = String(emailOrId || 'anon').trim().toLowerCase();
+  return `paw_notifs_${safeKey}`;
+}
+
+function loadDemoNotifications(emailOrId) {
+  try {
+    const raw = localStorage.getItem(getDemoNotifsStorageKey(emailOrId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveDemoNotifications(emailOrId, list) {
+  try {
+    localStorage.setItem(
+      getDemoNotifsStorageKey(emailOrId),
+      JSON.stringify((list || []).slice(0, 20))
+    );
+  } catch (_) { /* ignore storage error */ }
+}
+
+function formatNotifTimestamp(isoDate) {
+  if (!isoDate) return 'Reciente';
+  try {
+    const d = new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return 'Reciente';
+    return d.toLocaleString('es-PE', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (_) {
+    return 'Reciente';
+  }
+}
+
+function renderNotificationsUI() {
   const badgeEl = document.getElementById('notif-badge-count');
   const listEl = document.getElementById('notifications-list');
 
-  subscribeRealtime('canal-sos-emergencias', 'incidencias_emergencias', '*', (payload) => {
-    const evType = payload.eventType || 'UPDATE';
-    const rec = payload.new || {};
-    unreadNotificationsCount++;
-    if (badgeEl) {
-      badgeEl.textContent = unreadNotificationsCount;
+  const unread = currentNotifications.filter((n) => !n.leida).length;
+  unreadNotificationsCount = unread;
+
+  if (badgeEl) {
+    if (unread > 0) {
+      badgeEl.textContent = unread > 99 ? '99+' : String(unread);
       badgeEl.classList.remove('d-none');
-    }
-
-    const estadoLabel = (rec.estado_sos || 'emitida').toUpperCase();
-    if (evType === 'INSERT') {
-      showToast(
-        `🚨 ¡ALERTA S.O.S. en Cusco! Mascota en situación ${rec.nivel_severidad || 'Urgente'}.`,
-        'danger',
-        'Emergencia Veterinaria',
-        8000
-      );
     } else {
-      showToast(
-        `🏥 Actualización S.O.S. (${rec.codigo_sos || 'Cusco'}): Estado clínico actualizado a ${estadoLabel}.`,
-        rec.estado_sos === 'resuelta' ? 'success' : 'info',
-        'Seguimiento Clínico S.O.S.',
-        6500
-      );
+      badgeEl.textContent = '0';
+      badgeEl.classList.add('d-none');
+    }
+  }
+
+  if (listEl) {
+    if (!currentNotifications.length) {
+      listEl.innerHTML = '<div class="p-3 text-center text-muted small">No tienes notificaciones pendientes.</div>';
+      return;
     }
 
-    if (listEl) {
-      const tituloNotif = evType === 'INSERT'
-        ? 'ALERTA S.O.S. RECIBIDA'
-        : `ACTUALIZACIÓN S.O.S. • ${escapeHtml(estadoLabel)}`;
-      const detalleNotif = rec.diagnostico_clinico
-        || rec.tratamiento_aplicado
-        || rec.descripcion
-        || rec.descripcion_emergencia
-        || 'Estado de emergencia veterinaria actualizado en tiempo real';
+    listEl.innerHTML = currentNotifications.map((n) => {
+      const isSos = n.tipo === 'sos';
+      const isUnread = !n.leida;
+      const itemClasses = [
+        'notification-item',
+        isUnread ? 'unread' : '',
+        isSos ? 'alert-urgent' : ''
+      ].filter(Boolean).join(' ');
+      const iconCls = isSos
+        ? 'bi-exclamation-octagon-fill text-danger'
+        : n.tipo === 'pago'
+          ? 'bi-cash-coin text-success'
+          : n.tipo === 'reserva'
+            ? 'bi-calendar-check text-primary'
+            : 'bi-bell-fill text-warning';
 
-      const itemHtml = `
-        <div class="notification-item alert-urgent">
-          <div class="fw-bold ${rec.estado_sos === 'resuelta' ? 'text-success' : 'text-danger'}">
-            <i class="bi bi-exclamation-octagon-fill me-1"></i> ${tituloNotif}
+      return `
+        <div class="${itemClasses}" data-notif-id="${escapeHtml(n.id || '')}">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="fw-bold small ${isSos ? 'text-danger' : 'text-dark'}">
+              <i class="bi ${iconCls} me-1"></i>${escapeHtml(n.titulo || 'Notificación')}
+            </div>
+            ${isUnread ? '<span class="badge bg-primary rounded-pill" style="font-size:0.65rem;">Nueva</span>' : ''}
           </div>
-          <div class="small">${escapeHtml(detalleNotif)}</div>
-          <small class="text-muted">En tiempo real</small>
+          <div class="small mt-1 text-secondary">${escapeHtml(n.mensaje || '')}</div>
+          <small class="text-muted d-block mt-1">${escapeHtml(formatNotifTimestamp(n.created_at))}</small>
         </div>
       `;
-      listEl.insertAdjacentHTML('afterbegin', itemHtml);
+    }).join('');
+  }
+}
+
+/**
+ * Reinicia por completo el estado de notificaciones, badge y canal Realtime activo
+ */
+export function resetNotificationsState() {
+  if (activeNotifChannelName) {
+    unsubscribeRealtime(activeNotifChannelName);
+  }
+  activeNotifUserId = null;
+  activeNotifChannelName = null;
+  activeNotifEmail = null;
+  currentNotifications = [];
+  notificationsUseSupabase = false;
+  unreadNotificationsCount = 0;
+
+  const bellContainer = document.getElementById('navbar-notification-bell');
+  if (bellContainer) bellContainer.classList.add('d-none');
+  renderNotificationsUI();
+}
+
+/**
+ * Marca todas las notificaciones del usuario autenticado como leídas (UI + BD/Local)
+ */
+async function markAllNotificationsAsRead() {
+  if (!activeNotifUserId && !activeNotifEmail) return;
+
+  const hadUnread = currentNotifications.some((n) => !n.leida) || unreadNotificationsCount > 0;
+  currentNotifications = currentNotifications.map((n) => ({ ...n, leida: true }));
+  unreadNotificationsCount = 0;
+  renderNotificationsUI();
+
+  if (!hadUnread) return;
+
+  if (notificationsUseSupabase && activeNotifUserId) {
+    const supabase = getSupabase();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase
+          .from('notificaciones')
+          .update({ leida: true })
+          .eq('id_usuario_destino', activeNotifUserId)
+          .eq('leida', false);
+        if (error) {
+          console.warn('No se pudieron marcar las notificaciones como leídas:', error.message);
+        }
+      } catch (err) {
+        console.warn('Excepción al marcar notificaciones como leídas:', err);
+      }
+    }
+  } else if (activeNotifEmail) {
+    saveDemoNotifications(activeNotifEmail, currentNotifications);
+  }
+}
+
+/**
+ * Sincroniza la campanita de notificaciones exclusivamente con el usuario autenticado
+ * (consulta `public.notificaciones` + canal Realtime filtrado por `id_usuario_destino`)
+ */
+export async function syncUserNotifications(user, profile) {
+  if (!user || !user.id || (profile && profile.estado_cuenta !== 'activo')) {
+    resetNotificationsState();
+    return;
+  }
+
+  // Evitar re-suscribir si el mismo usuario ya está sincronizado
+  if (activeNotifUserId === user.id) {
+    return;
+  }
+
+  if (activeNotifChannelName) {
+    unsubscribeRealtime(activeNotifChannelName);
+    activeNotifChannelName = null;
+  }
+
+  const targetUserId = user.id;
+  const targetEmail = (user.email || profile?.email || user.id).trim().toLowerCase();
+  activeNotifUserId = targetUserId;
+  activeNotifEmail = targetEmail;
+  currentNotifications = [];
+  renderNotificationsUI();
+
+  const bellContainer = document.getElementById('navbar-notification-bell');
+  if (bellContainer) bellContainer.classList.remove('d-none');
+
+  const supabase = getSupabase();
+  let hasSupabaseSession = false;
+  if (supabase && isSupabaseConfigured()) {
+    try {
+      const { data: sessData } = await supabase.auth.getSession();
+      hasSupabaseSession = Boolean(sessData?.session?.user?.id === targetUserId);
+    } catch (_) {
+      hasSupabaseSession = false;
+    }
+  }
+
+  if (activeNotifUserId !== targetUserId) return;
+
+  if (hasSupabaseSession) {
+    notificationsUseSupabase = true;
+    try {
+      const { data, error } = await supabase
+        .from('notificaciones')
+        .select('*')
+        .eq('id_usuario_destino', targetUserId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (activeNotifUserId !== targetUserId) return;
+
+      if (!error && Array.isArray(data)) {
+        currentNotifications = data.filter((r) => r.id_usuario_destino === targetUserId);
+      } else {
+        currentNotifications = [];
+      }
+    } catch (err) {
+      console.warn('No se pudieron cargar las notificaciones del usuario:', err);
+      currentNotifications = [];
+    }
+
+    if (activeNotifUserId !== targetUserId) return;
+    renderNotificationsUI();
+
+    const channelName = `canal-notifs-${targetUserId}`;
+    activeNotifChannelName = channelName;
+    subscribeRealtime(
+      channelName,
+      'notificaciones',
+      '*',
+      (payload) => {
+        if (activeNotifUserId !== targetUserId) return;
+        const evType = payload?.eventType || '';
+        const rec = payload?.new || payload?.old || {};
+        if (!rec.id_usuario_destino || rec.id_usuario_destino !== targetUserId) return;
+
+        if (evType === 'INSERT') {
+          const withoutDup = currentNotifications.filter((item) => item.id !== rec.id);
+          currentNotifications = [rec, ...withoutDup].slice(0, 20);
+          renderNotificationsUI();
+          showToast(
+            rec.mensaje || rec.titulo || 'Tienes una nueva notificación.',
+            rec.tipo === 'sos' ? 'danger' : 'info',
+            rec.titulo || 'Notificación',
+            rec.tipo === 'sos' ? 7500 : 5000
+          );
+        } else if (evType === 'UPDATE') {
+          currentNotifications = currentNotifications.map((item) => (
+            item.id === rec.id ? { ...item, ...rec } : item
+          ));
+          renderNotificationsUI();
+        } else if (evType === 'DELETE') {
+          currentNotifications = currentNotifications.filter((item) => item.id !== rec.id);
+          renderNotificationsUI();
+        }
+      },
+      `id_usuario_destino=eq.${targetUserId}`
+    );
+  } else {
+    notificationsUseSupabase = false;
+    activeNotifChannelName = null;
+    currentNotifications = loadDemoNotifications(targetEmail);
+    renderNotificationsUI();
+  }
+}
+
+function setupNotificationCenterListeners() {
+  const bellContainer = document.getElementById('navbar-notification-bell');
+  bellContainer?.addEventListener('shown.bs.dropdown', () => {
+    markAllNotificationsAsRead();
+  });
+
+  document.getElementById('btn-mark-all-notifs-read')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    markAllNotificationsAsRead();
+  });
+
+  window.addEventListener('paw:auth-changed', (e) => {
+    if (!e?.detail?.user) {
+      resetNotificationsState();
     }
   });
 }
@@ -177,14 +405,16 @@ function setupPasswordToggles() {
  */
 function setupDemoButtons() {
   document.querySelectorAll('.btn-demo-badge').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       const email = btn.getAttribute('data-email');
       const pass = btn.getAttribute('data-pass');
       const emailInput = document.getElementById('login-email');
       const passInput = document.getElementById('login-password');
+      const loginForm = document.getElementById('form-login');
       if (emailInput && passInput) {
         emailInput.value = email;
         passInput.value = pass;
+        if (loginForm) resetFormValidation(loginForm);
         emailInput.focus();
       }
     });
@@ -192,14 +422,16 @@ function setupDemoButtons() {
 }
 
 /**
- * Configura los event listeners para todos los formularios Auth
+ * Configura los event listeners y motor central de validación para todos los formularios Auth
  */
 function setupFormListeners() {
   // 1. Formulario de Login
   const loginForm = document.getElementById('form-login');
+  attachFormValidation(loginForm);
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
+    if (!validateFormNow(loginForm).valid) return;
+    const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-password').value;
     const res = await loginWithEmail(email, pass);
     if (res.success && res.profile) {
@@ -213,20 +445,24 @@ function setupFormListeners() {
 
   // 2. Formulario de Olvidé mi Contraseña
   const forgotForm = document.getElementById('form-forgot-password');
+  attachFormValidation(forgotForm);
   forgotForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('forgot-email').value;
+    if (!validateFormNow(forgotForm).valid) return;
+    const email = document.getElementById('forgot-email').value.trim();
     const res = await requestPasswordReset(email);
     if (res.success) {
       const modalEl = document.getElementById('modal-forgot-password');
       if (modalEl && window.bootstrap?.Modal) {
         window.bootstrap.Modal.getInstance(modalEl)?.hide();
       }
+      forgotForm.reset();
     }
   });
 
   // 3. Formulario de Registro Propietario
   const regPropForm = document.getElementById('form-registro-propietario');
+  attachFormValidation(regPropForm);
   const toggleTurista = document.getElementById('reg-prop-turista-check');
   const turistaFields = document.getElementById('reg-prop-turista-fields');
 
@@ -240,22 +476,23 @@ function setupFormListeners() {
 
   regPropForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateFormNow(regPropForm).valid) return;
     const data = {
-      nombre: document.getElementById('reg-prop-nombre').value,
-      apellido: document.getElementById('reg-prop-apellido').value,
-      email: document.getElementById('reg-prop-email').value,
+      nombre: document.getElementById('reg-prop-nombre').value.trim(),
+      apellido: document.getElementById('reg-prop-apellido').value.trim(),
+      email: document.getElementById('reg-prop-email').value.trim(),
       password: document.getElementById('reg-prop-password').value,
-      telefono: document.getElementById('reg-prop-tel').value,
+      telefono: document.getElementById('reg-prop-tel').value.trim(),
       tipoDocumento: document.getElementById('reg-prop-tipodoc').value,
-      numDocumento: document.getElementById('reg-prop-numdoc').value,
+      numDocumento: document.getElementById('reg-prop-numdoc').value.trim(),
       distrito: document.getElementById('reg-prop-distrito').value,
-      direccion: document.getElementById('reg-prop-direccion').value,
+      direccion: document.getElementById('reg-prop-direccion').value.trim(),
       esTurista: toggleTurista?.checked || false,
-      paisOrigen: document.getElementById('reg-prop-pais')?.value || 'Perú',
+      paisOrigen: document.getElementById('reg-prop-pais')?.value.trim() || 'Perú',
       idioma: document.getElementById('reg-prop-idioma')?.value || 'ES',
-      hotel: document.getElementById('reg-prop-hotel')?.value || '',
-      contactoNombre: document.getElementById('reg-prop-contacto-nombre')?.value || '',
-      contactoTel: document.getElementById('reg-prop-contacto-tel')?.value || '',
+      hotel: document.getElementById('reg-prop-hotel')?.value.trim() || '',
+      contactoNombre: document.getElementById('reg-prop-contacto-nombre')?.value.trim() || '',
+      contactoTel: document.getElementById('reg-prop-contacto-tel')?.value.trim() || '',
       aceptaTyc: document.getElementById('reg-prop-tyc').checked
     };
 
@@ -271,23 +508,24 @@ function setupFormListeners() {
 
   // 4. Formulario de Postulación como Cuidador
   const postCuidForm = document.getElementById('form-postular-cuidador');
+  attachFormValidation(postCuidForm);
   postCuidForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateFormNow(postCuidForm).valid) return;
     const data = {
-      nombre: document.getElementById('post-cuid-nombre').value,
-      apellido: document.getElementById('post-cuid-apellido').value,
-      email: document.getElementById('post-cuid-email').value,
+      nombre: document.getElementById('post-cuid-nombre').value.trim(),
+      apellido: document.getElementById('post-cuid-apellido').value.trim(),
+      email: document.getElementById('post-cuid-email').value.trim(),
       password: document.getElementById('post-cuid-password').value,
-      telefono: document.getElementById('post-cuid-tel').value,
+      telefono: document.getElementById('post-cuid-tel').value.trim(),
       tipoDocumento: document.getElementById('post-cuid-tipodoc').value,
-      numDocumento: document.getElementById('post-cuid-numdoc').value,
+      numDocumento: document.getElementById('post-cuid-numdoc').value.trim(),
       distrito: document.getElementById('post-cuid-distrito').value,
-      direccion: document.getElementById('post-cuid-direccion').value,
+      direccion: document.getElementById('post-cuid-direccion').value.trim(),
       experiencia: document.getElementById('post-cuid-exp').value,
       vivienda: document.getElementById('post-cuid-vivienda').value,
       capacidad: document.getElementById('post-cuid-capacidad').value,
       tarifaInicial: document.getElementById('post-cuid-tarifa').value,
-      docIdentidadUrl: document.getElementById('post-cuid-doc-url')?.value || '',
       declaracionJurada: document.getElementById('post-cuid-declaracion').checked,
       aceptaTyc: document.getElementById('post-cuid-tyc').checked
     };
@@ -304,21 +542,23 @@ function setupFormListeners() {
 
   // 5. Formulario de Postulación de Clínica Veterinaria
   const postVetForm = document.getElementById('form-postular-clinica');
+  attachFormValidation(postVetForm);
   postVetForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateFormNow(postVetForm).valid) return;
     const data = {
-      nombreClinica: document.getElementById('post-vet-nombre').value,
-      ruc: document.getElementById('post-vet-ruc').value,
-      email: document.getElementById('post-vet-email').value,
+      nombreClinica: document.getElementById('post-vet-nombre').value.trim(),
+      ruc: document.getElementById('post-vet-ruc').value.trim(),
+      email: document.getElementById('post-vet-email').value.trim(),
       password: document.getElementById('post-vet-password').value,
-      telefonoEmergencia: document.getElementById('post-vet-tel').value,
+      telefonoEmergencia: document.getElementById('post-vet-tel').value.trim(),
       distrito: document.getElementById('post-vet-distrito').value,
-      direccion: document.getElementById('post-vet-direccion').value,
+      direccion: document.getElementById('post-vet-direccion').value.trim(),
       horario: document.getElementById('post-vet-horario').value,
       tarifaEmergencia: document.getElementById('post-vet-tarifa').value,
-      colegiaturaCmvp: document.getElementById('post-vet-cmvp').value,
-      nombreResponsable: document.getElementById('post-vet-responsable').value,
-      dniResponsable: document.getElementById('post-vet-dni-responsable').value,
+      colegiaturaCmvp: document.getElementById('post-vet-cmvp').value.trim(),
+      nombreResponsable: document.getElementById('post-vet-responsable').value.trim(),
+      dniResponsable: document.getElementById('post-vet-dni-responsable').value.trim(),
       aceptaTyc: document.getElementById('post-vet-tyc').checked
     };
 
@@ -336,12 +576,9 @@ function setupFormListeners() {
   document.addEventListener('submit', async (e) => {
     if (e.target && e.target.id === 'form-reset-password') {
       e.preventDefault();
+      attachFormValidation(e.target);
+      if (!validateFormNow(e.target).valid) return;
       const p1 = document.getElementById('input-new-pwd').value;
-      const p2 = document.getElementById('input-confirm-pwd').value;
-      if (p1 !== p2) {
-        showToast('Las contraseñas no coinciden.', 'warning');
-        return;
-      }
       await updatePassword(p1);
     }
   });
@@ -373,10 +610,11 @@ function setupFormListeners() {
 
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🐾 Iniciando Paw Patita Cusco v5.1 Frontend Shell...');
+  console.log('🐾 Iniciando Paw Patita Cusco v5.2 Frontend Shell...');
 
-  // 1. Inicializar Modal Legal Global
+  // 1. Inicializar Modal Legal Global y Centro de Ayuda FAQ (H10)
   initLegalModal();
+  initHelpModal();
 
   // 2. Hidratar preferencias de Moneda e Idioma en el Navbar
   const btnCurrency = document.getElementById('btn-toggle-currency');
@@ -391,15 +629,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   setLanguage(appLanguage);
   applyTranslations(document);
 
-  // 3. Configurar listeners de autenticación y vistas
+  // 3. Configurar listeners de autenticación, notificaciones y vistas
   setupPasswordToggles();
   setupDemoButtons();
   setupFormListeners();
+  setupNotificationCenterListeners();
   onAuthStateChanged((session) => {
     updateNavbar(session);
     applyTranslations(document.getElementById('navbarMainContent'));
+    syncUserNotifications(session?.user, session?.profile);
   });
   await initAuthSession();
   initRouter();
-  initRealtimeAlerts();
 });

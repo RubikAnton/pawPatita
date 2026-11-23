@@ -522,12 +522,12 @@ CREATE POLICY "auditoria_select_solo_admin" ON public.auditoria_estados
 -- -----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "notificaciones_select_propias" ON public.notificaciones;
 CREATE POLICY "notificaciones_select_propias" ON public.notificaciones
-    FOR SELECT USING (id_usuario_destino = auth.uid() OR public.get_my_role() = 'administrador');
+    FOR SELECT USING (id_usuario_destino = auth.uid());
 
 DROP POLICY IF EXISTS "notificaciones_update_leida" ON public.notificaciones;
 CREATE POLICY "notificaciones_update_leida" ON public.notificaciones
-    FOR UPDATE USING (id_usuario_destino = auth.uid() OR public.get_my_role() = 'administrador')
-    WITH CHECK (id_usuario_destino = auth.uid() OR public.get_my_role() = 'administrador');
+    FOR UPDATE USING (id_usuario_destino = auth.uid())
+    WITH CHECK (id_usuario_destino = auth.uid());
 
 -- Permisos de lectura sobre las vistas analíticas
 GRANT SELECT ON public.v_catalogo_cuidadores TO anon, authenticated;

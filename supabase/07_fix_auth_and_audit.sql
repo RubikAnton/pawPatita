@@ -283,7 +283,7 @@ VALUES
      '{"provider":"email","providers":["email"]}'::jsonb,
      '{"nombre":"Rodrigo","apellido":"Quispe Monzón","rol":"administrador","estado_cuenta":"activo","num_documento":"44112233","distrito_cusco":"Cusco Centro"}'::jsonb, now(), now()),
 
-    -- 2. Propietaria Local Cusco (Demo Propietario)
+    -- 2. Propietario Local Cusco (Demo Propietario)
     ('00000000-0000-0000-0000-000000000000'::uuid, '50000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated',
      'lucia.mendoza@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
      '{"provider":"email","providers":["email"]}'::jsonb,

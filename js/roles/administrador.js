@@ -15,6 +15,7 @@ import {
   getSupabase,
   isSupabaseConfigured,
   subscribeRealtime,
+  unsubscribeRealtime,
   resolveMediaUrl,
   getFallbackSvgDataUri
 } from '../supabase-client.js';
@@ -47,7 +48,13 @@ import {
   renderBadgeEstadoLiquidacion
 } from '../components/billetera-cuidador.js';
 import { mountFileUploader, abrirVisorDocumento } from '../components/file-uploader.js';
-import { CLINICAS_CUSCO_SOS, SOS_SEED_OWNER } from '../components/alerta-sos.js';
+import {
+  CLINICAS_CUSCO_SOS,
+  SOS_SEED_OWNER,
+  renderBadgeEstadoCobroSos,
+  normalizarIncidenciaSos
+} from '../components/alerta-sos.js';
+import { attachFormValidation, validateFormNow } from '../utils/validators.js';
 
 const STORAGE_KEY_CUIDADORES_ADMIN = 'paw_demo_admin_cuidadores_v5';
 const STORAGE_KEY_CLINICAS_ADMIN = 'paw_demo_clinicas_v5';
@@ -924,6 +931,45 @@ const adminState = {
   auditoria: []
 };
 
+function resetAdminState() {
+  destroyAdminCharts();
+  adminState.activeTab = 'dashboard';
+  adminState.modoChartDistritos = 'finanzas';
+  adminState.subTabAfiliados = 'cuidadores';
+  adminState.filtroCuidadoresEstado = 'todos';
+  adminState.filtroCuidadoresDistrito = 'todos';
+  adminState.filtroClinicasEstado = 'todos';
+  adminState.filtroCancelacionesEstado = 'todos';
+  adminState.filtroLiquidacionesEstado = 'todos';
+  adminState.filtroAuditoriaEntidad = 'todas';
+  adminState.filtroAuditoriaRol = 'todos';
+  adminState.filtroAuditoriaFechaDesde = '';
+  adminState.filtroAuditoriaFechaHasta = '';
+  adminState.filtroAuditoriaTexto = '';
+  adminState.profile = null;
+  adminState.rawRpcMetrics = null;
+  adminState.metricasRpc = null;
+  adminState.cuidadores = [];
+  adminState.clinicas = [];
+  adminState.cancelaciones = [];
+  adminState.liquidaciones = [];
+  adminState.alertasSos = [];
+  adminState.gobernanza = null;
+  adminState.auditoria = [];
+  unsubscribeRealtime('canal-admin-auditoria-live');
+  unsubscribeRealtime('canal-admin-sos-live');
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('paw:auth-changed', (ev) => {
+    const nextUser = ev?.detail?.user || null;
+    const nextRole = ev?.detail?.profile?.rol || null;
+    if (!nextUser || (nextRole && nextRole !== 'administrador') || (adminState.profile?.id && nextUser.id !== adminState.profile.id)) {
+      resetAdminState();
+    }
+  });
+}
+
 /* ==========================================================================
    PERSISTENCIA Y NORMALIZACIÓN SIN `undefined`
    ========================================================================== */
@@ -1325,7 +1371,7 @@ async function cargarDatosPanelAdministrador() {
         adminState.liquidaciones = resLiq.data.map(normalizarLiquidacionAdmin);
       }
       if (!resSos.error && Array.isArray(resSos.data)) {
-        adminState.alertasSos = resSos.data.map((s) => ({
+        adminState.alertasSos = resSos.data.map((s) => normalizarIncidenciaSos({
           ...s,
           mascota_nombre: s.mascota_nombre || s.mascotas?.nombre || 'Mascota',
           mascota_paw_id: s.mascota_paw_id || s.mascotas?.paw_id || 'PAW-ID',
@@ -1386,11 +1432,15 @@ export async function renderPanelAdministrador(container, profile) {
     await cargarDatosPanelAdministrador();
     renderContenidoPanelAdministrador(container);
     subscribeRealtime('canal-admin-auditoria-live', 'auditoria_estados', '*', async () => {
+      if (!adminState.profile || adminState.profile.rol !== 'administrador') return;
       await cargarDatosPanelAdministrador();
+      if (!adminState.profile) return;
       renderContenidoPanelAdministrador(container);
     });
     subscribeRealtime('canal-admin-sos-live', 'incidencias_emergencias', '*', async () => {
+      if (!adminState.profile || adminState.profile.rol !== 'administrador') return;
       await cargarDatosPanelAdministrador();
+      if (!adminState.profile) return;
       renderContenidoPanelAdministrador(container);
     });
   } catch (err) {
@@ -1428,8 +1478,8 @@ function renderContenidoPanelAdministrador(container) {
               </div>
               <div class="min-w-0">
                 <span class="badge bg-warning text-dark fw-bold mb-1">GOBERNANZA RED CUSCO</span>
-                <h6 class="fw-bold text-white mb-0 text-truncate">${escapeHtml(adminNombre)}</h6>
-                <div class="small text-white-50 text-truncate">${escapeHtml(adminState.profile?.email || 'admin@pawpatitacusco.pe')}</div>
+                <h6 class="fw-bold text-white mb-0 panel-user-name">${escapeHtml(adminNombre)}</h6>
+                <div class="small text-white-50 panel-user-email">${escapeHtml(adminState.profile?.email || 'admin@pawpatitacusco.pe')}</div>
               </div>
             </div>
             <div class="d-flex justify-content-between align-items-center small pt-2 border-top border-secondary">
@@ -1438,7 +1488,12 @@ function renderContenidoPanelAdministrador(container) {
             </div>
           </div>
 
-          <nav class="panel-nav-menu" aria-label="Menú Administrador de Red">
+          <button type="button" class="panel-mobile-toggle" id="btn-toggle-panel-menu-admin" aria-expanded="false" aria-controls="panel-nav-menu-admin">
+            <span><i class="bi bi-list-nested me-2 text-warning"></i>Menú de Administración</span>
+            <i class="bi bi-chevron-down toggle-chevron"></i>
+          </button>
+
+          <nav class="panel-nav-menu" id="panel-nav-menu-admin" aria-label="Menú Administrador de Red">
             <button type="button" class="panel-nav-btn ${adminState.activeTab === 'dashboard' ? 'active' : ''}" data-admin-tab="dashboard">
               <span class="nav-icon-wrap">
                 <i class="bi bi-bar-chart-line-fill"></i>
@@ -1486,6 +1541,15 @@ function renderContenidoPanelAdministrador(container) {
               </span>
               <span class="badge bg-dark rounded-pill">${adminState.auditoria.length}</span>
             </button>
+
+            <hr class="my-1">
+
+            <button type="button" class="panel-nav-btn" data-help-role="administrador">
+              <span class="nav-icon-wrap">
+                <i class="bi bi-question-circle-fill text-warning"></i>
+                <span>Centro de Ayuda & FAQ</span>
+              </span>
+            </button>
           </nav>
         </aside>
 
@@ -1496,7 +1560,7 @@ function renderContenidoPanelAdministrador(container) {
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
               <div>
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                  <span class="badge bg-dark">CENTRO DE COMANDO Y ANALÍTICA v5.1</span>
+                  <span class="badge bg-dark">CENTRO DE COMANDO Y ANALÍTICA v5.2</span>
                   <span class="badge bg-warning text-dark"><i class="bi bi-calculator-fill me-1"></i>Comisión 15% Conciliada</span>
                   <span class="badge bg-success"><i class="bi bi-geo-alt-fill me-1"></i>8 Distritos Cusco</span>
                 </div>
@@ -1600,6 +1664,15 @@ function renderContenidoPanelAdministrador(container) {
   `;
 
   // Listeners de navegación del sidebar
+  const toggleBtn = container.querySelector('#btn-toggle-panel-menu-admin');
+  const navMenu = container.querySelector('#panel-nav-menu-admin');
+  if (toggleBtn && navMenu) {
+    toggleBtn.addEventListener('click', () => {
+      const isShown = navMenu.classList.toggle('show');
+      toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
+    });
+  }
+
   container.querySelectorAll('[data-admin-tab]').forEach((btn) => {
     btn.addEventListener('click', () => {
       adminState.activeTab = btn.getAttribute('data-admin-tab');
@@ -2482,13 +2555,14 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
       <div class="row g-3">
         <div class="col-md-7">
           <label class="form-label small fw-bold">Razón Social / Nombre de la Clínica Veterinaria *</label>
-          <input type="text" class="form-control" id="new-clin-nombre" required
+          <input type="text" class="form-control" id="new-clin-nombre" required minlength="3" maxlength="100"
             placeholder="Ej. Clínica Veterinaria Imperial Cusco 24h">
         </div>
         <div class="col-md-5">
           <label class="form-label small fw-bold">RUC (11 dígitos) *</label>
-          <input type="text" class="form-control font-monospace" id="new-clin-ruc" required maxlength="11"
+          <input type="text" class="form-control font-monospace" id="new-clin-ruc" required inputmode="numeric" maxlength="11" data-validate="ruc"
             placeholder="Ej. 20609988771">
+          <div class="form-text small">11 dígitos exactos (inicia en 10, 15, 17 o 20).</div>
         </div>
 
         <div class="col-md-4">
@@ -2499,23 +2573,24 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
         </div>
         <div class="col-md-8">
           <label class="form-label small fw-bold">Dirección Exacta en Cusco *</label>
-          <input type="text" class="form-control" id="new-clin-direccion" required
+          <input type="text" class="form-control" id="new-clin-direccion" required minlength="5" maxlength="160"
             placeholder="Ej. Av. Garcilaso 412, Wanchaq">
         </div>
 
         <div class="col-md-4">
           <label class="form-label small fw-bold">Teléfono Emergencias S.O.S. *</label>
-          <input type="text" class="form-control" id="new-clin-telefono" required
-            placeholder="+51 984 700 888">
+          <input type="tel" class="form-control" id="new-clin-telefono" required inputmode="numeric" maxlength="16" data-validate="phone"
+            placeholder="984700888 o +51984700888">
+          <div class="form-text small">Perú 9 dígitos (inicia en 9) o +código país.</div>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Colegiatura CMVP *</label>
-          <input type="text" class="form-control font-monospace" id="new-clin-cmvp" required
+          <input type="text" class="form-control font-monospace" id="new-clin-cmvp" required data-validate="cmvp"
             placeholder="CMVP-CUSCO-6420">
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Email Institucional *</label>
-          <input type="email" class="form-control" id="new-clin-email" required
+          <input type="email" class="form-control" id="new-clin-email" required data-validate="email"
             placeholder="urgencias@imperialvetcusco.pe">
         </div>
 
@@ -2529,7 +2604,8 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Tarifa Consulta Urgencia (S/) *</label>
-          <input type="number" step="1" min="20" max="500" class="form-control" id="new-clin-tarifa" value="60" required>
+          <input type="number" step="1" min="20" max="500" class="form-control" id="new-clin-tarifa" value="60" required data-validate="number-range">
+          <div class="form-text small">Rango válido: S/ 20 a S/ 500.</div>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-bold">Especialidades Clínicas</label>
@@ -2562,6 +2638,9 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
     tamano: 'modal-lg'
   });
 
+  const formNuevaClin = modal.el.querySelector('#form-admin-crear-clinica');
+  attachFormValidation(formNuevaClin);
+
   const fachadaUploader = mountFileUploader(modal.el.querySelector('#admin-clin-fachada-uploader'), {
     accept: 'image/*',
     bucket: 'perfiles',
@@ -2581,6 +2660,8 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
   });
 
   modal.el.querySelector('#btn-guardar-nueva-clinica-rpc')?.addEventListener('click', async () => {
+    if (!validateFormNow(formNuevaClin).valid) return;
+
     const nombre = modal.el.querySelector('#new-clin-nombre').value.trim();
     const ruc = modal.el.querySelector('#new-clin-ruc').value.trim();
     const distrito_cusco = modal.el.querySelector('#new-clin-distrito').value;
@@ -2594,11 +2675,6 @@ function abrirModalCrearClinicaDirecta(onCreatedCallback = null) {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-
-    if (!nombre || !/^\d{11}$/.test(ruc) || !direccion || !telefono_emergencia || !colegiatura_cmvp) {
-      showToast('Completa todos los campos obligatorios y verifica que el RUC tenga 11 dígitos numéricos.', 'warning');
-      return;
-    }
 
     showSpinner('Registrando y activando clínica aliada...');
     try {
@@ -2883,12 +2959,14 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
         <div class="col-md-7">
           <label class="form-label small fw-bold">N° Operación Bancaria de Reembolso (Opcional)</label>
           <input type="text" class="form-control font-monospace" id="arb-input-op"
+            data-validate="operation-code-optional" maxlength="30"
             value="OP-REEMB-${Math.floor(100000 + Math.random() * 899999)}"
             placeholder="Ej. OP-YAPE-884120">
+          <div class="form-text small">6 a 30 caracteres (letras, números o guiones).</div>
         </div>
         <div class="col-12">
           <label class="form-label small fw-bold">Dictamen / Laudo Arbitral Formal * (mín. 5 caracteres)</label>
-          <textarea class="form-control" id="arb-input-resolucion" rows="3" required minlength="5"
+          <textarea class="form-control" id="arb-input-resolucion" rows="3" required minlength="5" maxlength="500"
             placeholder="Redacta el dictamen administrativo que notificará a ambas partes...">${escapeHtml(
               c.resolucion_admin
               || `Laudo Arbitral Paw Patita Cusco: Verificadas las evidencias de la reserva ${c.codigo_reserva}, se autoriza un reembolso del ${c.porcentaje_reembolso}% al propietario y se libera la compensación proporcional al cuidador.`
@@ -2912,6 +2990,9 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
     footerHtml,
     tamano: 'modal-lg'
   });
+
+  const formArbitraje = modal.el.querySelector('#form-admin-arbitraje-rpc');
+  attachFormValidation(formArbitraje);
 
   const slider = modal.el.querySelector('#arb-slider-pct');
   const selectAccion = modal.el.querySelector('#arb-select-accion');
@@ -2942,15 +3023,12 @@ function abrirModalArbitrajeDisputa(casoRaw, onResolvedCallback) {
   actualizarCalculoArbitraje();
 
   modal.el.querySelector('#btn-confirmar-arbitraje-rpc')?.addEventListener('click', async () => {
+    if (!validateFormNow(formArbitraje).valid) return;
+
     const accion = selectAccion.value;
     const { pct, montoReemb, comPlat, netoCuid } = actualizarCalculoArbitraje();
     const numOp = modal.el.querySelector('#arb-input-op').value.trim();
     const resolucionRaw = modal.el.querySelector('#arb-input-resolucion').value.trim();
-
-    if (resolucionRaw.length < 5) {
-      showToast('Debes redactar el dictamen o resolución administrativa (mínimo 5 caracteres).', 'warning');
-      return;
-    }
 
     const resolucionFinal = numOp ? `${resolucionRaw} [N° Op: ${numOp}]` : resolucionRaw;
 
@@ -3348,23 +3426,25 @@ function abrirModalProcesarLiquidacion(liq, accion = 'pagar', onProcessed) {
 
 function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
   if (!workspace) return;
+  const moneda = localStorage.getItem('paw_currency') || 'PEN';
   const clinicasActivas = adminState.clinicas.filter((c) => c.estado_afiliacion === 'activa');
   const gob = adminState.gobernanza || {
     parametros: { ...CONFIG_GOBERNANZA_SEED.parametros },
     temporadas: CONFIG_GOBERNANZA_SEED.temporadas.map(normalizarTemporadaAdmin)
   };
+  const alertasNormalizadas = adminState.alertasSos.map(normalizarIncidenciaSos);
 
   workspace.innerHTML = `
-    <!-- Monitor Global S.O.S. con Reasignación de Clínica -->
+    <!-- Monitor Global S.O.S. con Reasignación de Clínica y Conciliación de Cargos Clínicos -->
     <div class="card card-paw p-4 border-0 shadow-sm mb-4">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-3 border-bottom mb-3">
         <div>
-          <span class="badge bg-danger text-white fw-bold mb-1">SUPERVISIÓN MÉDICA 24H — CUSCO</span>
+          <span class="badge bg-danger text-white fw-bold mb-1">SUPERVISIÓN MÉDICA 24H & COBRO CLÍNICO — CUSCO</span>
           <h5 class="fw-bold mb-0">
-            <i class="bi bi-broadcast-pin text-danger me-2"></i>Central Global S.O.S. y Reasignación de Clínicas
+            <i class="bi bi-broadcast-pin text-danger me-2"></i>Central Global S.O.S. y Conciliación de Cargos Clínicos
           </h5>
         </div>
-        <span class="badge bg-light text-dark border">${adminState.alertasSos.length} incidencia(s) registrada(s)</span>
+        <span class="badge bg-light text-dark border">${alertasNormalizadas.length} incidencia(s) registrada(s)</span>
       </div>
 
       <div class="table-responsive">
@@ -3376,18 +3456,19 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
               <th>Motivo / Ubicación en Cusco</th>
               <th>Clínica Veterinaria Derivada</th>
               <th>Estado Clínico</th>
-              <th class="text-end">Reasignar Sede 24h</th>
+              <th>Cargo Clínico S.O.S.</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${adminState.alertasSos.length === 0 ? `
+            ${alertasNormalizadas.length === 0 ? `
               <tr>
-                <td colspan="6" class="text-center text-muted py-4">
+                <td colspan="7" class="text-center text-muted py-4">
                   <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
                   No hay alertas S.O.S. registradas en este momento.
                 </td>
               </tr>
-            ` : adminState.alertasSos.map((s) => `
+            ` : alertasNormalizadas.map((s) => `
               <tr>
                 <td>
                   <div class="fw-bold font-monospace">${escapeHtml(s.codigo_sos || 'SOS')}</div>
@@ -3397,7 +3478,7 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
                   <div class="fw-bold text-dark">${escapeHtml(s.mascota_nombre || 'Mascota')} (${escapeHtml(s.mascota_paw_id || 'PAW-ID')})</div>
                   <span class="badge bg-secondary font-monospace">${escapeHtml(s.codigo_reserva || '—')}</span>
                 </td>
-                <td style="max-width: 240px;">
+                <td style="max-width: 220px;">
                   <div class="fw-semibold">${escapeHtml(s.tipo_incidencia || 'Emergencia Veterinaria')}</div>
                   <div class="text-danger" style="font-size:0.74rem;"><i class="bi bi-geo-alt-fill me-1"></i>${escapeHtml(s.ubicacion_emergencia || 'Cusco')}</div>
                 </td>
@@ -3408,10 +3489,26 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
                 <td>
                   <span class="badge ${s.estado_sos === 'resuelta' ? 'bg-success' : (s.estado_sos === 'estabilizada' ? 'bg-info text-dark' : 'bg-danger')}">${escapeHtml(traducirEstadoHumano(s.estado_sos))}</span>
                 </td>
-                <td class="text-end">
-                  <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-admin-reasignar-sos="${escapeHtml(s.id)}">
-                    <i class="bi bi-arrow-left-right me-1"></i>Reasignar Clínica
-                  </button>
+                <td style="min-width: 170px;">
+                  <div class="fw-bold text-dark">${formatMoneda(s.costo_atencion_ref, moneda)}</div>
+                  <div class="mt-1">${renderBadgeEstadoCobroSos(s.estado_cobro_sos, s.costo_atencion_ref)}</div>
+                  ${s.comprobante_pago_sos ? `
+                    <div class="text-muted mt-1" style="font-size:0.72rem;">
+                      ${escapeHtml(s.metodo_pago_sos || 'Pago')}: <span class="font-monospace">${escapeHtml(s.comprobante_pago_sos)}</span>
+                    </div>
+                  ` : ''}
+                </td>
+                <td class="text-end text-nowrap">
+                  <div class="d-flex flex-column align-items-end gap-1">
+                    ${s.costo_atencion_ref > 0 ? `
+                      <button type="button" class="btn btn-paw btn-sm fw-bold" data-admin-conciliar-sos="${escapeHtml(s.id)}">
+                        <i class="bi bi-cash-coin me-1"></i>Conciliar / Exonerar Cargo
+                      </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold" data-admin-reasignar-sos="${escapeHtml(s.id)}">
+                      <i class="bi bi-arrow-left-right me-1"></i>Reasignar Clínica
+                    </button>
+                  </div>
                 </td>
               </tr>
             `).join('')}
@@ -3434,26 +3531,30 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
               Los cambios se aplican de inmediato en las cotizaciones y liquidaciones de toda la red Cusco.
             </div>
           </div>
-          <form id="form-admin-parametros">
+          <form id="form-admin-parametros" novalidate>
             <div class="mb-2">
-              <label class="form-label small fw-bold">Comisión Plataforma Paw Patita (%)</label>
-              <input type="number" step="0.5" min="5" max="30" class="form-control form-control-sm" id="param-comision"
+              <label class="form-label small fw-bold">Comisión Plataforma Paw Patita (%) *</label>
+              <input type="number" step="0.5" min="5" max="30" required data-validate="number-range" class="form-control form-control-sm" id="param-comision"
                 value="${escapeHtml(gob.parametros.comision_plataforma_pct)}">
+              <div class="form-text small">Rango permitido: 5% a 30%.</div>
             </div>
             <div class="mb-2">
-              <label class="form-label small fw-bold">Tipo de Cambio Referencial (S/ por $ 1 USD)</label>
-              <input type="number" step="0.01" min="3.0" max="5.0" class="form-control form-control-sm" id="param-tc"
+              <label class="form-label small fw-bold">Tipo de Cambio Referencial (S/ por $ 1 USD) *</label>
+              <input type="number" step="0.01" min="3.0" max="5.0" required data-validate="number-range" class="form-control form-control-sm" id="param-tc"
                 value="${escapeHtml(gob.parametros.tipo_cambio_usd)}">
+              <div class="form-text small">Rango válido: S/ 3.00 a S/ 5.00.</div>
             </div>
             <div class="mb-2">
-              <label class="form-label small fw-bold">Tarifa Extra Baño Higiénico (S/)</label>
-              <input type="number" step="1" min="0" max="200" class="form-control form-control-sm" id="param-bano"
+              <label class="form-label small fw-bold">Tarifa Extra Baño Higiénico (S/) *</label>
+              <input type="number" step="1" min="0" max="200" required data-validate="number-range" class="form-control form-control-sm" id="param-bano"
                 value="${escapeHtml(gob.parametros.tarifa_bano_extra)}">
+              <div class="form-text small">Rango válido: S/ 0 a S/ 200.</div>
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-bold">Número Oficial Yape/Plin de Garantía</label>
-              <input type="text" class="form-control form-control-sm font-monospace" id="param-yape"
-                value="${escapeHtml(gob.parametros.yape_oficial)}">
+              <label class="form-label small fw-bold">Número Oficial Yape/Plin de Garantía *</label>
+              <input type="tel" inputmode="numeric" maxlength="9" required data-validate="yape-plin" class="form-control form-control-sm font-monospace" id="param-yape"
+                value="${escapeHtml(String(gob.parametros.yape_oficial || '984000111').replace(/\D/g, ''))}">
+              <div class="form-text small">Exactamente 9 dígitos numéricos empezando en 9.</div>
             </div>
             <button type="submit" class="btn btn-paw btn-sm w-100 fw-bold">
               <i class="bi bi-check2-circle me-1"></i>Guardar Parámetros Globales
@@ -3519,6 +3620,129 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
       </div>
     </div>
   `;
+
+  // Conciliar o Exonerar Cargo Clínico S.O.S. (rpc_admin_conciliar_cobro_sos)
+  workspace.querySelectorAll('[data-admin-conciliar-sos]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idSos = btn.getAttribute('data-admin-conciliar-sos');
+      const inc = alertasNormalizadas.find((x) => x.id === idSos);
+      if (!inc) return;
+
+      const modalCobro = crearModalDinamico({
+        titulo: `Conciliar / Exonerar Cargo Clínico — ${inc.codigo_sos}`,
+        icono: 'bi-cash-coin',
+        cuerpoHtml: `
+          <div class="p-3 rounded-3 bg-light border mb-3 small">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <span class="badge bg-dark font-monospace me-1">${escapeHtml(inc.codigo_sos)}</span>
+                ${renderBadgeEstadoCobroSos(inc.estado_cobro_sos, inc.costo_atencion_ref)}
+                <div class="fw-bold text-dark mt-1">${escapeHtml(inc.mascota_nombre)} (${escapeHtml(inc.mascota_paw_id)}) • ${escapeHtml(inc.clinica_nombre)}</div>
+              </div>
+              <div class="fs-5 fw-bold text-dark">${formatMoneda(inc.costo_atencion_ref, moneda)}</div>
+            </div>
+            ${inc.comprobante_pago_sos ? `
+              <div class="mt-2 pt-2 border-top text-secondary">
+                <strong>Comprobante reportado por propietario:</strong> ${escapeHtml(inc.metodo_pago_sos || 'Pago')} —
+                <span class="font-monospace">${escapeHtml(inc.comprobante_pago_sos)}</span>
+                ${inc.fecha_pago_sos ? ` (${formatFechaEs(inc.fecha_pago_sos, true)})` : ''}
+              </div>
+            ` : `
+              <div class="mt-2 pt-2 border-top text-warning-emphasis">
+                <i class="bi bi-info-circle me-1"></i>El propietario aún no ha reportado un comprobante digital; puedes conciliar si el pago ingresó directo en clínica o exonerar el cargo.
+              </div>
+            `}
+          </div>
+
+          <form id="form-admin-conciliar-sos" novalidate>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Decisión Financiera sobre el Cargo Clínico *</label>
+              <select class="form-select" id="admin-sos-cobro-accion" required>
+                <option value="conciliar" selected>Conciliar Cargo (Pago Verificado / Liquidado)</option>
+                <option value="exonerar">Exonerar Cargo Clínico (Cobertura Especial / Sin Cobro)</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Observación Administrativa * (mín. 5 caracteres)</label>
+              <textarea class="form-control" id="admin-sos-cobro-obs" rows="3" required minlength="5" maxlength="300"
+                placeholder="Detalla la verificación del comprobante o el motivo de la exoneración...">${escapeHtml(
+                  inc.observacion_cobro_sos || `Verificación contable del cargo clínico ${inc.codigo_sos} completada por Administración.`
+                )}</textarea>
+            </div>
+          </form>
+        `,
+        footerHtml: `
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-paw fw-bold px-4" id="btn-confirmar-conciliar-sos">
+            <i class="bi bi-check2-circle me-1"></i>Aplicar Decisión Financiera
+          </button>
+        `
+      });
+
+      const formConciliar = modalCobro.el.querySelector('#form-admin-conciliar-sos');
+      attachFormValidation(formConciliar);
+
+      modalCobro.el.querySelector('#btn-confirmar-conciliar-sos')?.addEventListener('click', async () => {
+        if (!validateFormNow(formConciliar).valid) return;
+
+        const accionCobro = modalCobro.el.querySelector('#admin-sos-cobro-accion').value;
+        const obsCobro = modalCobro.el.querySelector('#admin-sos-cobro-obs').value.trim();
+
+        showSpinner('Registrando conciliación financiera del cargo S.O.S....');
+        try {
+          const supabase = getSupabase();
+          const estadoPrevio = inc.estado_cobro_sos;
+          const nuevoEstado = accionCobro === 'exonerar' ? 'exonerado' : 'conciliado';
+
+          if (supabase && isSupabaseConfigured() && !String(inc.id).startsWith('sos-')) {
+            const { error } = await supabase.rpc('rpc_admin_conciliar_cobro_sos', {
+              p_id_incidencia: inc.id,
+              p_accion: accionCobro,
+              p_observacion: obsCobro
+            });
+            if (error) throw error;
+            await cargarDatosPanelAdministrador();
+          } else {
+            const ahoraIso = new Date().toISOString();
+            adminState.alertasSos = adminState.alertasSos.map((item) => (
+              item.id === inc.id || item.codigo_sos === inc.codigo_sos
+                ? normalizarIncidenciaSos({
+                    ...item,
+                    estado_cobro_sos: nuevoEstado,
+                    fecha_pago_sos: nuevoEstado === 'conciliado' ? (item.fecha_pago_sos || ahoraIso) : item.fecha_pago_sos,
+                    observacion_cobro_sos: obsCobro
+                  })
+                : item
+            ));
+            localStorage.setItem(STORAGE_KEY_SOS, JSON.stringify(adminState.alertasSos));
+
+            registrarAuditoriaAdmin({
+              entidad: 'incidencias_emergencias',
+              id_registro: inc.codigo_sos,
+              accion: 'UPDATE',
+              estado_anterior: estadoPrevio,
+              estado_nuevo: nuevoEstado,
+              detalle: `Cargo clínico ${inc.codigo_sos} (S/ ${inc.costo_atencion_ref.toFixed(2)}) marcado como ${nuevoEstado.toUpperCase()}: ${obsCobro}`,
+              old_record: { codigo_sos: inc.codigo_sos, estado_cobro_sos: estadoPrevio },
+              new_record: { codigo_sos: inc.codigo_sos, estado_cobro_sos: nuevoEstado }
+            });
+          }
+
+          await modalCobro.cerrarAsync();
+          renderContenidoPanelAdministrador(rootContainer);
+          showToast(
+            `Cargo clínico ${inc.codigo_sos} actualizado a "${nuevoEstado === 'exonerado' ? 'Exonerado' : 'Conciliado'}".`,
+            'success',
+            'Conciliación S.O.S.'
+          );
+        } catch (err) {
+          handleSupabaseError(err, 'No se pudo conciliar el cargo clínico S.O.S.');
+        } finally {
+          hideSpinner();
+        }
+      });
+    });
+  });
 
   // Reasignar Clínica S.O.S.
   workspace.querySelectorAll('[data-admin-reasignar-sos]').forEach((btn) => {
@@ -3604,12 +3828,15 @@ function renderSeccionCentralSosYGobernanza(workspace, rootContainer) {
   });
 
   // Guardar parámetros financieros globales (persistencia real en BD)
-  workspace.querySelector('#form-admin-parametros')?.addEventListener('submit', async (e) => {
+  const formParams = workspace.querySelector('#form-admin-parametros');
+  attachFormValidation(formParams);
+  formParams?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateFormNow(formParams).valid) return;
     const comisionPct = parseFloat(workspace.querySelector('#param-comision').value) || 15;
     const tcUsd = parseFloat(workspace.querySelector('#param-tc').value) || 3.75;
     const tarifaBano = parseFloat(workspace.querySelector('#param-bano').value) || 25;
-    const yapeOficial = workspace.querySelector('#param-yape').value.trim() || '984-000-111';
+    const yapeOficial = workspace.querySelector('#param-yape').value.trim() || '984000111';
 
     const anterior = { ...gob.parametros };
 

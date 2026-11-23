@@ -899,67 +899,75 @@ export function renderSeccionCalendarioAgenda(container, {
       </div>
 
       ${state.modoVista === 'mensual' ? `
-        <!-- VISTA MENSUAL POR DÍAS -->
-        <div class="agenda-calendar-weekdays">
-          ${DIAS_SEMANA_NOMBRES.map((d) => `<div class="agenda-weekday-header">${d}</div>`).join('')}
+        <!-- VISTA MENSUAL POR DÍAS (7 DÍAS CON SCROLL HORIZONTAL EN DISPOSITIVOS PEQUEÑOS) -->
+        <div class="d-xl-none text-muted small mb-2">
+          <i class="bi bi-arrow-left-right me-1 text-warning"></i>
+          <span>Desliza horizontalmente para ver los 7 días de la semana &rarr;</span>
         </div>
-        <div class="agenda-calendar-grid">
-          ${celdasMes.map((c) => {
-            if (c.vacia) {
-              return `<div class="agenda-day-cell agenda-day-empty"></div>`;
-            }
+        <div class="agenda-calendar-scroll">
+          <div class="agenda-calendar-matrix">
+            <div class="agenda-calendar-weekdays">
+              ${DIAS_SEMANA_NOMBRES.map((d) => `<div class="agenda-weekday-header">${d}</div>`).join('')}
+            </div>
+            <div class="agenda-calendar-grid">
+              ${celdasMes.map((c) => {
+                if (c.vacia) {
+                  return `<div class="agenda-day-cell agenda-day-empty"></div>`;
+                }
 
-            const stClass = `agenda-status-${c.resumen.estadoGlobal}`;
-            const bloquesConfigurados = c.bloquesDia.filter((b) => b.estado_bloque !== 'bloqueado');
+                const stClass = `agenda-status-${c.resumen.estadoGlobal}`;
+                const bloquesConfigurados = c.bloquesDia.filter((b) => b.estado_bloque !== 'bloqueado');
 
-            return `
-              <div class="agenda-day-cell ${stClass} ${c.esHoy ? 'agenda-day-today' : ''}"
-                data-action="configurar-dia"
-                data-fecha="${escapeHtml(c.fechaIso)}"
-                role="button"
-                tabindex="0"
-                title="Clic para configurar bloques horarios del ${c.fechaIso}">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="agenda-day-number ${c.esHoy ? 'bg-warning text-dark px-2 rounded-pill' : ''}">
-                    ${c.dia}
-                  </span>
-                  <span class="agenda-cupo-pill">
-                    ${c.resumen.estadoGlobal === 'bloqueado'
-                      ? '<i class="bi bi-lock-fill"></i> Bloq.'
-                      : `${c.resumen.totalOcupados}/${c.resumen.totalCapacidad} cupos`}
-                  </span>
-                </div>
-
-                <div class="agenda-day-badges">
-                  ${c.resumen.estadoGlobal === 'bloqueado' ? `
-                    <span class="badge bg-secondary w-100 text-truncate">No disponible</span>
-                  ` : bloquesConfigurados.length > 0 ? (
-                    bloquesConfigurados.slice(0, 3).map((b) => `
-                      <div class="agenda-slot-chip ${b.cupos_reservados > 0 ? 'slot-chip-occupied' : ''}">
-                        <span>${escapeHtml(b.etiqueta_corta)}</span>
-                        <strong>${b.cupos_reservados}/${b.cupo_maximo}</strong>
-                      </div>
-                    `).join('')
-                  ) : `
-                    <div class="agenda-slot-chip">
-                      <span>Todo el día</span>
-                      <strong>${c.resumen.totalOcupados}/${c.resumen.totalCapacidad}</strong>
+                return `
+                  <div class="agenda-day-cell ${stClass} ${c.esHoy ? 'agenda-day-today' : ''}"
+                    data-action="configurar-dia"
+                    data-fecha="${escapeHtml(c.fechaIso)}"
+                    role="button"
+                    tabindex="0"
+                    title="Clic para configurar bloques horarios del ${c.fechaIso}">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="agenda-day-number ${c.esHoy ? 'bg-warning text-dark px-2 rounded-pill' : ''}">
+                        ${c.dia}
+                      </span>
+                      <span class="agenda-cupo-pill">
+                        ${c.resumen.estadoGlobal === 'bloqueado'
+                          ? '<i class="bi bi-lock-fill"></i> Bloq.'
+                          : `${c.resumen.totalOcupados}/${c.resumen.totalCapacidad} cupos`}
+                      </span>
                     </div>
-                  `}
-                </div>
 
-                ${c.reservasDia.length > 0 ? `
-                  <div class="mt-1 pt-1 border-top">
-                    ${c.reservasDia.slice(0, 2).map((r) => `
-                      <div class="badge bg-primary-subtle text-primary d-block text-truncate mb-1" style="font-size:0.68rem;">
-                        🐾 ${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.codigo_reserva)})
+                    <div class="agenda-day-badges">
+                      ${c.resumen.estadoGlobal === 'bloqueado' ? `
+                        <span class="badge bg-secondary w-100 text-truncate">No disponible</span>
+                      ` : bloquesConfigurados.length > 0 ? (
+                        bloquesConfigurados.slice(0, 3).map((b) => `
+                          <div class="agenda-slot-chip ${b.cupos_reservados > 0 ? 'slot-chip-occupied' : ''}">
+                            <span>${escapeHtml(b.etiqueta_corta)}</span>
+                            <strong>${b.cupos_reservados}/${b.cupo_maximo}</strong>
+                          </div>
+                        `).join('')
+                      ) : `
+                        <div class="agenda-slot-chip">
+                          <span>Todo el día</span>
+                          <strong>${c.resumen.totalOcupados}/${c.resumen.totalCapacidad}</strong>
+                        </div>
+                      `}
+                    </div>
+
+                    ${c.reservasDia.length > 0 ? `
+                      <div class="mt-1 pt-1 border-top">
+                        ${c.reservasDia.slice(0, 2).map((r) => `
+                          <div class="badge bg-primary-subtle text-primary d-block text-truncate mb-1" style="font-size:0.68rem;">
+                            🐾 ${escapeHtml(r.mascota_nombre)} (${escapeHtml(r.codigo_reserva)})
+                          </div>
+                        `).join('')}
                       </div>
-                    `).join('')}
+                    ` : ''}
                   </div>
-                ` : ''}
-              </div>
-            `;
-          }).join('')}
+                `;
+              }).join('')}
+            </div>
+          </div>
         </div>
       ` : `
         <!-- VISTA SEMANAL MATRICIAL POR BLOQUES HORARIOS EXACTOS -->
