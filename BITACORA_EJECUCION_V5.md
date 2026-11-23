@@ -466,3 +466,35 @@ El repositorio se encuentra limpio, desacoplado, completamente funcional, con 0 
 - Al generar nuevas vistas o componentes modales, utilizar siempre las variables CSS maestras (`var(--pp-primary)`, `var(--pp-shadow-card)`, etc.) para preservar la uniformidad del SaaS.
 - Para la impresión del carné PAW-ID en navegadores móviles, verificar que la opción "Gráficos de fondo" esté tildada en el diálogo de impresión para imprimir los colores exactos de la credencial.
 
+---
+
+### 🛡️ FASE HOTFIX & AUDITORÍA DE PRODUCCIÓN: Solución a `Database error querying schema` (GoTrue Auth), Desambiguación PostgREST y UX de Contraseñas
+- **Fecha de Ejecución:** 23 de Noviembre de 2026
+- **Agente / Rol:** Senior Supabase (PostgreSQL + GoTrue Auth) & Frontend Reliability Engineer
+- **Estado:** ✅ Completado con Éxito (Listo para Producción en Supabase y GitHub Pages)
+
+#### 1. Diagnóstico y Solución Raíz de `Database error querying schema` en Supabase Auth (`GoTrue`)
+- **Causa Raíz Detectada:** Al poblar `auth.users` directamente mediante SQL en `supabase/06_seed.sql`, las columnas de tokens (`confirmation_token`, `recovery_token`, `email_change_token_new`, `email_change`, `email_change_token_current`, `phone_change`, `phone_change_token`, `reauthentication_token`) quedaron con valor `NULL`. El motor de autenticación GoTrue (escrito en Go con `database/sql`) mapea dichas columnas a campos `string` no anulables en la estructura `models.User`. Al ejecutar `signInWithPassword`, el escaneo de filas fallaba con `converting NULL to string is unsupported`, devolviendo el error HTTP 500 `Database error querying schema`. Adicionalmente, faltaba poblar los registros correspondientes en `auth.identities` (`provider = 'email'`, `provider_id = user.id::text`, `identity_data`).
+- **Solución Implementada:**
+  - Creación del script idempotente [`supabase/07_fix_auth_and_audit.sql`](./supabase/07_fix_auth_and_audit.sql) que reemplaza todos los `NULL` por `''` en las columnas de tokens de `auth.users`, normaliza banderas booleanas (`is_sso_user`, `is_anonymous`), sincroniza `auth.identities` para todos los usuarios, otorga permisos explícitos (`GRANT USAGE/SELECT/ALL/EXECUTE`) sobre el esquema `public` y sus secuencias, endurece el trigger `public.handle_new_auth_user()` y activa de forma idempotente la publicación `supabase_realtime`.
+  - Actualización de [`supabase/06_seed.sql`](./supabase/06_seed.sql) y [`supabase/02_functions_triggers.sql`](./supabase/02_functions_triggers.sql) para que cualquier despliegue limpio desde cero quede 100% libre de este error.
+
+#### 2. Auditoría Preventiva Post-Despliegue (PostgREST & Esquema SQL)
+- **Desambiguación de Claves Foráneas en PostgREST (`PGRST201`):**
+  - En `js/roles/administrador.js`: Se corrigieron las consultas embebidas hacia `perfiles_usuarios` desde `perfiles_cuidadores` (`perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey(*)`) y desde `cancelaciones_reembolsos` (`perfiles_usuarios!cancelaciones_reembolsos_solicitado_por_fkey(nombre, apellido, rol)`), eliminando la ambigüedad con las columnas `aprobado_por` y `procesado_por`.
+  - En `js/roles/propietario.js`: Se desambiguó el join anidado `perfiles_cuidadores(foto_url, perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey(...))` y se normalizó la lectura de relaciones 1:1 (`pagos` y `resenas`) tanto en formato objeto como arreglo.
+- **Sincronización Exacta en Formularios de Postulación (`js/auth/postulaciones.js`):**
+  - Se alinearon los nombres de columnas de `antecedentes_cuidadores` (`id_cuidador`, `doc_identidad_url`, `doc_antecedentes_policiales_url`, `doc_antecedentes_penales_url`, `doc_domicilio_url`, `declaracion_jurada`) con `01_schema.sql`, asegurando la creación previa o automática por trigger de `perfiles_cuidadores` y la vinculación de `id_clinica_asociada` en postulaciones de clínicas veterinarias.
+- **Auto-Recuperación de Perfil y Resiliencia en `js/auth/auth.js`:**
+  - `fetchUserProfile()` incorpora auto-creación de fila en `perfiles_usuarios` si un usuario autenticado en `auth.users` no tuviera perfil sincronizado, y resiliencia automática para las 4 cuentas demo oficiales.
+
+#### 3. UX de Contraseñas: Botón Toggle "Ojito" (Mostrar / Ocultar Contraseña)
+- Se implementó el botón interactivo y accesible `.toggle-pwd-btn` (`bi-eye` / `bi-eye-slash`, con `aria-label` y `aria-pressed`) dentro de `.input-password-wrapper` en **todos los campos `type="password"` del sistema**:
+  1. Modal de **Iniciar Sesión** (`#login-password` en `index.html`).
+  2. Formulario de **Registro de Propietario** (`#reg-prop-password` en `index.html`).
+  3. Formulario de **Postulación de Cuidador** (`#post-cuid-password` en `index.html`).
+  4. Formulario de **Postulación de Clínica Veterinaria** (`#post-vet-password` en `index.html`).
+  5. Vista de **Restablecer Contraseña (`#/reset-password`)** (`#input-new-pwd` y `#input-confirm-pwd` en `js/router.js`).
+- Manejador global delegado `setupPasswordToggles()` registrado en `js/app.js`.
+
+

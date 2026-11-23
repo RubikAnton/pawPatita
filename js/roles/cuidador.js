@@ -371,9 +371,10 @@ function saveLocalResenasCuidador(list) {
  * Normaliza una fila de reserva vista desde el panel del cuidador garantizando 0 `undefined`
  */
 function normalizarReservaCuidador(r) {
-  const montoTotal = Number(r.monto_total ?? r.pagos?.monto_bruto ?? 120);
-  const comision15 = Number(r.comision_plataforma ?? r.pagos?.comision_plataforma ?? (montoTotal * 0.15).toFixed(2));
-  const montoNeto85 = Number(r.monto_neto_cuidador ?? r.neto ?? r.pagos?.monto_neto_cuidador ?? (montoTotal - comision15).toFixed(2));
+  const pagoObj = Array.isArray(r.pagos) ? (r.pagos[0] || {}) : (r.pagos || {});
+  const montoTotal = Number(r.monto_total ?? pagoObj.monto_bruto ?? 120);
+  const comision15 = Number(r.comision_plataforma ?? pagoObj.comision_plataforma ?? (montoTotal * 0.15).toFixed(2));
+  const montoNeto85 = Number(r.monto_neto_cuidador ?? r.neto ?? pagoObj.monto_neto_cuidador ?? (montoTotal - comision15).toFixed(2));
 
   const propObj = r.perfiles_usuarios || {};
   const mascObj = r.mascotas || {};
@@ -2020,7 +2021,7 @@ export async function renderPanelCuidador(container, userProfile) {
           const up = await uploadOrResolveMedia(u, CUSCO_CONFIG.STORAGE_BUCKETS.MURO);
           fotosResueltas.push({
             foto_url: up.url || u,
-            origen_almacenamiento: up.origen === 'supabase_storage' ? 'supabase_storage' : 'postimg',
+            origen_almacenamiento: (up.origen === 'storage' || up.origen === 'supabase_storage') ? 'supabase_storage' : 'postimg',
             descripcion_foto: `${tipoEvento} — ${resObj?.mascota_nombre || 'Mascota'}`,
             orden: fotosResueltas.length + 1
           });

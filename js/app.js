@@ -106,11 +106,38 @@ function initRealtimeAlerts() {
       const itemHtml = `
         <div class="notification-item alert-urgent">
           <div class="fw-bold text-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i> ALERTA S.O.S. RECIBIDA</div>
-          <div class="small">${escapeHtml(payload.new?.descripcion_emergencia || 'Emergencia veterinaria reportada')}</div>
+          <div class="small">${escapeHtml(payload.new?.descripcion || payload.new?.descripcion_emergencia || 'Emergencia veterinaria reportada')}</div>
           <small class="text-muted">Recién emitida</small>
         </div>
       `;
       listEl.insertAdjacentHTML('afterbegin', itemHtml);
+    }
+  });
+}
+
+/**
+ * Configura el toggle accesible de visibilidad de contraseña ("Ojito")
+ * en todos los campos type="password" estáticos y dinámicos del sistema
+ */
+function setupPasswordToggles() {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.toggle-pwd-btn, [data-toggle-password]');
+    if (!btn) return;
+
+    const targetId = btn.getAttribute('data-toggle-password');
+    const wrapper = btn.closest('.input-password-wrapper');
+    const input = (targetId && document.getElementById(targetId)) || wrapper?.querySelector('input');
+    if (!input) return;
+
+    const showPlain = input.type === 'password';
+    input.type = showPlain ? 'text' : 'password';
+    btn.setAttribute('aria-pressed', showPlain ? 'true' : 'false');
+    btn.setAttribute('title', showPlain ? 'Ocultar contraseña' : 'Mostrar contraseña');
+
+    const icon = btn.querySelector('i');
+    if (icon) {
+      icon.classList.toggle('bi-eye', !showPlain);
+      icon.classList.toggle('bi-eye-slash', showPlain);
     }
   });
 }
@@ -309,6 +336,7 @@ function setupFormListeners() {
 // Inicialización de la aplicación al cargar el DOM
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🐾 Iniciando Paw Patita Cusco v5.0 Frontend Shell...');
+  setupPasswordToggles();
   setupDemoButtons();
   setupFormListeners();
   onAuthStateChanged(updateNavbar);

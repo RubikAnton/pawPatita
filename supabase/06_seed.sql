@@ -129,92 +129,155 @@ ON CONFLICT (codigo_clinica) DO NOTHING;
 
 DO $$
 DECLARE
-    v_instance_id uuid;
+    v_instance_id uuid := '00000000-0000-0000-0000-000000000000'::uuid;
 BEGIN
-    SELECT COALESCE(
-        (SELECT id FROM auth.instances LIMIT 1),
-        '00000000-0000-0000-0000-000000000000'::uuid
-    ) INTO v_instance_id;
-
-    -- Insertar cuentas semilla en auth.users si no existen
+    -- Insertar cuentas semilla en auth.users con tokens en '' (no NULL) para compatibilidad estricta con GoTrue v2
     INSERT INTO auth.users (
         instance_id, id, aud, role, email, encrypted_password,
-        email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+        email_confirmed_at, confirmation_token, recovery_token,
+        email_change_token_new, email_change,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at
     )
     VALUES
         -- 1. Administrador Principal (Demo Admin)
         (v_instance_id, '50000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated',
-         'admin@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'admin@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Rodrigo","apellido":"Quispe Monzón","rol":"administrador","estado_cuenta":"activo","num_documento":"44112233","distrito_cusco":"Cusco Centro"}'::jsonb, now(), now()),
 
         -- 2. Propietaria Local Cusco (Demo Propietario)
         (v_instance_id, '50000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated',
-         'lucia.mendoza@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'lucia.mendoza@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Lucía","apellido":"Mendoza Vargas","rol":"propietario","estado_cuenta":"activo","num_documento":"72849102","distrito_cusco":"Wanchaq"}'::jsonb, now(), now()),
 
         -- 3. Propietario Turista en Cusco (Unificado bajo rol propietario con es_turista = true)
         (v_instance_id, '50000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated',
-         'martin.dupont@france.fr', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'martin.dupont@france.fr', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Martin","apellido":"Dupont","rol":"propietario","es_turista":true,"tipo_documento":"Pasaporte","num_documento":"FR9928172","pais_origen":"Francia","idioma_preferido":"EN","distrito_cusco":"Cusco Centro","hospedaje_hotel_cusco":"Hotel Palacio del Inka Cusco"}'::jsonb, now(), now()),
 
         -- 4. Clínica Veterinaria Activa (Demo Veterinaria - VET-001)
         (v_instance_id, '50000000-0000-0000-0000-000000000004', 'authenticated', 'authenticated',
-         'vet.sanfrancisco@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'vet.sanfrancisco@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Dra. Claudia","apellido":"Salazar Cáceres","rol":"veterinaria","estado_cuenta":"activo","num_documento":"41928374","distrito_cusco":"Wanchaq"}'::jsonb, now(), now()),
 
         -- 5. Clínica Veterinaria Pendiente (VET-005 - Bloqueada hasta aprobación)
         (v_instance_id, '50000000-0000-0000-0000-000000000005', 'authenticated', 'authenticated',
-         'postulacion@sacsayhuamanvet.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'postulacion@sacsayhuamanvet.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Dr. Marco","apellido":"Paredes Ttito","rol":"veterinaria","estado_cuenta":"pendiente","num_documento":"43918273","distrito_cusco":"San Blas"}'::jsonb, now(), now()),
 
         -- 6..11. Los 6 Cuidadores Aprobados en distritos de Cusco (CUID-101 es el Demo Cuidador)
         (v_instance_id, '50000000-0000-0000-0000-000000000011', 'authenticated', 'authenticated',
-         'valeria.cuidadora@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'valeria.cuidadora@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Valeria","apellido":"Huamán Delgado","rol":"cuidador","estado_cuenta":"activo","num_documento":"71029384","distrito_cusco":"Wanchaq"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000012', 'authenticated', 'authenticated',
-         'diego.alvarez@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'diego.alvarez@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Diego","apellido":"Álvarez Tupayachi","rol":"cuidador","estado_cuenta":"activo","num_documento":"72039485","distrito_cusco":"Cusco Centro"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000013', 'authenticated', 'authenticated',
-         'camila.rojas@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'camila.rojas@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Camila","apellido":"Rojas Yábar","rol":"cuidador","estado_cuenta":"activo","num_documento":"73049586","distrito_cusco":"San Sebastián"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000014', 'authenticated', 'authenticated',
-         'mateo.cornejo@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'mateo.cornejo@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Mateo","apellido":"Cornejo Paz","rol":"cuidador","estado_cuenta":"activo","num_documento":"74059687","distrito_cusco":"San Jerónimo"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000015', 'authenticated', 'authenticated',
-         'sofia.aguilar@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'sofia.aguilar@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Sofía","apellido":"Aguilar Bellido","rol":"cuidador","estado_cuenta":"activo","num_documento":"75069788","distrito_cusco":"Santiago"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000016', 'authenticated', 'authenticated',
-         'andres.zevallos@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'andres.zevallos@pawpatitacusco.pe', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Andrés","apellido":"Zevallos Kalinowski","rol":"cuidador","estado_cuenta":"activo","num_documento":"76079889","distrito_cusco":"San Blas"}'::jsonb, now(), now()),
 
         -- 12..13. Dos Cuidadores Pendientes de Aprobación
         (v_instance_id, '50000000-0000-0000-0000-000000000017', 'authenticated', 'authenticated',
-         'jorge.postulante@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'jorge.postulante@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Jorge","apellido":"Chávez Condori","rol":"cuidador","estado_cuenta":"pendiente","num_documento":"77089990","distrito_cusco":"Poroy"}'::jsonb, now(), now()),
 
         (v_instance_id, '50000000-0000-0000-0000-000000000018', 'authenticated', 'authenticated',
-         'elena.postulante@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(),
+         'elena.postulante@gmail.com', crypt('PawPatita2026!', gen_salt('bf')), now(), '', '', '', '',
          '{"provider":"email","providers":["email"]}'::jsonb,
          '{"nombre":"Elena","apellido":"Mamani Ormachea","rol":"cuidador","estado_cuenta":"pendiente","num_documento":"78091091","distrito_cusco":"Saylla"}'::jsonb, now(), now())
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET
+        instance_id = '00000000-0000-0000-0000-000000000000'::uuid,
+        aud = 'authenticated',
+        role = 'authenticated',
+        encrypted_password = EXCLUDED.encrypted_password,
+        email_confirmed_at = COALESCE(auth.users.email_confirmed_at, now()),
+        confirmation_token = COALESCE(auth.users.confirmation_token, ''),
+        recovery_token = COALESCE(auth.users.recovery_token, ''),
+        email_change_token_new = COALESCE(auth.users.email_change_token_new, ''),
+        email_change = COALESCE(auth.users.email_change, ''),
+        raw_app_meta_data = COALESCE(auth.users.raw_app_meta_data, EXCLUDED.raw_app_meta_data),
+        updated_at = now();
+
+    -- Sanear todas las columnas de tokens y banderas opcionales en auth.users para GoTrue v2
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'email_change_token_current') THEN
+        EXECUTE 'UPDATE auth.users SET email_change_token_current = COALESCE(email_change_token_current, '''') WHERE email_change_token_current IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'phone_change') THEN
+        EXECUTE 'UPDATE auth.users SET phone_change = COALESCE(phone_change, '''') WHERE phone_change IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'phone_change_token') THEN
+        EXECUTE 'UPDATE auth.users SET phone_change_token = COALESCE(phone_change_token, '''') WHERE phone_change_token IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'reauthentication_token') THEN
+        EXECUTE 'UPDATE auth.users SET reauthentication_token = COALESCE(reauthentication_token, '''') WHERE reauthentication_token IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'is_sso_user') THEN
+        EXECUTE 'UPDATE auth.users SET is_sso_user = COALESCE(is_sso_user, false) WHERE is_sso_user IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'is_anonymous') THEN
+        EXECUTE 'UPDATE auth.users SET is_anonymous = COALESCE(is_anonymous, false) WHERE is_anonymous IS NULL;';
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'email_change_confirm_status') THEN
+        EXECUTE 'UPDATE auth.users SET email_change_confirm_status = COALESCE(email_change_confirm_status, 0) WHERE email_change_confirm_status IS NULL;';
+    END IF;
+
+    -- Sincronizar identidades en auth.identities para GoTrue v2
+    INSERT INTO auth.identities (
+        id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+    )
+    SELECT
+        gen_random_uuid(),
+        u.id,
+        u.id::text,
+        jsonb_build_object(
+            'sub', u.id::text,
+            'email', LOWER(u.email),
+            'email_verified', true,
+            'phone_verified', false
+        ),
+        'email',
+        now(),
+        COALESCE(u.created_at, now()),
+        now()
+    FROM auth.users u
+    WHERE u.email IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM auth.identities i
+          WHERE i.user_id = u.id AND i.provider = 'email'
+      );
 END $$;
+
+-- Permisos integrales de esquema y secuencias para anon, authenticated y supabase_auth_admin
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role, supabase_auth_admin;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, authenticated, service_role, supabase_auth_admin;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role, supabase_auth_admin;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role, supabase_auth_admin;
 
 -- Asegurar y enriquecer datos en perfiles_usuarios (vinculando clínicas y contactos)
 UPDATE public.perfiles_usuarios

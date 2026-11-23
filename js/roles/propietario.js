@@ -222,9 +222,11 @@ function saveLocalReservas(list) {
  * Normaliza una fila de reserva garantizando 0 `undefined`
  */
 function normalizarReserva(r) {
-  const monto = Number(r.monto_total ?? r.pagos?.monto_bruto ?? 120);
-  const comision = Number(r.comision_plataforma ?? r.pagos?.comision_plataforma ?? (monto * 0.15).toFixed(2));
-  const neto = Number(r.monto_neto_cuidador ?? r.pagos?.monto_neto_cuidador ?? (monto - comision).toFixed(2));
+  const pagoObj = Array.isArray(r.pagos) ? (r.pagos[0] || {}) : (r.pagos || {});
+  const resenaObj = Array.isArray(r.resenas) ? (r.resenas[0] || null) : (r.resenas || null);
+  const monto = Number(r.monto_total ?? pagoObj.monto_bruto ?? 120);
+  const comision = Number(r.comision_plataforma ?? pagoObj.comision_plataforma ?? (monto * 0.15).toFixed(2));
+  const neto = Number(r.monto_neto_cuidador ?? pagoObj.monto_neto_cuidador ?? (monto - comision).toFixed(2));
   const cuidadorUser = r.perfiles_cuidadores?.perfiles_usuarios || {};
 
   return {
@@ -262,12 +264,12 @@ function normalizarReserva(r) {
     estado_reserva: (r.estado_reserva || 'pendiente_confirmacion').toLowerCase(),
     motivo_rechazo: r.motivo_rechazo || null,
     notas_propietario: r.notas_propietario || '',
-    metodo_pago: r.metodo_pago || r.pagos?.metodo_pago || 'Yape',
-    num_operacion: r.num_operacion || r.pagos?.num_operacion || 'OP-882100',
-    tipo_comprobante: r.tipo_comprobante || r.pagos?.tipo_comprobante || 'Boleta Electrónica',
-    num_comprobante: r.num_comprobante || r.pagos?.num_comprobante || 'B001-000101',
-    calificada: Boolean(r.calificada || (Array.isArray(r.resenas) ? r.resenas.length > 0 : r.resenas?.id)),
-    estrellas_otorgadas: Number(r.estrellas_otorgadas || r.resenas?.[0]?.calificacion_estrellas || r.resenas?.calificacion_estrellas || 0)
+    metodo_pago: r.metodo_pago || pagoObj.metodo_pago || 'Yape',
+    num_operacion: r.num_operacion || pagoObj.num_operacion || 'OP-882100',
+    tipo_comprobante: r.tipo_comprobante || pagoObj.tipo_comprobante || 'Boleta Electrónica',
+    num_comprobante: r.num_comprobante || pagoObj.num_comprobante || 'B001-000101',
+    calificada: Boolean(r.calificada || resenaObj?.id),
+    estrellas_otorgadas: Number(r.estrellas_otorgadas || resenaObj?.calificacion_estrellas || 0)
   };
 }
 
@@ -286,7 +288,7 @@ async function obtenerReservasPropietario(idPropietario) {
           servicios(hu_ecode, categoria, tipo_servicio),
           pagos(*),
           resenas(id, calificacion_estrellas),
-          perfiles_cuidadores(foto_url, perfiles_usuarios(nombre, apellido, distrito_cusco, telefono))
+          perfiles_cuidadores(foto_url, perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey(nombre, apellido, distrito_cusco, telefono))
         `)
         .eq('id_propietario', idPropietario)
         .order('created_at', { ascending: false });

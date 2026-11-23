@@ -178,12 +178,22 @@ function renderRouteView(hash, profile) {
                 </div>
                 <form id="form-reset-password">
                   <div class="mb-3">
-                    <label class="form-label small fw-bold">Nueva Contraseña</label>
-                    <input type="password" id="input-new-pwd" class="form-control" required minlength="6" placeholder="Mínimo 6 caracteres">
+                    <label for="input-new-pwd" class="form-label small fw-bold">Nueva Contraseña</label>
+                    <div class="input-password-wrapper">
+                      <input type="password" id="input-new-pwd" class="form-control" required minlength="6" placeholder="Mínimo 6 caracteres">
+                      <button type="button" class="toggle-pwd-btn" data-toggle-password="input-new-pwd" aria-label="Mostrar u ocultar nueva contraseña" aria-pressed="false" title="Mostrar contraseña">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="mb-4">
-                    <label class="form-label small fw-bold">Confirmar Nueva Contraseña</label>
-                    <input type="password" id="input-confirm-pwd" class="form-control" required minlength="6" placeholder="Repite la contraseña">
+                    <label for="input-confirm-pwd" class="form-label small fw-bold">Confirmar Nueva Contraseña</label>
+                    <div class="input-password-wrapper">
+                      <input type="password" id="input-confirm-pwd" class="form-control" required minlength="6" placeholder="Repite la contraseña">
+                      <button type="button" class="toggle-pwd-btn" data-toggle-password="input-confirm-pwd" aria-label="Mostrar u ocultar confirmación de contraseña" aria-pressed="false" title="Mostrar contraseña">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" class="btn btn-paw w-100">
                     <i class="bi bi-check-circle me-1"></i> Guardar Nueva Contraseña

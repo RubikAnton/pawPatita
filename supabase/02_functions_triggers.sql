@@ -58,32 +58,82 @@ SECURITY DEFINER
 SET search_path = public, auth
 AS $$
 DECLARE
-    v_rol rol_usuario_enum;
-    v_estado estado_cuenta_enum;
-    v_tipo_doc tipo_documento_enum;
+    v_rol public.rol_usuario_enum;
+    v_estado public.estado_cuenta_enum;
+    v_tipo_doc public.tipo_documento_enum;
     v_num_doc text;
+    v_auto_create boolean := false;
+    v_id_cuidador uuid;
+    v_id_clinica uuid;
+    v_ruc text;
 BEGIN
     -- Determinar rol desde raw_user_meta_data (por defecto 'propietario')
     BEGIN
-        v_rol := COALESCE((NEW.raw_user_meta_data->>'rol')::rol_usuario_enum, 'propietario');
+        v_rol := COALESCE((NEW.raw_user_meta_data->>'rol')::public.rol_usuario_enum, 'propietario');
     EXCEPTION WHEN OTHERS THEN
         v_rol := 'propietario';
     END;
 
     -- Los postulantes a cuidador o clínica veterinaria inician en 'pendiente' hasta aprobación del Admin
     IF v_rol IN ('cuidador', 'veterinaria') THEN
-        v_estado := COALESCE((NEW.raw_user_meta_data->>'estado_cuenta')::estado_cuenta_enum, 'pendiente');
+        BEGIN
+            v_estado := COALESCE((NEW.raw_user_meta_data->>'estado_cuenta')::public.estado_cuenta_enum, 'pendiente');
+        EXCEPTION WHEN OTHERS THEN
+            v_estado := 'pendiente';
+        END;
     ELSE
-        v_estado := COALESCE((NEW.raw_user_meta_data->>'estado_cuenta')::estado_cuenta_enum, 'activo');
+        BEGIN
+            v_estado := COALESCE((NEW.raw_user_meta_data->>'estado_cuenta')::public.estado_cuenta_enum, 'activo');
+        EXCEPTION WHEN OTHERS THEN
+            v_estado := 'activo';
+        END;
     END IF;
 
     BEGIN
-        v_tipo_doc := COALESCE((NEW.raw_user_meta_data->>'tipo_documento')::tipo_documento_enum, 'DNI');
+        v_tipo_doc := COALESCE((NEW.raw_user_meta_data->>'tipo_documento')::public.tipo_documento_enum, 'DNI');
     EXCEPTION WHEN OTHERS THEN
         v_tipo_doc := 'DNI';
     END;
 
     v_num_doc := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'num_documento'), ''), 'DOC-' || SUBSTRING(NEW.id::text, 1, 8));
+
+    IF EXISTS (SELECT 1 FROM public.perfiles_usuarios WHERE num_documento = v_num_doc AND id != NEW.id) THEN
+        v_num_doc := v_num_doc || '-' || SUBSTRING(NEW.id::text, 1, 4);
+    END IF;
+
+    v_auto_create := COALESCE((NEW.raw_user_meta_data->>'auto_create_perfil')::boolean, false);
+
+    IF v_rol = 'veterinaria' AND v_auto_create THEN
+        v_ruc := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'ruc'), ''), '20' || LPAD((floor(random() * 899999999) + 100000000)::text, 9, '0'));
+        SELECT id INTO v_id_clinica FROM public.clinicas_veterinarias WHERE ruc = v_ruc OR email_institucional = NEW.email LIMIT 1;
+
+        IF v_id_clinica IS NULL THEN
+            BEGIN
+                INSERT INTO public.clinicas_veterinarias (
+                    ruc, nombre, email_institucional, direccion, distrito_cusco,
+                    telefono_emergencia, horario_atencion, especialidades,
+                    tarifa_consulta_emergencia, colegiatura_cmvp, estado_afiliacion, activa
+                )
+                VALUES (
+                    v_ruc,
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'nombre_clinica'), ''), 'Clínica Veterinaria ' || COALESCE(NEW.raw_user_meta_data->>'nombre', 'Cusco')),
+                    NEW.email,
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'direccion'), ''), 'Cusco, Perú'),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'distrito_cusco'), ''), 'Cusco Centro'),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000'),
+                    COALESCE((NEW.raw_user_meta_data->>'horario_atencion')::public.horario_clinica_enum, '24 Horas'),
+                    ARRAY['Emergencias 24h', 'Medicina General'],
+                    GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_consulta_emergencia')::numeric, 60.00), 10.00),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'colegiatura_cmvp'), ''), 'CMVP-CUSCO'),
+                    'pendiente',
+                    false
+                )
+                RETURNING id INTO v_id_clinica;
+            EXCEPTION WHEN OTHERS THEN
+                v_id_clinica := NULL;
+            END;
+        END IF;
+    END IF;
 
     INSERT INTO public.perfiles_usuarios (
         id,
@@ -102,6 +152,7 @@ BEGIN
         hospedaje_hotel_cusco,
         contacto_emergencia_nombre,
         contacto_emergencia_tel,
+        id_clinica_asociada,
         tyc_version_aceptada,
         estado_cuenta
     )
@@ -110,22 +161,78 @@ BEGIN
         COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'nombre'), ''), split_part(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'apellido', ''),
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'telefono', '984000000'),
+        COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000'),
         v_rol,
         COALESCE((NEW.raw_user_meta_data->>'es_turista')::boolean, false),
         v_tipo_doc,
         v_num_doc,
-        COALESCE(NEW.raw_user_meta_data->>'pais_origen', 'Perú'),
-        COALESCE(NEW.raw_user_meta_data->>'idioma_preferido', 'ES'),
+        COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'pais_origen'), ''), 'Perú'),
+        CASE WHEN UPPER(COALESCE(NEW.raw_user_meta_data->>'idioma_preferido', 'ES')) = 'EN' THEN 'EN' ELSE 'ES' END,
         NEW.raw_user_meta_data->>'direccion',
-        COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco Centro'),
+        COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'distrito_cusco'), ''), 'Cusco Centro'),
         NEW.raw_user_meta_data->>'hospedaje_hotel_cusco',
         NEW.raw_user_meta_data->>'contacto_emergencia_nombre',
         NEW.raw_user_meta_data->>'contacto_emergencia_tel',
+        v_id_clinica,
         COALESCE(NEW.raw_user_meta_data->>'tyc_version_aceptada', 'v5.0'),
         v_estado
     )
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        id_clinica_asociada = COALESCE(public.perfiles_usuarios.id_clinica_asociada, EXCLUDED.id_clinica_asociada);
+
+    IF v_rol = 'cuidador' AND v_auto_create THEN
+        BEGIN
+            INSERT INTO public.perfiles_cuidadores (
+                id_usuario, presentacion_corta, descripcion_experiencia, anios_experiencia,
+                tipo_vivienda, capacidad_max_mascotas, estado_postulacion, cuenta_cobro_tipo, cuenta_cobro_numero
+            )
+            VALUES (
+                NEW.id,
+                'Cuidador independiente postulante en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco'),
+                'Experiencia reportada en postulación web Paw Patita Cusco.',
+                GREATEST(COALESCE((NEW.raw_user_meta_data->>'anios_experiencia')::integer, 2), 0),
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'tipo_vivienda'), ''), 'Casa con patio cercado'),
+                LEAST(GREATEST(COALESCE((NEW.raw_user_meta_data->>'capacidad_max_mascotas')::integer, 3), 1), 10),
+                'pendiente',
+                'Yape',
+                COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'telefono'), ''), '984000000')
+            )
+            ON CONFLICT (id_usuario) DO NOTHING
+            RETURNING id INTO v_id_cuidador;
+
+            IF v_id_cuidador IS NOT NULL THEN
+                INSERT INTO public.antecedentes_cuidadores (
+                    id_cuidador, doc_identidad_url, doc_antecedentes_policiales_url,
+                    doc_antecedentes_penales_url, doc_domicilio_url, declaracion_jurada, estado_verificacion
+                )
+                VALUES (
+                    v_id_cuidador,
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_identidad_url'), ''), 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700'),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_policial_url'), ''), 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700'),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_penal_url'), ''), 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700'),
+                    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'doc_domicilio_url'), ''), 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700'),
+                    true,
+                    'pendiente'
+                )
+                ON CONFLICT (id_cuidador) DO NOTHING;
+
+                INSERT INTO public.servicios (
+                    id_cuidador, categoria, tipo_servicio, descripcion_servicio, tarifa_diaria_por_perro, disponible
+                )
+                VALUES (
+                    v_id_cuidador,
+                    'Paseo',
+                    'Paseo y Custodia Familiar en ' || COALESCE(NEW.raw_user_meta_data->>'distrito_cusco', 'Cusco'),
+                    'Servicio personalizado con reportes fotográficos en el Muro en Vivo.',
+                    GREATEST(COALESCE((NEW.raw_user_meta_data->>'tarifa_inicial')::numeric, 35.00), 15.00),
+                    true
+                );
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            NULL;
+        END;
+    END IF;
 
     RETURN NEW;
 END;

@@ -1248,9 +1248,9 @@ async function cargarDatosPanelAdministrador() {
     try {
       const [resMetrics, resCuid, resClin, resCanc, resLiq, resSos, resAud] = await Promise.all([
         supabase.rpc('rpc_admin_dashboard_metrics'),
-        supabase.from('perfiles_cuidadores').select('*, perfiles_usuarios(*), antecedentes_cuidadores(*)').order('created_at', { ascending: false }),
+        supabase.from('perfiles_cuidadores').select('*, perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey(*), antecedentes_cuidadores(*)').order('created_at', { ascending: false }),
         supabase.from('clinicas_veterinarias').select('*').order('created_at', { ascending: false }),
-        supabase.from('cancelaciones_reembolsos').select('*, reservas(codigo_reserva, monto_total), perfiles_usuarios(nombre, apellido, rol)').order('created_at', { ascending: false }),
+        supabase.from('cancelaciones_reembolsos').select('*, reservas(codigo_reserva, monto_total), perfiles_usuarios!cancelaciones_reembolsos_solicitado_por_fkey(nombre, apellido, rol)').order('created_at', { ascending: false }),
         supabase.from('liquidaciones_cuidadores').select('*, reservas(codigo_reserva, monto_total, mascotas(nombre, paw_id)), perfiles_cuidadores(codigo_cuidador)').order('created_at', { ascending: false }),
         supabase.from('incidencias_emergencias').select('*, mascotas(nombre, paw_id), clinicas_veterinarias(nombre, telefono_emergencia, direccion), reservas(codigo_reserva)').order('fecha_incidencia', { ascending: false }),
         supabase.from('auditoria_estados').select('*').order('created_at', { ascending: false }).limit(150)

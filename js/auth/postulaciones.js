@@ -110,13 +110,14 @@ export async function postularCuidador(data) {
       return { success: true };
     }
 
-    // 1. Registro en Auth con rol 'cuidador' y estado_cuenta 'pendiente'
+    // 1. Registro en Auth con rol 'cuidador', estado_cuenta 'pendiente' y metadatos completos para el trigger
     const { data: authData, error: authErr } = await supabase.auth.signUp({
       email: data.email.trim(),
       password: data.password,
       options: {
         data: {
           rol: 'cuidador',
+          auto_create_perfil: true,
           nombre: data.nombre.trim(),
           apellido: data.apellido?.trim() || '',
           telefono: data.telefono?.trim() || '',
@@ -124,6 +125,14 @@ export async function postularCuidador(data) {
           num_documento: data.numDocumento.trim(),
           distrito_cusco: data.distrito || 'Wanchaq',
           direccion: data.direccion || '',
+          anios_experiencia: Number(data.experiencia) || 2,
+          tipo_vivienda: data.vivienda || 'Casa con patio cercado',
+          capacidad_max_mascotas: Number(data.capacidad) || 3,
+          tarifa_inicial: Number(data.tarifaInicial) || 35,
+          doc_identidad_url: docIdentidadUrl || 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700',
+          doc_policial_url: docPolicialUrl || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700',
+          doc_penal_url: docPenalUrl || 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700',
+          doc_domicilio_url: docDomicilioUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700',
           estado_cuenta: 'pendiente',
           tyc_version_aceptada: CUSCO_CONFIG.TYC_VERSION
         }
@@ -132,17 +141,47 @@ export async function postularCuidador(data) {
 
     if (authErr) throw authErr;
 
-    // 2. Registro complementario en antecedentes_cuidadores si hay sesión
-    if (authData.user) {
-      await supabase.from('antecedentes_cuidadores').insert({
-        id_usuario: authData.user.id,
-        declaracion_jurada_veracidad: true,
-        doc_identidad_url: docIdentidadUrl || 'https://i.postimg.cc/placeholder-dni.png',
-        doc_policial_url: docPolicialUrl || 'https://i.postimg.cc/placeholder-policial.png',
-        doc_penal_url: docPenalUrl || null,
-        doc_domicilio_url: docDomicilioUrl || null,
-        estado_verificacion: 'pendiente'
-      });
+    // 2. Registro complementario en perfiles_cuidadores + antecedentes_cuidadores si hay sesión activa
+    if (authData?.user && authData?.session) {
+      let idCuidador = null;
+      const { data: existingCuid } = await supabase
+        .from('perfiles_cuidadores')
+        .select('id')
+        .eq('id_usuario', authData.user.id)
+        .maybeSingle();
+
+      if (existingCuid?.id) {
+        idCuidador = existingCuid.id;
+      } else {
+        const { data: newCuid } = await supabase
+          .from('perfiles_cuidadores')
+          .insert({
+            id_usuario: authData.user.id,
+            presentacion_corta: `Cuidador independiente postulante en ${data.distrito || 'Wanchaq'}`,
+            descripcion_experiencia: `Experiencia de ${data.experiencia || 2} años en cuidado canino familiar.`,
+            anios_experiencia: Number(data.experiencia) || 2,
+            tipo_vivienda: data.vivienda || 'Casa con patio cercado',
+            capacidad_max_mascotas: Number(data.capacidad) || 3,
+            estado_postulacion: 'pendiente',
+            cuenta_cobro_tipo: 'Yape',
+            cuenta_cobro_numero: data.telefono?.trim() || ''
+          })
+          .select('id')
+          .maybeSingle();
+        idCuidador = newCuid?.id || null;
+      }
+
+      if (idCuidador) {
+        await supabase.from('antecedentes_cuidadores').upsert({
+          id_cuidador: idCuidador,
+          doc_identidad_url: docIdentidadUrl || 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700',
+          doc_antecedentes_policiales_url: docPolicialUrl || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=700',
+          doc_antecedentes_penales_url: docPenalUrl || 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=700',
+          doc_domicilio_url: docDomicilioUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700',
+          declaracion_jurada: true,
+          estado_verificacion: 'pendiente'
+        }, { onConflict: 'id_cuidador' });
+      }
     }
 
     showConfirmModal({
@@ -196,13 +235,14 @@ export async function postularClinicaVeterinaria(data) {
       return { success: true };
     }
 
-    // 1. Crear usuario en Auth para el médico/clínica
+    // 1. Crear usuario en Auth para el médico/clínica con metadatos de clínica para el trigger
     const { data: authData, error: authErr } = await supabase.auth.signUp({
       email: data.email.trim(),
       password: data.password,
       options: {
         data: {
           rol: 'veterinaria',
+          auto_create_perfil: true,
           nombre: data.nombreResponsable?.trim() || 'Médico Veterinario',
           apellido: data.apellidoResponsable?.trim() || '',
           telefono: data.telefonoEmergencia?.trim() || '',
@@ -210,6 +250,11 @@ export async function postularClinicaVeterinaria(data) {
           num_documento: data.dniResponsable?.trim() || '00000000',
           distrito_cusco: data.distrito || 'Cusco Centro',
           direccion: data.direccion || '',
+          ruc: data.ruc.trim(),
+          nombre_clinica: data.nombreClinica.trim(),
+          horario_atencion: data.horario || '24 Horas',
+          tarifa_consulta_emergencia: Number(data.tarifaEmergencia) || 60.00,
+          colegiatura_cmvp: data.colegiaturaCmvp.trim(),
           estado_cuenta: 'pendiente',
           tyc_version_aceptada: CUSCO_CONFIG.TYC_VERSION
         }
@@ -218,24 +263,46 @@ export async function postularClinicaVeterinaria(data) {
 
     if (authErr) throw authErr;
 
-    // 2. Registrar en la tabla clinicas_veterinarias con estado_afiliacion = 'pendiente'
-    const { error: clinicErr } = await supabase.from('clinicas_veterinarias').insert({
-      ruc: data.ruc.trim(),
-      nombre: data.nombreClinica.trim(),
-      email_institucional: data.email.trim(),
-      direccion: data.direccion.trim(),
-      distrito_cusco: data.distrito || 'Cusco Centro',
-      telefono_emergencia: data.telefonoEmergencia.trim(),
-      horario_atencion: data.horario || '24 Horas',
-      especialidades: data.especialidades || ['Emergencias 24h', 'Cirugía General'],
-      tarifa_consulta_emergencia: Number(data.tarifaEmergencia) || 60.00,
-      colegiatura_cmvp: data.colegiaturaCmvp.trim(),
-      estado_afiliacion: 'pendiente',
-      activa: false
-    });
+    // 2. Asegurar registro en clinicas_veterinarias y vínculo id_clinica_asociada si no lo creó el trigger
+    const { data: existingClinic } = await supabase
+      .from('clinicas_veterinarias')
+      .select('id')
+      .eq('ruc', data.ruc.trim())
+      .maybeSingle();
 
-    if (clinicErr) {
-      console.warn('Nota de inserción en clinicas_veterinarias:', clinicErr.message);
+    let idClinica = existingClinic?.id || null;
+    if (!idClinica) {
+      const { data: newClinic, error: clinicErr } = await supabase
+        .from('clinicas_veterinarias')
+        .insert({
+          ruc: data.ruc.trim(),
+          nombre: data.nombreClinica.trim(),
+          email_institucional: data.email.trim(),
+          direccion: data.direccion.trim(),
+          distrito_cusco: data.distrito || 'Cusco Centro',
+          telefono_emergencia: data.telefonoEmergencia.trim(),
+          horario_atencion: data.horario || '24 Horas',
+          especialidades: data.especialidades || ['Emergencias 24h', 'Cirugía General'],
+          tarifa_consulta_emergencia: Number(data.tarifaEmergencia) || 60.00,
+          colegiatura_cmvp: data.colegiaturaCmvp.trim(),
+          estado_afiliacion: 'pendiente',
+          activa: false
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (clinicErr) {
+        console.warn('Nota de inserción en clinicas_veterinarias:', clinicErr.message);
+      } else {
+        idClinica = newClinic?.id || null;
+      }
+    }
+
+    if (idClinica && authData?.user && authData?.session) {
+      await supabase
+        .from('perfiles_usuarios')
+        .update({ id_clinica_asociada: idClinica })
+        .eq('id', authData.user.id);
     }
 
     showConfirmModal({

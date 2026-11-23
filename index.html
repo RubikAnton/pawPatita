@@ -238,6 +238,9 @@
               </div>
               <div class="input-password-wrapper">
                 <input type="password" class="form-control" id="login-password" required placeholder="Tu contraseña">
+                <button type="button" class="toggle-pwd-btn" data-toggle-password="login-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
+                  <i class="bi bi-eye"></i>
+                </button>
               </div>
             </div>
 
@@ -352,8 +355,13 @@
                 <input type="email" class="form-control" id="reg-prop-email" required placeholder="tu@correo.com">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Contraseña Segura</label>
-                <input type="password" class="form-control" id="reg-prop-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                <label for="reg-prop-password" class="form-label small fw-bold">Contraseña Segura</label>
+                <div class="input-password-wrapper">
+                  <input type="password" class="form-control" id="reg-prop-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <button type="button" class="toggle-pwd-btn" data-toggle-password="reg-prop-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -456,8 +464,13 @@
                 <input type="email" class="form-control" id="post-cuid-email" required placeholder="tu@correo.com">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Contraseña para tu Panel</label>
-                <input type="password" class="form-control" id="post-cuid-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                <label for="post-cuid-password" class="form-label small fw-bold">Contraseña para tu Panel</label>
+                <div class="input-password-wrapper">
+                  <input type="password" class="form-control" id="post-cuid-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <button type="button" class="toggle-pwd-btn" data-toggle-password="post-cuid-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -587,8 +600,13 @@
                 <input type="email" class="form-control" id="post-vet-email" required placeholder="clinica@ejemplo.com">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-bold">Contraseña para el Panel Médico</label>
-                <input type="password" class="form-control" id="post-vet-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                <label for="post-vet-password" class="form-label small fw-bold">Contraseña para el Panel Médico</label>
+                <div class="input-password-wrapper">
+                  <input type="password" class="form-control" id="post-vet-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                  <button type="button" class="toggle-pwd-btn" data-toggle-password="post-vet-password" aria-label="Mostrar u ocultar contraseña" aria-pressed="false" title="Mostrar contraseña">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
 
