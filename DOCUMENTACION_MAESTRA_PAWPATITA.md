@@ -8,17 +8,19 @@
 
 ## Tabla de Contenidos
 
-1. [Ficha Técnica, Contexto y Alcance del Sistema](#1-ficha-técnica-contexto-y-alcance-del-sistema)
+1. [Ficha Técnica, Contexto, Estrategia de Negocio y Viabilidad](#1-ficha-técnica-contexto-estrategia-de-negocio-y-viabilidad)
 2. [Ingeniería de Requisitos (Estándar IEEE 830)](#2-ingeniería-de-requisitos-estándar-ieee-830)
 3. [Modelado de Procesos de Negocio (BPMN) y Comportamiento (UML)](#3-modelado-de-procesos-de-negocio-bpmn-y-comportamiento-uml)
 4. [Arquitectura de Software y Diseño Detallado](#4-arquitectura-de-software-y-diseño-detallado)
 5. [Diseño, Normalización y Diccionario de Base de Datos](#5-diseño-normalización-y-diccionario-de-base-de-datos)
 6. [Diseño de Interacción Humano-Computadora (HCI)](#6-diseño-de-interacción-humano-computadora-hci)
 7. [Aseguramiento de Calidad (QA), Gestión de Configuración y Guía de Uso](#7-aseguramiento-de-calidad-qa-gestión-de-configuración-y-guía-de-uso)
+8. [Cumplimiento Normativo y Marco Legal Peruano](#8-cumplimiento-normativo-y-marco-legal-peruano)
+9. [Gestión de Riesgos, Limitaciones Actuales y Hoja de Ruta Futura](#9-gestión-de-riesgos-limitaciones-actuales-y-hoja-de-ruta-futura)
 
 ---
 
-## 1. Ficha Técnica, Contexto y Alcance del Sistema
+## 1. Ficha Técnica, Contexto, Estrategia de Negocio y Viabilidad
 
 ### 1.1. Ficha Técnica de Identificación
 
@@ -73,6 +75,77 @@ Diseñar, construir y desplegar una plataforma web SaaS integral, segura, biling
 | **Pagos, Garantía y Liquidaciones** | Registro validado de pago (Yape, Plin, Tarjeta últimos 4 dígitos, Transferencia), retención contable en garantía (`en_garantia`), liberación automática en Check-Out (`disponible`), solicitud de retiro (`solicitado`) y desembolso administrativo con N.º de operación (`pagado`), más regularización y conciliación de cargos clínicos S.O.S. | Procesamiento de cargo bancario real en vivo con pasarela PCI-DSS (Niubiz/Culqi/Stripe) o emisión electrónica directa hacia API OSE/SUNAT (se emiten boletas/facturas referenciales imprimibles). |
 | **Tarificación y Reglas Comerciales** | Tarifa base por día, recargo estacional por temporadas oficiales de Cusco (`temporadas_tarifas`), recargo por cachorro `< 1 año` (`10%`), extras (baño higiénico, recojo en hotel) y conversión `PEN/USD`. | **Cupones promocionales:** Inhabilitados intencionalmente desde v5.1 en UI y RPCs para garantizar cotización transparente (`cupones_promocionales` se conserva inactiva solo por integridad referencial histórica). |
 | **Geolocalización y Emergencias S.O.S.** | Mapa interactivo de Cusco (`Leaflet 1.9.4` + OpenStreetMap), geolocalización GPS del navegador al emitir S.O.S., cálculo de clínica 24h sugerida y actualización clínica/financiera en tiempo real. | Rastreo GPS continuo en segundo plano (tracking vehicular de paseo segundo a segundo) o despacho automático de ambulancia física. |
+
+### 1.5. Modelo de Negocio, Propuesta de Valor Dual y Unit Economics (Cusco / Pet-Tech)
+
+**Paw Patita Cusco** opera bajo un modelo de **Marketplace SaaS Bilateral de Economía Colaborativa con Respaldo Sanitario Clínico**, diseñado específicamente para las dinámicas socioeconómicas y turísticas de la provincia del Cusco.
+
+#### 1.5.1. Propuesta de Valor Dual y Diferenciación Competitiva en Cusco
+
+| Dimensión | Competencia Informal (Redes Sociales / Referidos) | Guarderías Físicas Tradicionales (Caniles) | Apps Globales sin Presencia Local | **Paw Patita Cusco v5.2** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Verificación de Identidad y Antecedentes** | Ninguna | Parcial (local comercial) | Básica extranjera | **4 documentos legales** (DNI, PNP, PJ, Domicilio) + Declaración Jurada Art. 411 CP + auditoría Admin |
+| **Historial Sanitario Verificable** | Foto informal por WhatsApp | Registro en papel | Autodeclarado sin veterinario | **Carné Digital `PAW-ID` con sello CMVP Cusco**, QR público seguro (Ley 29733) y cartilla PDF/Img |
+| **Atención a Turistas (Machu Picchu / Valle Sagrado)** | Sin inglés ni recojo en hoteles | Horario rígido, sin traslado hotel | No cubre distritos de Cusco ni Yape/Plin | **Bilingüe `ES/EN`**, moneda **`PEN/USD`**, filtro **recojo en hotel/Airbnb** y registro de pasaporte |
+| **Respaldo ante Emergencias de Altura / Urgencias** | Improvisado | Limitado al horario diurno | Inexistente en Perú | **Central S.O.S. 24h en tiempo real** derivada a clínicas aliadas + trazabilidad clínica y de cobro |
+| **Custodia Financiera y Cancelaciones** | Pago directo sin respaldo | Penalidades arbitrarias | Tarjeta internacional únicamente | **Pago Protegido en Garantía (`85%`/`15%`)**, Yape/Plin/Tarjeta/Transferencia, cancelación escalonada transparente y arbitraje |
+
+#### 1.5.2. Business Model Canvas Sintetizado
+
+| Bloque Estratégico | Especificación Operativa de Paw Patita Cusco v5.2 |
+| :--- | :--- |
+| **Segmentos de Clientes** | 1) **Propietarios Locales** (Wanchaq, Cusco Centro, San Sebastián, San Jerónimo, Santiago, San Blas, Saylla, Poroy; NSE A/B/C+).<br>2) **Turistas Nacionales y Extranjeros *Pet-Friendly*** alojados en hoteles/Airbnb que visitan Machu Picchu y Valle Sagrado.<br>3) **Cuidadores Independientes** (estudiantes de veterinaria/zootecnia, familias con patio cercado buscando ingreso complementario).<br>4) **Clínicas Veterinarias Aliadas 24h** (captación de nuevos pacientes y fidelización). |
+| **Canales** | SPA Web responsiva (`GitHub Pages`), escaneo físico de **QR en collares/carnés `PAW-ID`**, alianzas con hoteles *pet-friendly* en Cusco Centro/San Blas, clínicas veterinarias aliadas y coordinación post-pago por WhatsApp. |
+| **Fuentes de Ingreso** | **Comisión fija transparente del `15%`** sobre el valor bruto de cada reserva confirmada (`configuracion_plataforma.comision_plataforma_pct = 0.15`), más proporción administrativa del `15%` en cancelaciones `< 48h` o remanentes de arbitraje. *(Sin cobro de suscripción inicial a cuidadores ni clínicas para acelerar liquidez de la red).* |
+| **Estructura de Costos** | **Fase Piloto / Lanzamiento (0–500 usuarios activos):** **\$0.00 USD/mes** de infraestructura (GitHub Pages gratuito + Supabase Free Tier `500 MB` BD / `1 GB` Storage + OpenStreetMap/Leaflet gratuitos).<br>**Fase Crecimiento (>500 reservas/mes):** Supabase Pro (**\$25 USD/mes**) + dominio `.pe` (~**S/ 110/año**) + gastos operativos de verificación y soporte. |
+| **Métricas Clave (North Star)** | Reservas completadas sin incidencias, tasa de validación sanitaria `PAW-ID`, tiempo medio de triaje S.O.S. (`fecha_atencion - fecha_incidencia`), Volumen Bruto Transaccionado (GMV) y retención mensual por distrito. |
+
+#### 1.5.3. Unit Economics Reales y Conciliación de la Semilla de Producción (`supabase/06_seed.sql`)
+
+Basado en las tarifas verificadas de los **6 cuidadores aprobados** y **12 ofertas activas (`HU-101` a `HU-112`)** en Cusco:
+
+| Categoría de Servicio | Rango Tarifario Real en Cusco (`06_seed.sql`) | Ticket Promedio (2 días) | Comisión Plataforma (`15%`) | Ingreso Neto Cuidador (`85%`) | Ajuste Temporada Alta Cusco (Inti Raymi `+20%` / Fin de Año `+25%`) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Paseo Recreativo** | `S/ 30.00` – `S/ 45.00` / jornada | `S/ 75.00` | `S/ 11.25` | `S/ 63.75` | `+S/ 15.00` a `+S/ 18.75` |
+| **Guardería Diurna** | `S/ 38.00` – `S/ 45.00` / día | `S/ 80.00` | `S/ 12.00` | `S/ 68.00` | `+S/ 16.00` a `+S/ 20.00` |
+| **Hospedaje Familiar (24h)** | `S/ 55.00` – `S/ 70.00` / noche | `S/ 125.00` | `S/ 18.75` | `S/ 106.25` | `+S/ 25.00` a `+S/ 31.25` |
+| **Domicilio Turístico / Hotel** | `S/ 75.00` – `S/ 80.00` / día | `S/ 155.00` | `S/ 23.25` | `S/ 131.75` | `+S/ 31.00` a `+S/ 38.75` |
+
+- **Punto de Equilibrio Tecnológico (Supabase Pro \$25 USD/mes ≈ `S/ 93.75`/mes a TC `3.75`):** Se alcanza con apenas **5 reservas promedio de hospedaje (2 noches)** al mes (`5 × S/ 18.75 = S/ 93.75`), demostrando una altísima eficiencia de capital y escalabilidad financiera.
+- **Línea Base Contable Verificada en `06_seed.sql`:** La semilla inicial carga **8 reservas** por `S/ 1,125.00` brutos acumulados: **7 pagos en estado `aprobado`** que suman **`S/ 965.00`** brutos → **`S/ 144.75`** de comisión real (`15%`) y **`S/ 820.25`** netos para cuidadores (`85%`), más **1 reserva en disputa** (`RES-2026-0108`, `S/ 160.00`) retenida en `en_garantia` para demostración de arbitraje administrativo, **2 alertas S.O.S.** (`SOS-2026-0101` `S/ 60.00` `pendiente_pago` y `SOS-2026-0102` `S/ 50.00` `conciliado`) y cobertura distribuida en 6 distritos activos + 2 distritos en evaluación (`Saylla`, `Poroy`).
+
+### 1.6. Estudio de Viabilidad Integral
+
+| Dimensión de Viabilidad | Dictamen | Análisis Técnico y Evidencia Verificada |
+| :--- | :---: | :--- |
+| **Viabilidad Técnica** | **✅ Alta (Comprobada)** | Stack 100% basado en estándares web abiertos (HTML5, CSS3, Vanilla ES Modules) y PostgreSQL 15+ gestionado en Supabase Cloud. Desplegado y verificado en producción (`https://rubikanton.github.io/pawPatita/`) sin requerir servidores propios, contenedores ni paso de compilación. |
+| **Viabilidad Operativa** | **✅ Alta** | Interfaz certificada **`20/20`** en Heurísticas de Nielsen, bilingüe `ES/EN`, responsiva (`360px`–`1440px`), con validación preventiva en tiempo real (`validators.js`) y Centro de Ayuda FAQ contextual (`help-modal.js`), reduciendo la curva de aprendizaje para cuidadores, veterinarios y turistas. |
+| **Viabilidad Económica** | **✅ Muy Alta** | Costo fijo de infraestructura **\$0 USD/mes** en fase piloto y **\$25 USD/mes** en escalamiento (Supabase Pro), cubierto desde 5 transacciones mensuales con margen operativo elevado gracias a la arquitectura Serverless. |
+| **Viabilidad Legal y Normativa** | **✅ Alta (Con Controles)** | Diseñada bajo *Privacidad por Diseño* (Ley N.º 29733), protección animal (Ley N.º 30407), Declaración Jurada vinculante (Art. 411 CP) y verificación CMVP/SUNAT (detallado en el **Capítulo 8**). |
+
+### 1.7. Metodología de Desarrollo, Roles del Equipo y Cronograma de Fases
+
+El proyecto se ejecutó bajo un **enfoque iterativo-incremental ágil** estructurado en ciclos cortos con verificación continua (sintaxis ES6, integridad SQL, auditoría grep y pruebas multi-viewport), trazado completamente en `BITACORA_EJECUCION_V5.md` y commits en GitHub:
+
+```mermaid
+flowchart LR
+    F1["Fase 1: Auditoría, Requisitos IEEE 830 y Diseño BD (23 Tablas)"]
+    F2["Fase 2: Infraestructura SQL, Triggers, 21 RPCs, RLS, Storage y Seed"]
+    F3["Fases 3-4: Shell SPA, Auth GoTrue, Landing, Catálogo, Leaflet y QR"]
+    F4["Fases 5-7: Paneles de 4 Roles (Propietario, Cuidador, Vet y Admin)"]
+    F5["Fase 8 + Hotfix: QA E2E, GoTrue Fix (07) y Go-Live GitHub Pages"]
+    F6["Pulido v5.1 (P1-P4): Andes & Huellas AAA, Storage PDF, Fix 0A000 SOS, Sin Cupones"]
+    F7["Pulido v5.2 (5.2A-5.2C): Responsive Total, i18n 335, validators.js, SOS Financiero, IHC 20/20"]
+
+    F1 --> F2 --> F3 --> F4 --> F5 --> F6 --> F7
+```
+
+| Etapa / Versión | Entregables Principales Verificados | Hito de Calidad |
+| :--- | :--- | :--- |
+| **v5.0 (Fases 1–8)** | Esquema 3FN (`01`–`06`), 21 RPCs, RLS 23 tablas, SPA Vanilla ES Modules, 4 paneles operativos, Leaflet, QRCode, Chart.js, suite QA. | Migración integral y despliegue productivo en GitHub Pages (`46cf0db`, `3cd0413`). |
+| **v5.0 Hotfix** | Script `07_fix_auth_and_audit.sql`, desambiguación PostgREST `!fkey`, auto-recuperación de perfil, toggle visual de contraseñas. | Eliminación definitiva de HTTP 500 en GoTrue (`e3a9bd0`). |
+| **v5.1 (Sub-Fases P1–P4)** | Script `08_pulido_v5_1.sql` (`FOR UPDATE OF i`, `America/Lima` Check-Out, Hospedaje 24h, trigger Muro `en_curso`, 6 tablas Realtime), `css/tokens.css` WCAG AAA, `file-uploader.js` (Img/PDF sin PostImg), `legal-modal.js`, `i18n.js`, Bitácora humana. | Erradicación de jerga técnica y persistencia real S.O.S. (`28d335f`). |
+| **v5.2 (Sub-Fases 5.2A–5.2C)** | Script `09_pulido_v5_2.sql` (cobro clínico S.O.S. + 2 RPCs, restricción S.O.S. cuidador `en_curso`, aislamiento RLS `notificaciones`), Responsive `360/768/1366px`, `i18n` `335` claves, lenguaje neutro, `validators.js` (22 formularios) y `help-modal.js`. | Certificación **IHC 20/20 Nielsen** y 0 errores consola (`081d21a`). |
 
 ---
 
@@ -131,7 +204,7 @@ Diseñar, construir y desplegar una plataforma web SaaS integral, segura, biling
 | :---: | :--- | :--- | :--- |
 | **RNF-01** | Rendimiento | Tiempo de Carga Inicial y Peso Modular | Carga estática desde GitHub Pages sin paso de transpilación ni bundle monolítico; 28 módulos ES6 nativos con compresión de imágenes en cliente (`compressImageFile`, `maxWidth: 1600px`, `quality: 0.82`) previa a subida, minimizando ancho de banda en redes 3G/4G de Cusco. |
 | **RNF-02** | Rendimiento | Latencia en Eventos Críticos S.O.S. y Notificaciones | Propagación push vía WebSockets (`Supabase Realtime` sobre WAL de PostgreSQL) con latencia sub-segundo en 6 tablas operativas, evitando *polling* periódico innecesario. |
-| **RNF-03** | Escalabilidad | Arquitectura Serverless Stateless | Frontend estático cacheable en CDN global (GitHub Pages) desacoplado de un backend PostgreSQL gestionado (Supabase) con 28 índices compuestos sobre claves foráneas, estados, distritos y rangos de fechas. |
+| **RNF-03** | Escalabilidad | Arquitectura Serverless Stateless | Frontend estático cacheable en CDN global (GitHub Pages) desacoplado de un backend PostgreSQL gestionado (Supabase) con **26 índices secundarios de rendimiento (`idx_*`)** más 23 PK y 24 UNIQUE (**73 índices B-Tree** totales) sobre claves foráneas, estados, distritos y rangos de fechas. |
 | **RNF-04** | Seguridad | Control de Acceso *Zero-Trust* con RLS Obligatorio | `ENABLE ROW LEVEL SECURITY` activo en el **100% de las 23 tablas** (`04_rls_policies.sql`). Ninguna clave privada (`service_role`) existe en el cliente; el frontend solo utiliza `SUPABASE_ANON_KEY`. |
 | **RNF-05** | Seguridad | Autenticación Robusta y Aislamiento de Sesión | Contraseñas cifradas con `bcrypt` en `auth.users` (GoTrue JWT con `autoRefreshToken: true`). Purga total de canales WebSocket (`clearAllRealtimeSubscriptions`) y singletons en memoria al ejecutar `logout()` o cambiar de cuenta (`paw:auth-changed`). |
 | **RNF-06** | Seguridad | Protección Documental con URLs Firmadas Temporales | Los buckets privados `documentos-verificacion` y `comprobantes-pago` (`public = false`) almacenan referencias `storage://<bucket>/<path>` y solo se resuelven mediante `createSignedUrl(..., 3600)` validado por RLS para el propietario, veterinaria o administrador. |
@@ -140,7 +213,7 @@ Diseñar, construir y desplegar una plataforma web SaaS integral, segura, biling
 | **RNF-09** | Disponibilidad y Resiliencia | Tolerancia a Fallos y Modo Demostración Resiliente | Disponibilidad respaldada por GitHub Pages + Supabase Cloud; manejo centralizado de errores (`handleSupabaseError`) con apagado garantizado del spinner (`try/finally`) y fallback controlado solo cuando Supabase no está configurado (sin fuga de datos demo a usuarios reales autenticados). |
 | **RNF-10** | Usabilidad y Responsividad | Adaptabilidad Multi-Dispositivo Sin Desbordamiento | Diseño fluido verificado en `360x780` (móvil), `768x900` (tablet) y `1366x800`–`1440px+` (escritorio) con `0px` de desbordamiento horizontal (`body { overflow-x: clip }`), modales flex scrollables `90dvh`, drawer móvil `< 992px` y calendario 7 días con scroll táctil. |
 | **RNF-11** | Accesibilidad | Cumplimiento de Contraste WCAG AA / AAA y ARIA | Tokens cromáticos *"Andes & Huellas Cusco"* (`css/tokens.css`) con ratio `> 7:1` (WCAG AAA) en Footer (`#0B1120`) y Banner CTA (`#1E5631`), atributos `aria-live`, `aria-invalid`, `aria-pressed`, `role="alert"` y altura táctil mínima de `44px`. |
-| **RNF-12** | Usabilidad | Validación Preventiva Uniforme y Heurísticas Nielsen 20/20 | Motor único `js/utils/validators.js` con `novalidate` en los 20 formularios, sanitización en vivo (`input`), diagnóstico bilingüe `.invalid-feedback`, foco automático al primer error y certificación `20/20` en las 10 Heurísticas de Nielsen. |
+| **RNF-12** | Usabilidad | Validación Preventiva Uniforme y Heurísticas Nielsen 20/20 | Motor único `js/utils/validators.js` con `novalidate` en los **22 formularios** reales del sistema, sanitización en vivo (`input`), diagnóstico bilingüe `.invalid-feedback`, foco automático al primer error y certificación `20/20` en las 10 Heurísticas de Nielsen. |
 | **RNF-13** | Internacionalización | Cobertura Bilingüe `ES/EN` y Conversión Monetaria | Motor `js/i18n.js` con **335 claves `ES` = 335 claves `EN`** (`0` claves huérfanas), lenguaje neutro 100% (`Cuidador`/`Propietario`), conversión `S/ PEN ↔ $ USD` y zona horaria oficial `America/Lima`. |
 | **RNF-14** | Cumplimiento Legal y Privacidad | Protección de Datos Personales y Bienestar Animal | Ocultamiento de DNI y dirección privada en el Carné QR público (`rpc_obtener_paw_id_publico`), consentimiento auditable (`aceptaciones_tyc`), derechos ARCO (Ley N.º 29733), Ley N.º 30407 y Declaración Jurada (Art. 411 CP). |
 | **RNF-15** | Auditabilidad | Bitácora Forense Inmutable Automática | Registro automático vía trigger `fn_auditar_cambio_estado()` sobre las 8 entidades críticas con instantáneas `old_record`/`new_record` en `JSONB`, inmutable para clientes (solo `SELECT` por `administrador`) y renderizado en español humano. |
@@ -177,7 +250,9 @@ Diseñar, construir y desplegar una plataforma web SaaS integral, segura, biling
 
 ### 2.5. Diagrama de Casos de Uso y Especificación Detallada
 
-#### Diagrama General de Casos de Uso (Agrupado por Subsistemas y Actores)
+#### Diagrama General de Casos de Uso (Trazabilidad Exacta `CU-01` a `CU-16` por Subsistemas y Actores)
+
+> Los **8 Casos de Uso principales (`CU-01` a `CU-08`)** destacados en el diagrama coinciden **1 a 1** en numeración y alcance con las 8 Fichas Detalladas y la Matriz de Trazabilidad (`Sección 2.7`). Los casos complementarios (`CU-09` a `CU-16`) completan la cobertura funcional total del ecosistema.
 
 ```mermaid
 flowchart LR
@@ -188,76 +263,76 @@ flowchart LR
     ADM["Administrador de Plataforma"]
 
     subgraph SUB_PUB["Subsistema Público, Acceso y Legal"]
-        UC1(["CU-01: Autenticarse y Recuperar Clave"])
-        UC2(["CU-02: Postular Cuidador / Clínica con Storage"])
-        UC3(["CU-03: Explorar Catálogo, Mapa y Perfil"])
-        UC4(["CU-04: Escanear QR PAW-ID Público"])
-        UC5(["CU-05: Consultar Ayuda FAQ y Marco Legal"])
+        CU01(["CU-01: Autenticarse, Verificar Estado y Recuperar Clave"])
+        CU02(["CU-02: Postular y Acreditar Cuidador / Clínica con Storage"])
+        CU09(["CU-09: Explorar Catálogo, Mapa Cusco y Perfil Cuidador"])
+        CU10(["CU-10: Consultar Ayuda FAQ (H10) y Marco Legal v5.2"])
     end
 
     subgraph SUB_PET["Subsistema Sanitario PAW-ID"]
-        UC6(["CU-06: Gestionar Mascotas e Imprimir PAW-ID"])
-        UC7(["CU-07: Auditar Cartilla y Dictaminar CMVP"])
+        CU03(["CU-03: Mascotas CRUD, Dictamen CMVP y QR PAW-ID Público"])
+        CU11(["CU-11: Configurar Sede Clínica Veterinaria"])
     end
 
     subgraph SUB_OPS["Subsistema de Reservas, Custodia y Finanzas"]
-        UC8(["CU-08: Cotizar y Crear Reserva (Wizard 4 Pasos)"])
-        UC9(["CU-09: Gestionar Servicios y Agenda por Bloques"])
-        UC10(["CU-10: Aceptar/Rechazar, Check-In, Muro y Check-Out"])
-        UC11(["CU-11: Cancelar Reserva, Abrir Disputa y Calificar"])
-        UC12(["CU-12: Consultar Billetera y Solicitar Retiro"])
+        CU04(["CU-04: Cotizar y Crear Reserva Anti-Overbooking (Wizard 4 Pasos)"])
+        CU05(["CU-05: Operación Servicio (Aceptar, Check-In, Muro, Check-Out y Retiro)"])
+        CU06(["CU-06: Cancelación Escalonada, Disputa y Arbitraje Admin"])
+        CU12(["CU-12: Gestionar Servicios (HU-XXX) y Agenda por Bloques 7 Días"])
+        CU13(["CU-13: Publicar Calificación 4D y Responder Reseñas"])
     end
 
     subgraph SUB_SOS["Subsistema de Emergencias S.O.S. 24h"]
-        UC13(["CU-13: Emitir Alerta S.O.S. (Custodia Activa)"])
-        UC14(["CU-14: Atender S.O.S. (Triaje, Estabilización y Alta)"])
-        UC15(["CU-15: Regularizar Cargo Clínico S.O.S."])
-        UC16(["CU-16: Reasignar Clínica y Conciliar Cobro S.O.S."])
+        CU07(["CU-07: Emergencia S.O.S. 24h, Atención Clínica y Cargo Clínico"])
+        CU14(["CU-14: Reasignar Clínica 24h de Emergencia"])
     end
 
     subgraph SUB_ADM["Subsistema de Gobernanza, Notificaciones y Auditoría"]
-        UC17(["CU-17: Acreditar Cuidadores y Clínicas / Alta Directa"])
-        UC18(["CU-18: Arbitrar Disputas y Desembolsar Liquidaciones"])
-        UC19(["CU-19: Analítica 15%, Parámetros, Temporadas y Auditoría"])
-        UC20(["CU-20: Gestionar Notificaciones Realtime Aisladas"])
+        CU08(["CU-08: Notificaciones Realtime Aisladas y Auditoría Forense"])
+        CU15(["CU-15: Analítica 15% por 8 Distritos, Parámetros y Temporadas"])
+        CU16(["CU-16: Alta Directa de Clínica y Desembolso Bancario"])
     end
 
-    VIS --> UC1
-    VIS --> UC2
-    VIS --> UC3
-    VIS --> UC4
-    VIS --> UC5
+    VIS --> CU01
+    VIS --> CU02
+    VIS --> CU03
+    VIS --> CU09
+    VIS --> CU10
 
-    PROP --> UC1
-    PROP --> UC3
-    PROP --> UC5
-    PROP --> UC6
-    PROP --> UC8
-    PROP --> UC11
-    PROP --> UC13
-    PROP --> UC15
-    PROP --> UC20
+    PROP --> CU01
+    PROP --> CU03
+    PROP --> CU04
+    PROP --> CU06
+    PROP --> CU07
+    PROP --> CU08
+    PROP --> CU09
+    PROP --> CU10
+    PROP --> CU13
 
-    CUID --> UC1
-    CUID --> UC5
-    CUID --> UC9
-    CUID --> UC10
-    CUID --> UC12
-    CUID --> UC13
-    CUID --> UC20
+    CUID --> CU01
+    CUID --> CU05
+    CUID --> CU07
+    CUID --> CU08
+    CUID --> CU10
+    CUID --> CU12
+    CUID --> CU13
 
-    VET --> UC1
-    VET --> UC5
-    VET --> UC7
-    VET --> UC14
-    VET --> UC20
+    VET --> CU01
+    VET --> CU03
+    VET --> CU07
+    VET --> CU08
+    VET --> CU10
+    VET --> CU11
 
-    ADM --> UC1
-    ADM --> UC16
-    ADM --> UC17
-    ADM --> UC18
-    ADM --> UC19
-    ADM --> UC20
+    ADM --> CU01
+    ADM --> CU02
+    ADM --> CU05
+    ADM --> CU06
+    ADM --> CU07
+    ADM --> CU08
+    ADM --> CU14
+    ADM --> CU15
+    ADM --> CU16
 ```
 
 #### Fichas Detalladas de los 8 Casos de Uso Principales
@@ -406,9 +481,28 @@ flowchart LR
 | **RN-10** | **Restricción de Muro Fotográfico a Reservas En Curso** | Las publicaciones manuales en `reportes_seguimiento` solo se admiten si la reserva está en `estado_reserva = 'en_curso'` (excepción única: reporte automático de evento `'Check-Out'` al cerrar). | `trg_validar_reporte_en_curso`, `cuidador.js` |
 | **RN-11** | **Restricción de Emisión S.O.S. del Cuidador a Custodia Activa** | Un usuario con rol `'cuidador'` solo puede invocar `rpc_emitir_sos` sobre reservas asignadas a su perfil cuyo estado sea estrictamente `'en_curso'`. | `rpc_emitir_sos` (`09_pulido_v5_2.sql`), `alerta-sos.js`, `cuidador.js` |
 | **RN-12** | **Ciclo Financiero de Cargos Clínicos S.O.S.** | Si una clínica registra `costo_atencion_ref > 0` en un caso S.O.S. con `estado_cobro_sos = 'sin_cargo'`, pasa automáticamente a `'pendiente_pago'`. El propietario solo puede regularizar si el costo es `> 0` y no está `conciliado`/`exonerado` (`→ 'reportado_propietario'`). Solo el Administrador puede marcar `'conciliado'` o `'exonerado'`. | `rpc_vet_actualizar_sos`, `rpc_propietario_regularizar_sos`, `rpc_admin_conciliar_cobro_sos` |
-| **RN-13** | **Arbitraje Contable de Disputas** | Al abrir disputa, pago y reserva pasan a `en_disputa` y la liquidación vuelve/permanece en `en_garantia`. En resolución (`0 \le p \le 100`), $\text{Reembolso} = \text{Bruto} \times p/100$, $\text{Remanente} = \text{Bruto} - \text{Reembolso}$, $\text{Plataforma} = 15\% \times \text{Remanente}$, $\text{Cuidador} = 85\% \times \text{Remanente}$. | `rpc_abrir_disputa`, `rpc_admin_resolver_caso` |
+| **RN-13** | **Arbitraje Contable de Disputas** | Al abrir disputa, pago y reserva pasan a `en_disputa` y la liquidación vuelve/permanece en `en_garantia`. En resolución ($0 \le p \le 100$), $\text{Reembolso} = \text{Bruto} \times p/100$, $\text{Remanente} = \text{Bruto} - \text{Reembolso}$, $\text{Plataforma} = 15\% \times \text{Remanente}$, $\text{Cuidador} = 85\% \times \text{Remanente}$. | `rpc_abrir_disputa`, `rpc_admin_resolver_caso` |
 | **RN-14** | **Acreditación Previa y Bloqueo de Cuentas Inactivas** | Postulantes a `cuidador` y `veterinaria` nacen con `estado_cuenta = 'pendiente'`. Ningún usuario con `estado_cuenta != 'activo'` puede mantener sesión activa ni acceder a paneles operativos. | `handle_new_auth_user()`, `auth.js` (`loginWithEmail`, `initAuthSession`), `router.js` |
-| **RN-15** | **Aislamiento Estricto de Notificaciones y Validación de Datos** | Cada usuario solo lee y actualiza sus propias notificaciones (`id_usuario_destino = auth.uid()`). Los 20 formularios aplican reglas estrictas uniformes: teléfonos Perú `^9\d{8}$` o internacional `^\+[1-9]\d{7,14}$`, `DNI` `^\d{8}$`, `RUC` `^(10\|15\|17\|20)\d{9}$`, `Yape/Plin` `^9\d{8}$`, `CCI` `^\d{20}$`, contraseña `>= 8` caracteres y aceptación explícita de TyC/Declaración Jurada. | `04_rls_policies.sql`, `09_pulido_v5_2.sql`, `js/app.js`, `js/utils/validators.js` |
+| **RN-15** | **Aislamiento Estricto de Notificaciones y Validación de Datos** | Cada usuario solo lee y actualiza sus propias notificaciones (`id_usuario_destino = auth.uid()`). Los **22 formularios** reales aplican reglas estrictas uniformes: teléfonos Perú `^9\d{8}$` o internacional `^\+[1-9]\d{7,14}$`, `DNI` `^\d{8}$`, `RUC` `^(10\|15\|17\|20)\d{9}$`, `Yape/Plin` `^9\d{8}$`, `CCI` `^\d{20}$`, contraseña `>= 8` caracteres y aceptación explícita de TyC/Declaración Jurada. | `04_rls_policies.sql`, `09_pulido_v5_2.sql`, `js/app.js`, `js/utils/validators.js` |
+
+### 2.7. Matriz de Trazabilidad Bidireccional de Requisitos (RTM — Estándar IEEE 830)
+
+Garantiza **100% de trazabilidad hacia adelante y hacia atrás** sin requisitos huérfanos entre Especificación (`RF`), Ágil (`HU`), Modelado (`CU`/`RN`), Diseño/Implementación (`Módulo JS` + `RPC/Tabla`) y Verificación (`CP`):
+
+| Subsistemas / Requisitos (`RF`) | Historia(s) (`HU`) | Caso de Uso (`CU`) | Regla(s) (`RN`) | Implementación Real (Frontend + BD/RPC) | Caso(s) Prueba (`CP`) |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `RF-01`, `RF-04`, `RF-05` (Auth, Propietario Local/Turista, Perfil) | `HU-01`, `HU-04` | `CU-01` | `RN-14`, `RN-15` | `auth.js`, `postulaciones.js`, `propietario.js`, `perfiles_usuarios`, `handle_new_auth_user()` | `CP-01`, `CP-13`, `CP-14` |
+| `RF-02`, `RF-03`, `RF-30` (Postulaciones, Storage, Acreditación y Alta Clínica) | `HU-02`, `HU-03`, `HU-21` | `CU-02`, `CU-16` | `RN-14`, `RN-15` | `postulaciones.js`, `file-uploader.js`, `administrador.js`, `rpc_admin_aprobar_cuidador/clinica`, `rpc_admin_crear_clinica_directa` | `CP-01`, `CP-13`, `CP-14` |
+| `RF-06`, `RF-07`, `RF-08`, `RF-09` (Mascotas, Carné PAW-ID, QR y Dictamen CMVP) | `HU-05`, `HU-06`, `HU-18` | `CU-03`, `CU-11` | `RN-03`, `RN-07` | `carnet-digital.js`, `paw-id-publico.js`, `veterinaria.js`, `v_resumen_mascotas`, `rpc_vet_dictaminar_ficha`, `rpc_obtener_paw_id_publico` | `CP-02`, `CP-09` |
+| `RF-10` (Catálogo, Filtros Combinados, Mapa Cusco y Perfil Scrollable) | `HU-07`, `HU-08` | `CU-09` | `RN-14` | `catalogo.js`, `mapa-cusco.js`, `landing.js`, `v_catalogo_cuidadores`, `clinicas_veterinarias` | `CP-19`, `CP-20` |
+| `RF-11`, `RF-12` (Servicios `HU-XXX` y Agenda por Bloques 7 Días) | `HU-10` | `CU-12` | `RN-05`, `RN-06` | `cuidador.js`, `calendario-agenda.js`, `servicios`, `disponibilidad_cuidadores`, `trg_disponibilidad_estado_bloque` | `CP-15`, `CP-19` |
+| `RF-13`, `RF-14`, `RF-15` (Cotización, Wizard 4 Pasos y Comprobante) | `HU-09` | `CU-04` | `RN-01`..`RN-07` | `wizard-reserva.js`, `carnet-digital.js`, `rpc_cotizar_reserva`, `rpc_crear_reserva`, `reservas`, `pagos` | `CP-03`, `CP-11`, `CP-14`, `CP-15` |
+| `RF-16`, `RF-17`, `RF-18`, `RF-19`, `RF-20` (Operación Servicio, Muro `en_curso`, Check-Out Temporal) | `HU-11`, `HU-12`, `HU-13` | `CU-05` | `RN-09`, `RN-10` | `cuidador.js`, `muro-fotos.js`, `rpc_cuidador_responder_reserva`, `rpc_cuidador_checkin/checkout`, `trg_validar_reporte_en_curso` | `CP-04`, `CP-05`, `CP-06` |
+| `RF-21`, `RF-31` (Billetera, Retiros y Desembolsos Bancarios) | `HU-14`, `HU-21` | `CU-05`, `CU-16` | `RN-01`, `RN-09`, `RN-15` | `billetera-cuidador.js`, `administrador.js`, `v_billetera_cuidador`, `rpc_solicitar_retiro`, `rpc_admin_procesar_liquidacion` | `CP-07`, `CP-11`, `CP-13` |
+| `RF-22`, `RF-23`, `RF-31` (Cancelación Escalonada, Disputas y Arbitraje) | `HU-15`, `HU-21` | `CU-06` | `RN-08`, `RN-13` | `propietario.js`, `administrador.js`, `rpc_preview_cancelacion`, `rpc_cancelar_reserva`, `rpc_abrir_disputa`, `rpc_admin_resolver_caso` | `CP-08` |
+| `RF-24` (Calificación 4D y Respuesta del Cuidador) | `HU-16` | `CU-13` | `RN-15` | `propietario.js`, `cuidador.js`, `resenas`, `rpc_publicar_resena`, `trg_resenas_reputacion` | `CP-10` |
+| `RF-25`, `RF-26`, `RF-27` (S.O.S. 24h, Custodia `en_curso`, Cobro Clínico y Reasignación) | `HU-17`, `HU-18`, `HU-19`, `HU-20` | `CU-07`, `CU-14` | `RN-11`, `RN-12` | `alerta-sos.js`, `veterinaria.js`, `administrador.js`, `rpc_emitir_sos`, `rpc_vet_actualizar_sos`, `rpc_propietario_regularizar_sos`, `rpc_admin_conciliar_cobro_sos`, `rpc_admin_reasignar_sos` | `CP-16`, `CP-17`, `CP-18` |
+| `RF-28`, `RF-29`, `RF-32` (Notificaciones Aisladas, Analítica 15%, Parámetros, Auditoría, Ayuda y Legal) | `HU-20`, `HU-22`, `HU-23`, `HU-24` | `CU-08`, `CU-10`, `CU-15` | `RN-01`, `RN-04`, `RN-15` | `app.js`, `administrador.js`, `chart-dashboard.js`, `legal-modal.js`, `help-modal.js`, `i18n.js`, `rpc_admin_dashboard_metrics`, `fn_auditar_cambio_estado()` | `CP-10`, `CP-11`, `CP-12`, `CP-20` |
 
 ---
 
@@ -782,15 +876,16 @@ stateDiagram-v2
 4. **Capa de Infraestructura, Almacenamiento y Componentes Reutilizables:**
    - `js/supabase-client.js` *(módulo cliente Supabase + capa de almacenamiento `storage`)*: Singleton `@supabase/supabase-js@2`, compresión client-side HTML5 Canvas (`compressImageFile`), subida validada (`uploadFileToStorage`), resolución de URLs firmadas `storage://` (`resolveMediaUrl`), fallbacks SVG andinos (`getFallbackSvgDataUri`) y gestión de canales Realtime (`subscribeRealtime`, `unsubscribeRealtime`, `clearAllRealtimeSubscriptions`).
    - 10 Componentes transversales (`js/components/`): `alerta-sos.js`, `billetera-cuidador.js`, `calendario-agenda.js`, `carnet-digital.js`, `chart-dashboard.js`, `file-uploader.js`, `help-modal.js`, `legal-modal.js`, `muro-fotos.js`, `wizard-reserva.js`.
-   - 3 Utilidades base (`js/utils/`): `validators.js` (motor central de validación en los 20 formularios), `formatters.js` (moneda `PEN/USD`, edad dinámica sin desfase UTC, fechas `America/Lima`, `escapeHtml`, `exportarCsv`) y `ui-helpers.js` (spinner concurrente, toasts, `showConfirmModal`, `crearModalDinamico`, `handleSupabaseError`).
+   - 3 Utilidades base (`js/utils/`): `validators.js` (motor central de validación en los **22 formularios**), `formatters.js` (moneda `PEN/USD`, edad dinámica sin desfase UTC, fechas `America/Lima`, `escapeHtml`, `exportarCsv`) y `ui-helpers.js` (spinner concurrente, toasts, `showConfirmModal`, `crearModalDinamico`, `handleSupabaseError`).
 
-#### Arquitectura Backend en 5 Capas (Supabase / PostgreSQL 15+)
+#### Arquitectura Backend en 6 Capas (Supabase / PostgreSQL 15+)
 
 1. **Capa de Autenticación y Autorización Perimetral:** Supabase Auth (`GoTrue` con JWT + `bcrypt` + flujo de recuperación por email) acoplado a **Row Level Security (RLS)** habilitado en las 23 tablas mediante funciones auxiliares `SECURITY DEFINER` (`get_my_role()`, `is_active_user()`, `get_my_cuidador_id()`, `get_my_clinica_id()`).
 2. **Capa de Lógica Transaccional en Servidor (PL/pgSQL):** 23 funciones RPC `SECURITY DEFINER` con `SET search_path = public, auth`, que encapsulan las reglas críticas financieras, anti-overbooking (`FOR UPDATE`), validaciones temporales (`America/Lima`), protocolo S.O.S. (`FOR UPDATE OF i`) y gobernanza, eliminando manipulación desde el navegador.
-3. **Capa de Persistencia Relacional:** PostgreSQL 15+ en 3FN con 23 tablas, 21 tipos `ENUM`, 10 secuencias, 28 índices de rendimiento, 6 funciones de trigger automatizadas (auditoría, reputación, sincronización auth, estado de bloques, muro `en_curso`, `updated_at`) y 3 vistas analíticas/operativas.
+3. **Capa de Persistencia Relacional:** PostgreSQL 15+ en 3FN con 23 tablas, 21 tipos `ENUM`, 10 secuencias, **26 índices secundarios explícitos (`73` índices B-Tree totales incluyendo PK y UNIQUE)**, 6 funciones de trigger automatizadas (auditoría, reputación, sincronización auth, estado de bloques, muro `en_curso`, `updated_at`) y 3 vistas analíticas/operativas.
 4. **Capa de Eventos en Tiempo Real (WebSockets):** `Supabase Realtime` sobre el *Write-Ahead Log (WAL)* de PostgreSQL con publicación `supabase_realtime` en 6 tablas (`incidencias_emergencias`, `notificaciones`, `reportes_seguimiento`, `reservas`, `liquidaciones_cuidadores`, `auditoria_estados`) y filtros a nivel de suscripción.
 5. **Capa de Almacenamiento de Objetos:** `Supabase Storage` con 6 buckets configurados con restricciones MIME/peso (`5 MB` imágenes, `10 MB` PDFs) y políticas RLS sobre `storage.objects`, empleando referencias privadas `storage://` firmadas dinámicamente.
+6. **Capa de Contrato PostgREST y Resiliencia de Consultas:** Uso obligatorio de desambiguación explícita de llaves foráneas cuando existen múltiples rutas entre dos tablas para evitar el error `PGRST201` (ej. `perfiles_usuarios!perfiles_cuidadores_id_usuario_fkey`, `perfiles_usuarios!cancelaciones_reembolsos_solicitado_por_fkey`), normalización defensiva de relaciones `1:1` que PostgREST puede serializar como objeto o arreglo (`pagos`, `resenas`: `Array.isArray(r.pagos) ? r.pagos[0] : r.pagos`) y disciplina estricta de cero *fallback* a datos demo en sesiones reales (`Array.isArray(data)`).
 
 ### 4.2. Justificación de Decisiones Arquitectónicas y Tecnológicas (ADRs)
 
@@ -803,7 +898,220 @@ stateDiagram-v2
 | **ADR-05: Comunicación en Tiempo Real** | **Supabase Realtime (WebSockets + filtros `eq.`)** | Polling HTTP periódico (`setInterval`) | Ante una emergencia médica S.O.S., la clínica 24h y el propietario requieren latencia sub-segundo. Los WebSockets filtrados por `id_usuario_destino` o `id_clinica_derivada` reducen tráfico innecesario y evitan saturar cuota de peticiones REST. |
 | **ADR-06: Enrutamiento SPA** | **Hash Routing (`#/ruta`)** | History API (`/ruta`) | GitHub Pages sirve archivos estáticos y devuelve HTTP 404 al recargar subrutas de History API sin servidor de reescritura. El enrutamiento por hash garantiza compatibilidad total con recargas, enlaces compartidos y escaneo directo de códigos QR (`#/paw-id/PAW-XXXX`). |
 
-### 4.3. Diagramas de Despliegue y de Componentes
+### 4.3. Diagrama de Clases UML (Modelo de Dominio)
+
+El siguiente **Diagrama de Clases UML** formaliza las 15 entidades núcleo del dominio de **Paw Patita Cusco v5.2**, sus atributos esenciales tipados, los métodos de negocio expuestos a través de RPCs transaccionales PL/pgSQL y sus relaciones estructurales (composición `*--`, agregación `o--` y asociación `-->`) con multiplicidades exactas:
+
+```mermaid
+classDiagram
+    direction TB
+
+    class PerfilUsuario {
+        +uuid id
+        +text codigo_usuario
+        +text nombre
+        +text apellido
+        +text email
+        +text num_documento
+        +rol_usuario_enum rol
+        +boolean es_turista
+        +text distrito_cusco
+        +estado_cuenta_enum estado_cuenta
+        +loginWithEmail()
+        +updatePassword()
+        +marcarNotificacionesLeidas()
+    }
+
+    class Mascota {
+        +uuid id
+        +text paw_id
+        +text nombre
+        +text raza
+        +date fecha_nacimiento
+        +numeric peso_kg
+        +boolean vacunas_al_dia
+        +estado_validacion_vet_enum estado_validacion_vet
+        +obtenerPawIdPublico()
+        +calcularEdadDinamica()
+    }
+
+    class ClinicaVeterinaria {
+        +uuid id
+        +text codigo_clinica
+        +text ruc
+        +text nombre
+        +text distrito_cusco
+        +text colegiatura_cmvp
+        +horario_clinica_enum horario_atencion
+        +estado_afiliacion_clinica_enum estado_afiliacion
+        +aprobarClinica()
+        +dictaminarFichaPawId()
+        +actualizarEmergenciaSos()
+    }
+
+    class ValidacionVeterinaria {
+        +uuid id
+        +estado_validacion_vet_enum resultado
+        +text vacunas_verificadas
+        +date vigencia_hasta
+        +text observaciones_medicas
+        +timestamptz created_at
+    }
+
+    class PerfilCuidador {
+        +uuid id
+        +text codigo_cuidador
+        +integer capacidad_max_mascotas
+        +boolean acepta_cachorros
+        +numeric reputacion_promedio
+        +integer total_resenas
+        +estado_postulacion_cuidador_enum estado_postulacion
+        +text cuenta_cobro_tipo
+        +aprobarCuidador()
+        +responderReserva()
+        +solicitarRetiro()
+    }
+
+    class AntecedentesCuidador {
+        +uuid id
+        +text doc_identidad_url
+        +text doc_antecedentes_policiales_url
+        +text doc_antecedentes_penales_url
+        +text doc_domicilio_url
+        +boolean declaracion_jurada
+        +estado_postulacion_cuidador_enum estado_verificacion
+    }
+
+    class Servicio {
+        +uuid id
+        +text hu_ecode
+        +text categoria
+        +text tipo_servicio
+        +numeric tarifa_diaria_por_perro
+        +boolean incluye_recojo_hotel
+        +boolean disponible
+        +cotizarReserva()
+    }
+
+    class DisponibilidadCuidador {
+        +uuid id
+        +date fecha
+        +bloque_horario_enum bloque_horario
+        +time hora_inicio
+        +time hora_fin
+        +integer cupo_maximo
+        +integer cupos_reservados
+        +estado_bloque_enum estado_bloque
+        +sincronizarEstadoBloque()
+    }
+
+    class Reserva {
+        +uuid id
+        +text codigo_reserva
+        +date fecha_inicio
+        +date fecha_fin
+        +bloque_horario_enum bloque_horario
+        +integer dias_calculados
+        +numeric monto_total
+        +estado_reserva_enum estado_reserva
+        +crearReserva()
+        +ejecutarCheckIn()
+        +ejecutarCheckOut()
+        +previewCancelacion()
+        +cancelarReserva()
+        +abrirDisputa()
+    }
+
+    class Pago {
+        +uuid id
+        +text codigo_pago
+        +metodo_pago_enum metodo_pago
+        +numeric monto_bruto
+        +numeric comision_plataforma
+        +numeric monto_neto_cuidador
+        +numeric monto_reembolsado
+        +estado_pago_enum estado_pago
+        +text num_comprobante
+    }
+
+    class LiquidacionCuidador {
+        +uuid id
+        +text codigo_liquidacion
+        +text tipo_concepto
+        +numeric monto_liquidado
+        +estado_liquidacion_enum estado_liquidacion
+        +text num_operacion_desembolso
+        +procesarLiquidacionAdmin()
+    }
+
+    class CancelacionReembolso {
+        +uuid id
+        +text codigo_cancelacion
+        +tipo_caso_cancelacion_enum tipo_caso
+        +numeric porcentaje_reembolso
+        +numeric monto_reembolso
+        +estado_tramite_cancelacion_enum estado_tramite
+        +resolverCasoAdmin()
+    }
+
+    class ReporteSeguimiento {
+        +uuid id
+        +text tipo_evento
+        +text estado_animo_mascota
+        +text nota_estado
+        +boolean visto_por_propietario
+        +validarReservaEnCurso()
+    }
+
+    class IncidenciaEmergencia {
+        +uuid id
+        +text codigo_sos
+        +nivel_severidad_sos_enum nivel_severidad
+        +estado_sos_enum estado_sos
+        +numeric costo_atencion_ref
+        +text estado_cobro_sos
+        +emitirSos()
+        +regularizarCobroSos()
+        +conciliarCobroSos()
+        +reasignarClinicaSos()
+    }
+
+    class Resena {
+        +uuid id
+        +integer calificacion_estrellas
+        +integer puntualidad_estrellas
+        +integer comunicacion_estrellas
+        +integer cuidado_estrellas
+        +text comentario
+        +publicarResena()
+        +recalcularReputacion()
+    }
+
+    PerfilUsuario "1" *-- "0..*" Mascota : posee
+    PerfilUsuario "1" *-- "0..1" PerfilCuidador : ejerce_como
+    ClinicaVeterinaria "1" o-- "0..*" PerfilUsuario : emplea_vet
+    PerfilCuidador "1" *-- "1" AntecedentesCuidador : respalda_con
+    PerfilCuidador "1" *-- "1..*" Servicio : publica
+    PerfilCuidador "1" *-- "0..*" DisponibilidadCuidador : programa
+    Mascota "1" *-- "0..*" ValidacionVeterinaria : historial_cmvp
+    ClinicaVeterinaria "1" --> "0..*" ValidacionVeterinaria : dictamina
+    PerfilUsuario "1" --> "0..*" Reserva : solicita
+    PerfilCuidador "1" --> "0..*" Reserva : atiende
+    Servicio "1" --> "0..*" Reserva : contratado_en
+    Mascota "1" --> "0..*" Reserva : custodiada_en
+    Reserva "1" *-- "1" Pago : liquida_15_85
+    Reserva "1" *-- "0..1" LiquidacionCuidador : genera_garantia
+    PerfilCuidador "1" --> "0..*" LiquidacionCuidador : recibe_en_billetera
+    Reserva "1" *-- "0..*" CancelacionReembolso : tramita
+    Reserva "1" *-- "0..*" ReporteSeguimiento : registra_muro
+    Reserva "1" o-- "0..*" IncidenciaEmergencia : activa_sos
+    Mascota "1" --> "0..*" IncidenciaEmergencia : paciente
+    ClinicaVeterinaria "1" --> "0..*" IncidenciaEmergencia : atiende_24h
+    Reserva "1" *-- "0..1" Resena : evalua
+    PerfilCuidador "1" --> "0..*" Resena : calificado_por
+```
+
+### 4.4. Diagramas de Despliegue y de Componentes
 
 #### Diagrama de Despliegue (Infraestructura de Producción)
 
@@ -885,7 +1193,7 @@ flowchart LR
     APP --> SBC
 ```
 
-### 4.4. Inventario Comentado del Código Fuente
+### 4.5. Inventario Comentado del Código Fuente
 
 > Nota: Excluye deliberadamente `legacy-gas/` y `BD-PAWPATITAS-v3.xlsx` (artefactos históricos obsoletos fuera de arquitectura v5.2).
 
@@ -906,7 +1214,7 @@ flowchart LR
 | `js/app.js` | 644 | Control (Orquestador) | Inicializa Legal/Help modals, hidrata `PEN/USD` y `ES/EN`, gestiona centro de notificaciones aislado (`syncUserNotifications`, `resetNotificationsState`) y listeners globales auth. |
 | `js/auth/auth.js` | 419 | Control (Auth) | Gestión JWT, auto-recuperación de perfil, bloqueo estricto `estado_cuenta != 'activo'`, evento `paw:auth-changed` y limpieza Realtime. Exporta `loginWithEmail`, `logout`, `initAuthSession`, `requestPasswordReset`, `updatePassword`, etc. |
 | `js/auth/postulaciones.js` | 527 | Control (Altas) | Montaje de 6 dropzones Cuidador y 2 dropzones Clínica (`initPostulacionesUploaders`), subida a Storage previa a `signUp` y alta de propietario/cuidador/clínica. |
-| `js/utils/validators.js` | 773 | Utilidad (Validación) | Motor central bilingüe conectado a los 20 formularios: 11 regex constantes, 7 sanitizadores live (`input`), 11 validadores puros, `attachFormValidation` y `validateFormNow`. |
+| `js/utils/validators.js` | 773 | Utilidad (Validación) | Motor central bilingüe conectado a los **22 formularios**: 11 regex constantes, 7 sanitizadores live (`input`), 11 validadores puros, `attachFormValidation` y `validateFormNow`. |
 | `js/utils/formatters.js` | 203 | Utilidad (Formato) | Exporta `escapeHtml`, `calcularEdadDinamica`, `formatMoneda` (`PEN/USD`), `formatFechaEs`, `getHoyIso` (`America/Lima`), `parseFechaLocal`, `sumarDiasIso`, `exportarCsv`. |
 | `js/utils/ui-helpers.js` | 294 | Utilidad (UI) | Exporta `showSpinner`/`hideSpinner` concurrente, `showToast`, `showConfirmModal`, `crearModalDinamico` y traductor humano `handleSupabaseError`. |
 | `js/public/landing.js` | 586 | Dominio Público | Renderiza portada editorial *"Andes & Huellas Cusco"*, métricas, clínicas aliadas dinámicas, temporadas, cancelaciones, testimonios y banner CTA (`renderLanding`). |
@@ -1664,6 +1972,52 @@ Centro de alertas In-App en tiempo real con aislamiento estricto por usuario (`i
 | `leida` | `boolean` | `NOT NULL`, `DEFAULT false` | Se actualiza a `true` al abrir la campanita o pulsar *"Marcar leídas"*. |
 | `created_at` | `timestamptz` | `NOT NULL`, `DEFAULT now()` | Timestamp de emisión (orden descendente, límite 20 en campanita). |
 
+#### 5.4.1. Métricas de Integridad Estructural y Catálogo Completo de los 26 Índices Secundarios (`supabase/01_schema.sql`)
+
+La auditoría física del DDL (`supabase/01_schema.sql` + parches `08`/`09`) confirma un inventario de restricciones e indexación diseñado para garantizar integridad referencial absoluta y consultas sub-segundo en todos los módulos operativos:
+
+| Métrica de Integridad / Indexación PostgreSQL | Cantidad Verificada | Fuente en Código |
+| :--- | :---: | :--- |
+| **Tablas Relacionales en 3FN (`public.*`)** | **23** | `supabase/01_schema.sql` |
+| **Restricciones `PRIMARY KEY` (Índices B-Tree automáticos)** | **23** | `supabase/01_schema.sql` |
+| **Restricciones `FOREIGN KEY` (`REFERENCES`)** | **42** | `supabase/01_schema.sql` |
+| **Restricciones `UNIQUE` (Índices B-Tree automáticos)** | **24** | `supabase/01_schema.sql` |
+| **Restricciones de Dominio `CHECK`** | **63** | `supabase/01_schema.sql` + `09_pulido_v5_2.sql` |
+| **Tipos Enumerados `ENUM` + Secuencias de Negocio** | **21 ENUM / 10 Seq** | `supabase/01_schema.sql` |
+| **Índices Secundarios Explícitos (`CREATE INDEX`)** | **26** | `supabase/01_schema.sql` (L705–L741) |
+| **Total de Índices B-Tree Activos (`PK + UNIQUE + CREATE INDEX`)** | **73** | Motor PostgreSQL 15+ |
+
+**Catálogo Completo de los 26 Índices Secundarios (`idx_*`):**
+
+| # | Nombre del Índice | Tabla Base | Columnas Indexadas | Consulta / Flujo Optimizado |
+| :---: | :--- | :--- | :--- | :--- |
+| 1 | `idx_clinicas_estado_distrito` | `clinicas_veterinarias` | `(estado_afiliacion, activa, distrito_cusco)` | Directorio público, mapa Leaflet y derivación S.O.S. por distrito. |
+| 2 | `idx_usuarios_rol_estado` | `perfiles_usuarios` | `(rol, estado_cuenta)` | Filtros administrativos de cuentas y notificaciones a administradores. |
+| 3 | `idx_usuarios_distrito` | `perfiles_usuarios` | `(distrito_cusco)` | Agregación de analítica geográfica por los 8 distritos de Cusco. |
+| 4 | `idx_usuarios_clinica` | `perfiles_usuarios` | `(id_clinica_asociada)` | Resolución rápida de médicos veterinarios por sede (`get_my_clinica_id()`, S.O.S.). |
+| 5 | `idx_mascotas_propietario` | `mascotas` | `(id_propietario, activa)` | Carga del panel *"Mis Mascotas"* y selector de mascota en Wizard. |
+| 6 | `idx_mascotas_paw_id` | `mascotas` | `(paw_id)` | Búsqueda instantánea al escanear código QR (`rpc_obtener_paw_id_publico`). |
+| 7 | `idx_mascotas_estado_vet` | `mascotas` | `(estado_validacion_vet)` | Cola de auditoría sanitaria pendiente en Panel Veterinaria. |
+| 8 | `idx_validaciones_mascota` | `validaciones_veterinarias` | `(id_mascota, created_at DESC)` | Historial clínico cronológico del carné `PAW-ID`. |
+| 9 | `idx_cuidadores_estado` | `perfiles_cuidadores` | `(estado_postulacion, reputacion_promedio DESC)` | Ordenamiento del catálogo público `v_catalogo_cuidadores` por reputación. |
+| 10 | `idx_servicios_cuidador_cat` | `servicios` | `(id_cuidador, categoria, disponible)` | Filtros combinados por categoría en catálogo y ofertas activas del cuidador. |
+| 11 | `idx_disponibilidad_fecha_bloque` | `disponibilidad_cuidadores` | `(id_cuidador, fecha, bloque_horario, estado_bloque)` | Bloqueo pesimista día por día en `rpc_crear_reserva` y renderizado mensual. |
+| 12 | `idx_disponibilidad_busqueda_fecha` | `disponibilidad_cuidadores` | `(fecha, estado_bloque)` | Búsqueda de cuidadores con cupo real en una fecha solicitada. |
+| 13 | `idx_reservas_propietario` | `reservas` | `(id_propietario, estado_reserva, created_at DESC)` | Bandeja *"Mis Reservas"* del Propietario y acceso rápido a disputas/reseñas. |
+| 14 | `idx_reservas_cuidador` | `reservas` | `(id_cuidador, estado_reserva, fecha_inicio DESC)` | Operación diaria del Cuidador (Check-In, `en_curso`, Check-Out). |
+| 15 | `idx_reservas_mascota` | `reservas` | `(id_mascota)` | Trazabilidad histórica de reservas asociadas a una mascota. |
+| 16 | `idx_reservas_fechas` | `reservas` | `(fecha_inicio, fecha_fin, estado_reserva)` | Reportes temporales y verificación de vigencia de servicios. |
+| 17 | `idx_pagos_estado` | `pagos` | `(estado_pago, fecha_pago DESC)` | Cálculo autoritativo de ingresos netos `15%` en `rpc_admin_dashboard_metrics()`. |
+| 18 | `idx_liquidaciones_cuidador_estado` | `liquidaciones_cuidadores` | `(id_cuidador, estado_liquidacion, created_at DESC)` | Conciliación de 4 saldos en `v_billetera_cuidador` y bandeja de retiros Admin. |
+| 19 | `idx_cancelaciones_reserva_estado` | `cancelaciones_reembolsos` | `(id_reserva, estado_tramite)` | Bandeja de disputas pendientes de arbitraje y trazabilidad de reembolsos. |
+| 20 | `idx_reportes_reserva_fecha` | `reportes_seguimiento` | `(id_reserva, fecha_reporte DESC)` | Línea de tiempo del Muro de Fotos en Vivo por reserva. |
+| 21 | `idx_fotos_reporte` | `fotos_reporte` | `(id_reporte, orden)` | Carga ordenada de galerías fotográficas por publicación. |
+| 22 | `idx_sos_clinica_estado` | `incidencias_emergencias` | `(id_clinica_derivada, estado_sos, fecha_incidencia DESC)` | Central de Emergencias 24h de cada clínica aliada (triaje prioritario). |
+| 23 | `idx_sos_reserva` | `incidencias_emergencias` | `(id_reserva)` | Vinculación inmediata de alertas S.O.S. con custodia activa y panel propietario. |
+| 24 | `idx_resenas_cuidador` | `resenas` | `(id_cuidador, visible, created_at DESC)` | Carga de testimonios visibles en perfil público y recálculo de reputación. |
+| 25 | `idx_auditoria_entidad_fecha` | `auditoria_estados` | `(entidad, created_at DESC)` | Filtrado de Bitácora Forense en Panel Administrador (Sección 6). |
+| 26 | `idx_notificaciones_usuario_leida` | `notificaciones` | `(id_usuario_destino, leida, created_at DESC)` | Campanita In-App filtrada por `auth.uid()` y actualización masiva `leida = true`. |
+
 ---
 
 ### 5.5. Catálogo de Lógica Programada en Base de Datos
@@ -1762,6 +2116,64 @@ Todas las funciones se ejecutan con `SECURITY DEFINER` y `SET search_path = publ
 | `documentos-verificacion` | **Privado** (`public = false`) | `10 MB` | `image/jpeg`, `image/png`, `image/webp`, `application/pdf` | `INSERT` a `authenticated` y `anon` bajo `postulaciones/%`; `SELECT` (URLs firmadas `3600s`) **solo `owner`, carpeta `auth.uid()`, `administrador` o `veterinaria`**. |
 | `comprobantes-pago` | **Privado** (`public = false`) | `10 MB` | `image/jpeg`, `image/png`, `image/webp`, `application/pdf` | `INSERT` por `authenticated`; `SELECT` (URLs firmadas) **solo `owner`, carpeta `auth.uid()`, `administrador` o `veterinaria`**. |
 
+#### 5.5.5. Consultas SQL de Verificación Operativa v5.2 (Autoritativas)
+
+Las siguientes 7 consultas están 100% alineadas con las columnas reales de `supabase/01_schema.sql` y `supabase/09_pulido_v5_2.sql` y reemplazan a las comprobaciones heredadas de v5.0 en despliegues y defensas técnicas:
+
+```sql
+-- 1. Verificar 23/23 tablas públicas con Row Level Security (RLS) activo
+SELECT COUNT(*) AS total_tablas,
+       COUNT(*) FILTER (WHERE rowsecurity) AS tablas_con_rls
+FROM pg_tables
+WHERE schemaname = 'public';
+-- Esperado: total_tablas = 23, tablas_con_rls = 23
+
+-- 2. Integridad referencial (0 huérfanos en reservas -> usuarios/cuidadores/mascotas/servicios)
+SELECT COUNT(*) AS reservas_huerfanas
+FROM public.reservas r
+LEFT JOIN public.perfiles_usuarios u ON u.id = r.id_propietario
+LEFT JOIN public.perfiles_cuidadores c ON c.id = r.id_cuidador
+LEFT JOIN public.mascotas m ON m.id = r.id_mascota
+LEFT JOIN public.servicios s ON s.id = r.id_oferta
+WHERE u.id IS NULL OR c.id IS NULL OR m.id IS NULL OR s.id IS NULL;
+-- Esperado: 0
+
+-- 3. Conciliación contable 15% / 85% en public.pagos (0 desviaciones >= S/ 0.02)
+SELECT COUNT(*) AS pagos_descuadrados,
+       COALESCE(SUM(monto_bruto) FILTER (WHERE estado_pago IN ('aprobado','reembolsado_parcial')), 0) AS gmv_aprobado,
+       COALESCE(SUM(comision_plataforma) FILTER (WHERE estado_pago IN ('aprobado','reembolsado_parcial')), 0) AS comision_15,
+       COALESCE(SUM(monto_neto_cuidador) FILTER (WHERE estado_pago IN ('aprobado','reembolsado_parcial')), 0) AS neto_85
+FROM public.pagos
+WHERE ABS((comision_plataforma + monto_neto_cuidador + monto_reembolsado) - monto_bruto) > 0.02;
+-- Esperado: pagos_descuadrados = 0
+
+-- 4. Control anti-overbooking (0 bloques con cupos_reservados > cupo_maximo)
+SELECT COUNT(*) AS bloques_con_overbooking
+FROM public.disponibilidad_cuidadores
+WHERE cupos_reservados > cupo_maximo OR cupos_reservados < 0;
+-- Esperado: 0
+
+-- 5. Trazabilidad financiera S.O.S. v5.2 (consistencia entre costo_atencion_ref y estado_cobro_sos)
+SELECT estado_cobro_sos, COUNT(*) AS casos, COALESCE(SUM(costo_atencion_ref), 0) AS total_pen
+FROM public.incidencias_emergencias
+GROUP BY estado_cobro_sos
+ORDER BY estado_cobro_sos;
+
+-- 6. Verificar aislamiento estricto de políticas RLS en public.notificaciones (v5.2)
+SELECT policyname, cmd, qual
+FROM pg_policies
+WHERE schemaname = 'public' AND tablename = 'notificaciones';
+-- Esperado: qual contiene estrictamente (id_usuario_destino = auth.uid())
+
+-- 7. Verificar publicación supabase_realtime (6 tablas habilitadas)
+SELECT tablename
+FROM pg_publication_tables
+WHERE pubname = 'supabase_realtime' AND schemaname = 'public'
+ORDER BY tablename;
+-- Esperado: auditoria_estados, incidencias_emergencias, liquidaciones_cuidadores,
+--           notificaciones, reportes_seguimiento, reservas
+```
+
 ---
 
 ## 6. Diseño de Interacción Humano-Computadora (HCI)
@@ -1810,6 +2222,104 @@ A partir de la versión v5.1 (consolidada en v5.2), se extrajeron los tokens de 
 - **Lenguaje Neutro 100% Consistente:** Auditoría grep certificando `0` apariciones visibles de *"Cuidadora"* o *"Propietaria"* en interfaz (`Cuidador`/`Propietario` en `ES`, `Caregiver`/`Owner` en `EN`), manteniendo intacto únicamente el correo literal de cuenta demo `valeria.cuidadora@pawpatitacusco.pe` para estabilidad de pruebas.
 - **Conmutador Monetario Reactivo (`S/ PEN ↔ $ USD`):** Persistido en `paw_currency` y formateado por `formatMoneda()` (`js/utils/formatters.js`), actualizando tarifas del catálogo, cotizaciones, comprobantes y KPIs de cargos clínicos S.O.S. al instante sin perder el ícono `bi-cash-stack`.
 
+#### 6.2.1. Arquitectura de Información y Mapa de Navegación SPA (`js/router.js`)
+
+```mermaid
+flowchart TD
+    ROOT["Portal SPA Paw Patita Cusco (index.html)"]
+
+    subgraph PUB["Rutas Públicas (Sin Autenticación)"]
+        R_LAND["#/ — Portada Editorial Andes & Huellas"]
+        R_CAT["#/catalogo — Catálogo 7 Filtros + Mapa Leaflet Cusco"]
+        R_LOGIN["#/login — Modales Auth (Login / Registro / Postulaciones)"]
+        R_RST["#/reset-password — Restablecimiento de Contraseña JWT"]
+        R_QR["#/paw-id/:id — Ficha Pública QR PAW-ID (Ley 29733)"]
+    end
+
+    GUARD{"Guardia de Sesión & Rol (estado_cuenta = activo)"}
+
+    subgraph PROP["#/propietario — Panel Propietario (Local / Turista)"]
+        P1["Resumen + Banner S.O.S."]
+        P2["Mis Mascotas + Carné PAW-ID QR"]
+        P3["Mis Reservas + Wizard 4 Pasos + Cancelación/Disputa/Reseña"]
+        P4["Muro de Fotos en Vivo"]
+        P5["Emergencias S.O.S. + Regularizar Cargo Clínico"]
+        P6["Mi Perfil (Local / Turista)"]
+    end
+
+    subgraph CUID["#/cuidador — Panel Cuidador Independiente"]
+        C1["Reservas (Aceptar / Check-In / Check-Out America/Lima)"]
+        C2["Agenda Mensual 7 Días + Bloques Horarios"]
+        C3["Billetera 85% + Solicitud Retiro + CSV"]
+        C4["Muro en Vivo (Solo Reservas en_curso)"]
+        C5["Emergencias S.O.S. (Solo Reservas en_curso)"]
+        C6["Mis Servicios HU-XXX + Fotos Perfil/Hogar + Reseñas"]
+    end
+
+    subgraph VET["#/veterinaria — Panel Clínica Veterinaria Aliada"]
+        V1["Central S.O.S. 24h Realtime + Badge Cobro Clínico"]
+        V2["Auditoría Sanitaria PAW-ID + Visor Img/PDF + Sello CMVP"]
+        V3["Configuración de Sede + Tarifa Emergencia"]
+    end
+
+    subgraph ADM["#/admin — Centro Ejecutivo Administrador"]
+        A1["Dashboard 15% + Chart.js 8 Distritos Cusco"]
+        A2["Acreditación Cuidadores/Clínicas + Alta Directa Sede"]
+        A3["Disputas y Arbitraje Porcentual (0-100%)"]
+        A4["Liquidaciones Bancarias Cuidadores"]
+        A5["Central Global S.O.S. + Conciliación/Exoneración + Parámetros"]
+        A6["Bitácora Forense Humana + Exportación CSV"]
+    end
+
+    MOD["Modales Globales Transversales: Ayuda FAQ (H10) | Legal v5.2 (z-index 1085) | Campanita Notifs"]
+
+    ROOT --> PUB
+    ROOT --> MOD
+    R_LOGIN --> GUARD
+    GUARD -- "rol = propietario" --> PROP
+    GUARD -- "rol = cuidador" --> CUID
+    GUARD -- "rol = veterinaria" --> VET
+    GUARD -- "rol = administrador" --> ADM
+```
+
+#### 6.2.2. Perfiles de Usuario (*User Personas* de Cusco) y Escenarios de Uso
+
+| Perfil (*User Persona*) | Contexto Demográfico en Cusco | Necesidades y Frustraciones Clave | Escenario de Uso Principal en v5.2 |
+| :--- | :--- | :--- | :--- |
+| **1. Lucía Mendoza** *(Propietaria Local — Wanchaq, 31 años, Arquitecta)* | Vive en Wanchaq con **Inti** (mestizo, `PAW-6858`). Trabaja jornadas largas en obra y viaja ocasionalmente a Lima. | Desconfía de cuidadores informales de Facebook; necesita saber en vivo cómo está Inti y tener un protocolo veterinario inmediato ante emergencias. | Consulta catálogo con mapa Leaflet, reserva *Guardería* con Wizard 4 pasos (`Yape`), revisa el Muro en Vivo desde su móvil (`360px`) y regulariza cargos clínicos S.O.S. si ocurren. |
+| **2. Martin Dupont** *(Propietario Turista — Francia, 36 años, Viajero Pet-Friendly)* | Hospedado en hotel del Centro Histórico de Cusco con su perro; tiene boleto ferroviario a **Machu Picchu** por 2 días (mascotas prohibidas por SERNANP). | Barrera idiomática, precios solo en soles, necesidad de recojo en hotel y garantía de seguridad sanitaria. | Cambia el sistema a **`EN` + `$ USD`**, filtra por *"Hotel Pickup"*, contrata *Hospedaje* (`todo_el_dia` 24h obligatorio), imprime el carné `PAW-ID` QR y recibe actualizaciones fotográficas durante su excursión. |
+| **3. Valeria Huamán** *(Cuidadora Independiente — Wanchaq, 27 años, Estudiante de Veterinaria)* | Casa con patio cercado en Wanchaq; atiende máximo 3 perros por franja para financiar sus estudios y profesionalizar su servicio. | Pérdida de ingresos por cancelaciones de último minuto, confusión de cupos en cuaderno y cobros informales sin comprobante. | Gestiona su calendario 7 días (`Lun..Dom`), realiza Check-In/Muro en `en_curso`, libera su `85%` tras Check-Out validado en `America/Lima` y solicita retiro a **Yape** exportando su reporte CSV. |
+| **4. Dra. Claudia Salazar** *(Directora Médica — Clínica San Francisco 24h, `CMVP-CUSCO-4821`)* | Dirige una clínica veterinaria de urgencias 24h en Cusco Centro aliada a la plataforma. | Recibe mascotas en emergencia sin conocer alergias ni vacunas previas, y requiere visibilidad clara de si el dueño ya pagó la atención de urgencia. | Audita cartillas PDF/Img estampando sello CMVP en `PAW-ID`, atiende alertas S.O.S. en tiempo real con diagnóstico/tratamiento/costo y visualiza en vivo el badge de cobro clínico (`Pendiente` → `Reportado` → `Conciliado`). |
+
+#### 6.2.3. Catálogo Verificado de los 22 Formularios Validados por `js/utils/validators.js`
+
+La auditoría estática del código fuente confirma exactamente **22 formularios** protegidos con `novalidate` + `attachFormValidation(...)` / `validateFormNow(...)` y sanitización en vivo (`input`):
+
+| # | ID del Formulario HTML | Módulo Fuente (`js/`) | Rol / Contexto | Reglas y Sanitizadores Live Aplicados |
+| :---: | :--- | :--- | :--- | :--- |
+| 1 | `#form-login` | `js/app.js` | Público / Auth | Email RFC válido, contraseña no vacía, botón "ojito" accesible. |
+| 2 | `#form-forgot-password` | `js/app.js` | Público / Auth | Email RFC válido antes de invocar `resetPasswordForEmail`. |
+| 3 | `#form-registro-propietario` | `js/app.js` | Público / Propietario | Nombre/apellido alfabético, email, teléfono Perú/Intl, DNI 8 dígitos / CE / Pasaporte, clave `>= 8`, **checkbox TyC obligatorio**. |
+| 4 | `#form-postular-cuidador` | `js/app.js` | Público / Cuidador | Identidad, teléfono, distrito Cusco, experiencia `0..50`, capacidad `1..10`, cuenta cobro, 4 docs Storage y **checkbox Declaración Jurada Art. 411 CP**. |
+| 5 | `#form-postular-clinica` | `js/app.js` | Público / Veterinaria | **RUC peruano 11 dígitos (`10`/`20`)**, colegiatura CMVP, email institucional, teléfono emergencia, tarifa `> 0`, constancia PDF/Img y **checkbox Declaración Jurada**. |
+| 6 | `#form-reset-password` | `js/app.js` / `js/router.js` | Público / Auth | Nueva contraseña `>= 8` caracteres y confirmación idéntica. |
+| 7 | `#form-crud-mascota` | `js/components/carnet-digital.js` | Propietario | Nombre mascota, `fecha_nacimiento <= hoy` (`America/Lima`), peso `0.5..120 kg`, carga foto y cartilla Img/PDF. |
+| 8 | `#form-wizard-paso4` | `js/components/wizard-reserva.js` | Propietario | Método pago, N.º operación (`>= 4`), últimos 4 dígitos tarjeta (sanitizador numérico), tipo comprobante y **checkbox TyC obligatorio**. |
+| 9 | `#form-perfil-propietario` | `js/roles/propietario.js` | Propietario | Nombre, teléfono Perú/Intl, distrito Cusco, hotel/Airbnb turista y contacto de emergencia. |
+| 10 | `#form-emitir-sos` | `js/components/alerta-sos.js` | Propietario / Cuidador | Severidad, tipo urgencia, descripción `>= 5` chars, clínica 24h y verificación de custodia `en_curso` (cuidador). |
+| 11 | `#form-propietario-regularizar-sos` | `js/components/alerta-sos.js` | Propietario | Método de pago S.O.S. (`Yape`/`Plin`/`Tarjeta`/`Transferencia`), N.º operación/comprobante `>= 4` chars y observación opcional. |
+| 12 | `#form-solicitar-retiro-rpc` | `js/components/billetera-cuidador.js` | Cuidador | Entidad (`Yape`/`Plin`: 9 dígitos iniciando en `9`; `CCI`: 20 dígitos; `BCP`/`Interbank`/`BBVA`: rango bancario exacto) con sanitizador numérico live. |
+| 13 | `#form-crud-servicio-cuid` | `js/roles/cuidador.js` | Cuidador | Categoría válida, título comercial, descripción, tarifa diaria `> 0` y tarifa recojo `>= 0`. |
+| 14 | `#form-publicar-muro-cuidador` | `js/roles/cuidador.js` | Cuidador | Reserva `en_curso` obligatoria, tipo de evento, ánimo, ubicación, nota descriptiva y fotos comprimidas. |
+| 15 | `#form-fotos-perfil-cuidador` | `js/roles/cuidador.js` | Cuidador | Validación MIME/peso de foto de perfil y foto de hogar anfitrión en Storage. |
+| 16 | `#form-vet-actualizar-sos` | `js/roles/veterinaria.js` | Veterinaria | Etapa S.O.S., diagnóstico obligatorio al resolver (`>= 5` chars), tratamiento y `costo_atencion_ref >= 0`. |
+| 17 | `#form-vet-dictaminar-ficha` | `js/roles/veterinaria.js` | Veterinaria | Dictamen (`validado`/`observado`), vacunas verificadas, vigencia futura y observaciones clínicas. |
+| 18 | `#form-vet-config-sede` | `js/roles/veterinaria.js` | Veterinaria | Teléfono de emergencias, horario sede, tarifa consulta `> 0`, dirección y fachada Storage. |
+| 19 | `#form-admin-crear-clinica` | `js/roles/administrador.js` | Administrador | RUC 11 dígitos, CMVP, email institucional, distrito, coordenadas Cusco y tarifa emergencia `> 0`. |
+| 20 | `#form-admin-arbitraje-rpc` | `js/roles/administrador.js` | Administrador | Acción arbitral, porcentaje reembolso entero `0..100` y resolución fundamentada `>= 5` chars. |
+| 21 | `#form-admin-conciliar-sos` | `js/roles/administrador.js` | Administrador | Acción (`conciliar` / `exonerar`) y observación administrativa obligatoria para trazabilidad contable. |
+| 22 | `#form-admin-parametros` | `js/roles/administrador.js` | Administrador | Validación numérica segura de comisión plataforma (`0..1`), tipo de cambio USD (`> 0`), tarifa baño extra y contactos oficiales. |
+
 ---
 
 ### 6.3. Matriz de Evaluación de las 10 Heurísticas de Usabilidad de Jakob Nielsen (`20 / 20`)
@@ -1821,7 +2331,7 @@ Auditoria IHC oficial trazada contra `docs/05_EVALUACION_HEURISTICAS_NIELSEN.md`
 | **H1** | **Visibilidad del estado del sistema** | Informar siempre al usuario qué está ocurriendo mediante feedback oportuno y veraz. | `1/2` | **2/2** | Campanita aislada (`js/app.js`) con limpieza inmediata del badge `#notif-badge-count` y persistencia `leida = true` al abrir o pulsar *"Marcar leídas"*; stepper clínico S.O.S. 4 etapas + badges de estado de cobro (`Pendiente`, `Reportado`, `Conciliado`, `Exonerado`) en Propietario, Veterinaria y Admin; spinner concurrente (`ui-helpers.js`) y progreso de carga Storage (`file-uploader.js`). |
 | **H2** | **Correspondencia sistema–mundo real** | Usar el lenguaje natural del usuario, convenciones locales y cero jerga interna. | `1/2` | **2/2** | Lenguaje neutro 100% (`Cuidador`/`Propietario`); **0** fugas visibles de `rpc_`, `JSONB`, `PostImg`, `GoTrue`, `old_record` o `Realtime`; traducción completa `ES/EN` (`335` claves); `PEN/USD`; terminología cusqueña real y bitácora de auditoría traducida a español humano. |
 | **H3** | **Control y libertad del usuario** | Permitir recorrer vistas sin quedar atrapado, deshacer acciones y cancelar con seguridad. | `1/2` | **2/2** | Scroll fluido (`max-height: 90dvh`, `overflow-y: auto`) en `#modal-perfil-cuidador` y todos los modales de registro/postulación manteniendo cabecera y pie fijos; scroll táctil en calendario 7 días; drawer móvil reversible; botón *"Paso Anterior"* en Wizard; *"Restablecer Filtros"* en catálogo; `showConfirmModal` antes de acciones críticas y preservación de `modal-open` al cerrar el Modal Legal sobre modales padre. |
-| **H4** | **Consistencia y estándares** | Mantener patrones visuales, de validación y nomenclatura homogéneos en toda la app. | `1/2` | **2/2** | `novalidate` y motor único **`js/utils/validators.js`** conectado a los **20 formularios** del sistema (`.is-invalid`, `.is-valid`, `.invalid-feedback d-block`); sistema de tokens `css/tokens.css` WCAG AAA; íconos Bootstrap Icons consistentes y hora oficial `America/Lima`. |
+| **H4** | **Consistencia y estándares** | Mantener patrones visuales, de validación y nomenclatura homogéneos en toda la app. | `1/2` | **2/2** | `novalidate` y motor único **`js/utils/validators.js`** conectado a los **22 formularios** del sistema (`.is-invalid`, `.is-valid`, `.invalid-feedback d-block`); sistema de tokens `css/tokens.css` WCAG AAA; íconos Bootstrap Icons consistentes y hora oficial `America/Lima`. |
 | **H5** | **Prevención de errores** | Evitar que el error ocurra antes de mostrar alertas mediante restricciones y sanitización. | `0/2` | **2/2** | Sanitizadores live (`input`) que bloquean letras en teléfonos, DNI, RUC, Yape/Plin, CCI y tarjeta 4 dígitos; regex estricto en emails/nombres; bloqueo uniforme si faltan checkboxes de TyC/Declaración Jurada; restricción doble (UI + SQL) de S.O.S. cuidador solo a `en_curso`; anti-overbooking multi-día (`FOR UPDATE`); bloqueo temporal de Check-Out y bloqueo de Muro fuera de `en_curso`. |
 | **H6** | **Reconocimiento antes que recuerdo** | Hacer visibles opciones, datos y contexto para minimizar la carga cognitiva. | `1/2` | **2/2** | Sidebars de los 4 paneles sin recortes (nombre completo, correo con `overflow-wrap: anywhere`, etiquetas completas); encabezados `Lun..Dom` siempre visibles en calendario; desglose `85%/15%` explícito en cotización; clínica, diagnóstico, tratamiento, monto y estado de cobro siempre visibles en tarjetas S.O.S. |
 | **H7** | **Flexibilidad y eficiencia de uso** | Proveer aceleradores y atajos para usuarios frecuentes sin perjudicar a novatos. | `1.5/2` | **2/2** | 4 accesos demo en 1 clic con limpieza de validación; atajo *"Marcar leídas"*; filtros reactivos combinados; menú drawer móvil rápido; exportación CSV en Billetera, Distritos y Auditoría; y enlaces directos desde Resumen hacia Regularización S.O.S. y Check-In. |
@@ -1850,7 +2360,7 @@ Auditoria IHC oficial trazada contra `docs/05_EVALUACION_HEURISTICAS_NIELSEN.md`
 | **CP-10** | Seguridad (Claves) | Ausencia de `service_role` y prevención XSS | Escaneo regex de `service_role` en `index.html`/`js/` e inyección `<script>alert(1)</script>` en notas/comentarios. | `0` exposiciones de clave privada; payload renderizado como texto literal escapado. | `0` coincidencias `service_role`; `escapeHtml()` neutraliza XSS. | ✅ PASS |
 | **CP-11** | Seguridad (RLS) | Aislamiento multitenant y protección de comisión | Autenticado como `propietario`, ejecutar consulta a `liquidaciones_cuidadores` y `auditoria_estados`, y enviar payload con comisión alterada. | RLS devuelve `[]`; `rpc_crear_reserva` ignora montos cliente y recalcula `15%` en servidor. | Aislamiento estricto comprobado en las 23 tablas. | ✅ PASS |
 | **CP-12** | Seguridad (Notifs) | Aislamiento estricto `auth.uid()` y auto-lectura | Iniciar sesión como Admin, cambiar a Propietario sin F5, abrir campanita y pulsar *"Marcar leídas"*. | Cero notificaciones ajenas; canales previos purgados (`paw:auth-changed`); `#notif-badge-count` se oculta y persiste `leida = true`. | Aislamiento RLS y limpieza inmediata del contador verificados. | ✅ PASS |
-| **CP-13** | Validación Estricta | Teléfono Perú/Internacional y Documentos (`validators.js`) | Escribir `"abc984123456"` en teléfono, `"1234"` en DNI, `"999"` en RUC y `"123"` en CCI. | Sanitización live elimina letras al teclear; `blur`/`submit` marcan `.is-invalid` con mensaje bilingüe y mueven el foco. | Los 20 formularios bloquean entradas inválidas uniformemente. | ✅ PASS |
+| **CP-13** | Validación Estricta | Teléfono Perú/Internacional y Documentos (`validators.js`) | Escribir `"abc984123456"` en teléfono, `"1234"` en DNI, `"999"` en RUC y `"123"` en CCI. | Sanitización live elimina letras al teclear; `blur`/`submit` marcan `.is-invalid` con mensaje bilingüe y mueven el foco. | Los **22 formularios** bloquean entradas inválidas uniformemente. | ✅ PASS |
 | **CP-14** | Validación Estricta | Bloqueo obligatorio de Términos y Declaración Jurada | Enviar Registro Propietario, Postulación Cuidador, Postulación Clínica y Wizard Paso 4 con checkbox desmarcado. | Impide envío, resalta `.form-check` en rojo, muestra aviso debajo del checkbox y toast claro. | Comportamiento estandarizado en los 4 formularios legales. | ✅ PASS |
 | **CP-15** | Concurrencia (BD) | Bloqueo anti-overbooking multi-día (`FOR UPDATE`) | Intentar reservar un rango de 3 días donde el Día 2 está bloqueado o con `cupos_reservados = cupo_maximo`. | UI advierte fecha exacta sin cupo; `rpc_crear_reserva` ejecuta rollback completo sin cobrar ni ocupar Día 1. | Atomicidad ACID comprobada día por día. | ✅ PASS |
 | **CP-16** | Persistencia S.O.S. | Actualización clínica S.O.S. sin error `0A000` | Desde Veterinaria, tomar S.O.S. (`en_atencion`), estabilizar y dar alta (`resuelta`) con diagnóstico y costo `S/ 120.00`, luego recargar (F5). | `rpc_vet_actualizar_sos` (`FOR UPDATE OF i`) persiste todos los campos, activa `estado_cobro_sos = 'pendiente_pago'` y sobrevive F5. | Persistencia real confirmada; cero fallback silencioso. | ✅ PASS |
@@ -1859,12 +2369,24 @@ Auditoria IHC oficial trazada contra `docs/05_EVALUACION_HEURISTICAS_NIELSEN.md`
 | **CP-19** | Responsividad & Scroll | Inspección Multi-Viewport (`360px`, `768px`, `1366px`) | Abrir Landing, Catálogo, `#modal-perfil-cuidador`, Sidebars de 4 roles y Calendario mensual en 3 viewports. | `0px` desbordamiento horizontal; scroll suave en modal perfil (`90dvh`); drawer móvil funcional; calendario 7 días `Lun..Dom` íntegro. | 0 errores consola JS y `0px` overflow en los 3 viewports. | ✅ PASS |
 | **CP-20** | i18n, Legal y Ayuda | Conmutador `ES/EN`, Modal Legal y Centro FAQ H10 | Alternar `ES → EN`, abrir Modal Legal desde un modal de registro abierto y abrir Ayuda desde los 4 sidebars. | Traduce las `335` claves simétricas; Modal Legal apila (`z-index: 1085`) sin congelar scroll padre; Help Modal abre pestaña contextual del rol. | 335/335 claves verificadas y 20/20 Heurísticas Nielsen cumplidas. | ✅ PASS |
 
-### 7.2. Auditoría Estática y Suite Automatizada de Integridad
+### 7.2. Auditoría Estática, Suite de Integridad y Alineación de Artefactos de Prueba
 
-- **Suite SQL (`tests/sql_integrity_checks.sql`, 350 líneas):** Ejecutable en Supabase SQL Editor; valida existencia de las 23 tablas canónicas, activación de RLS en el 100%, ausencia de huérfanos en llaves foráneas, exactitud de comisión `15%`, prevención de overbooking, política escalonada de reembolsos, triggers de auditoría y máquina de estados de liquidaciones.
 - **Verificación Sintáctica ES Modules:** Ejecución de `node --input-type=module --check` sobre los **28 / 28 módulos JS** con **0 errores de sintaxis**.
 - **Auditoría de Diccionario `i18n`:** Script automatizado verificando paridad exacta (`ES = 335`, `EN = 335`, `0` faltantes).
 - **Auditoría Grep Anti-Jerga y Lenguaje Neutro:** Confirmación de `0` fugas técnicas visibles en interfaz (`rpc_`, `jsonb`, `PostImg`, `GoTrue`, `old_record`, `Realtime` en badge) y `0` menciones visuales a `"Cuidadora"`/`"Propietaria"`.
+- **Auditoría de Formularios Validados:** Conteo exacto verificado contra `attachFormValidation(...)` confirmando **22 formularios** protegidos en producción (detallados en la Sección `6.2.3`).
+
+#### Auditoría de Alineación de Artefactos de Prueba Heredados (`v5.0` vs. `v5.2`)
+
+Durante la auditoría multidisciplinaria del repositorio se detectó que dos archivos auxiliares redactados durante el borrador inicial `v5.0` quedaron parcialmente desactualizados respecto al esquema y reglas vigentes en producción (`v5.2`). Se documenta esta divergencia con total transparencia para evitar confusión en la defensa académica:
+
+| Artefacto en Repositorio | Discrepancia Detectada respecto a Producción (`v5.2`) | Fuente Autoritativa Correcta en `v5.2` |
+| :--- | :--- | :--- |
+| **`tests/sql_integrity_checks.sql` (Suite 3)** | Realiza joins sobre `u.id_usuario`, `m.id_mascota`, `c.id_cuidador` y `r.id_reserva`; en `supabase/01_schema.sql` todas las llaves primarias se llaman estrictamente **`id`**. | Consultas autoritativas de la **Sección `5.5.5`** (`u.id`, `m.id`, `c.id`, `s.id`). |
+| **`tests/sql_integrity_checks.sql` (Suite 4)** | Consulta `comision_plataforma` y `monto_bruto_reserva` sobre `liquidaciones_cuidadores`; en `01_schema.sql` dichas columnas residen en **`public.pagos`** (`monto_bruto`, `comision_plataforma`, `monto_neto_cuidador`). | Consulta #3 de la **Sección `5.5.5`** sobre `public.pagos`. |
+| **`tests/sql_integrity_checks.sql` (Suite 6)** | Simula la antigua tabla borrador de cancelaciones (`>48h: 100%`, `24–48h: 50%`, `<24h: 0%`); en producción (`rpc_preview_cancelacion`, `legal-modal.js`, `help-modal.js`) rige **`>48h: 100%`, `24–48h: 70%`, `<24h: 50%`** (`RN-08`). | Regla `RN-08` y `rpc_preview_cancelacion` en `03_rpc_business.sql`. |
+| **`tests/sql_integrity_checks.sql` (Suite 8)** | Valida el valor `'retenido_disputa'` en `liquidaciones_cuidadores`; el `ENUM` real (`estado_liquidacion_enum`) usa **`'en_garantia', 'disponible', 'solicitado', 'pagado', 'rechazado', 'anulado'`**. | Catálogo `ENUM` #17 (Sección `5.3`) y máquina `EST-03`. |
+| **`tests/e2e_verification_checklist.md`** | Lista correos borrador antiguos (`owner@pawpatita.pe`, `cuidador@pawpatita.pe`, `vet@pawpatita.pe`, `admin@pawpatita.pe`). | Cuentas reales de `06_seed.sql` y `js/config.js` en la **Sección `7.4`**. |
 
 ### 7.3. Control de Versiones y Trazabilidad de Mejoras (`v5.0` → `v5.1` → `v5.2`)
 
@@ -1873,7 +2395,7 @@ Auditoria IHC oficial trazada contra `docs/05_EVALUACION_HEURISTICAS_NIELSEN.md`
 | **`v5.0`** *(Migración Base)* | `46cf0db`, `3cd0413`, `1380518` • `01_schema.sql`..`06_seed.sql` | Incompatibilidad de contratos API/BD en arquitectura anterior, comisión `15%` en `S/ 0.00`, distritos colapsados en `'Cusco'`, ausencia de transacciones ACID, Auth y tiempo real. | Migración integral a GitHub Pages (Vanilla ES Modules) + Supabase PostgreSQL 15 (23 tablas 3FN, 21 RPCs iniciales, RLS en 100%, Leaflet, QRCode, Chart.js y 4 cuentas demo activas). |
 | **`v5.0 Hotfix`** *(GoTrue & PostgREST)* | `e3a9bd0` • `07_fix_auth_and_audit.sql` | Error HTTP 500 `Database error querying schema` en GoTrue v2 por tokens `NULL` en `auth.users` seed y falta de `auth.identities`; ambigüedad FK `PGRST201` en joins de `perfiles_usuarios`. | Reemplazo idempotente de tokens `NULL` por `''` y sincronización de `auth.identities`; desambiguación explícita `!fkey` en PostgREST; botón accesible "ojito" en todos los campos de contraseña. |
 | **`v5.1`** *("Andes & Huellas Cusco")* | `28d335f` • `08_pulido_v5_1.sql` | 1) Error fatal PostgreSQL `0A000` (`FOR UPDATE` sobre `LEFT JOIN`) rompía el 100% de `rpc_vet_actualizar_sos` ocultado por *error-swallowing*.<br>2) `PostImg` devolvía imagen rota con HTTP 200 y buckets privados devolvían URL pública rota.<br>3) Contraste deficiente en Footer/CTA (`.text-muted` y especificidad `h1..h6`).<br>4) Enlaces legales muertos; cupones innecesarios; Check-Out anticipado permitido; Muro aceptaba reservas cerradas; `exportarCsv` con argumentos invertidos; fuga de datos demo (`data.length > 0`). | 1) `FOR UPDATE OF i` en `rpc_vet_actualizar_sos`, fin del tragueo de errores y `supabase_realtime` en 6 tablas.<br>2) `file-uploader.js` + `compressImageFile` + `storage://` firmadas + PDF `10 MB` + purga total `PostImg`.<br>3) `css/tokens.css` WCAG AAA + `legal-modal.js` + `i18n.js` inicial.<br>4) Validación horaria `America/Lima` en Check-Out, `todo_el_dia` obligatorio en Hospedaje, trigger `trg_validar_reporte_en_curso`, inhabilitación de cupones, corrección `Array.isArray(data)` y Bitácora humana sin JSON crudo. |
-| **`v5.2`** *(Calidad Comercial & IHC 20/20)* | `081d21a` • `09_pulido_v5_2.sql` | 1) Scroll bloqueado en `#modal-perfil-cuidador` y modales auth altos; sidebars truncando nombres/emails; calendario mensual recortado sin scroll horizontal.<br>2) Notificaciones cruzadas por RLS permisivo en Admin y badge rojo sin auto-limpieza.<br>3) Cuidador podía emitir S.O.S. sobre reservas finalizadas.<br>4) Sin trazabilidad financiera de cargos clínicos S.O.S.<br>5) Sin motor único de validación de campos, `ES/EN` incompleto en vistas públicas y sin centro FAQ (H10). | 1) Modales flex `90dvh`, sidebars sin recortes + drawer móvil `< 992px`, calendario 7 días `.agenda-calendar-matrix` (`810px`) con scroll táctil y `0px` overflow.<br>2) RLS `notificaciones` estricto a `id_usuario_destino = auth.uid()`, purga Realtime en `paw:auth-changed` y auto-lectura (`leida = true`).<br>3) Restricción UI+SQL `en_curso` en `rpc_emitir_sos`.<br>4) Columnas de cobro S.O.S. + `rpc_propietario_regularizar_sos` + `rpc_admin_conciliar_cobro_sos` (23 RPCs totales).<br>5) `validators.js` en 20 formularios, `335` claves `ES/EN`, lenguaje neutro 100% y `help-modal.js` (certificación Nielsen **`20/20`**). |
+| **`v5.2`** *(Calidad Comercial & IHC 20/20)* | `081d21a` • `09_pulido_v5_2.sql` | 1) Scroll bloqueado en `#modal-perfil-cuidador` y modales auth altos; sidebars truncando nombres/emails; calendario mensual recortado sin scroll horizontal.<br>2) Notificaciones cruzadas por RLS permisivo en Admin y badge rojo sin auto-limpieza.<br>3) Cuidador podía emitir S.O.S. sobre reservas finalizadas.<br>4) Sin trazabilidad financiera de cargos clínicos S.O.S.<br>5) Sin motor único de validación de campos, `ES/EN` incompleto en vistas públicas y sin centro FAQ (H10). | 1) Modales flex `90dvh`, sidebars sin recortes + drawer móvil `< 992px`, calendario 7 días `.agenda-calendar-matrix` (`810px`) con scroll táctil y `0px` overflow.<br>2) RLS `notificaciones` estricto a `id_usuario_destino = auth.uid()`, purga Realtime en `paw:auth-changed` y auto-lectura (`leida = true`).<br>3) Restricción UI+SQL `en_curso` en `rpc_emitir_sos`.<br>4) Columnas de cobro S.O.S. + `rpc_propietario_regularizar_sos` + `rpc_admin_conciliar_cobro_sos` (23 RPCs totales).<br>5) `validators.js` en **22 formularios**, `335` claves `ES/EN`, lenguaje neutro 100% y `help-modal.js` (certificación Nielsen **`20/20`**). |
 
 ### 7.4. Manual Rápido de Despliegue y Credenciales de Prueba
 
@@ -1888,7 +2410,7 @@ Auditoria IHC oficial trazada contra `docs/05_EVALUACION_HEURISTICAS_NIELSEN.md`
 | :--- | :---: | :--- |
 | **Instalación Nueva (Desde Cero)** | `1° → 9°` | 1. `01_schema.sql` → 2. `02_functions_triggers.sql` → 3. `03_rpc_business.sql` → 4. `04_rls_policies.sql` → 5. `05_storage_buckets.sql` → 6. `06_seed.sql` → 7. `07_fix_auth_and_audit.sql` *(opcional si el seed ya aplicó tokens `''`, recomendado por `GRANT`)* → 8. `08_pulido_v5_1.sql` → 9. **`09_pulido_v5_2.sql`**. |
 | **Actualización desde v5.1 en Producción** | Único script idempotente | Ejecutar únicamente **`supabase/09_pulido_v5_2.sql`** (preserva el 100% de datos; añade columnas/RPCs de cobro S.O.S., endurece `rpc_emitir_sos` para cuidadores y aísla RLS de `public.notificaciones`). |
-| **Verificación Post-Despliegue** | Suite de integridad | Ejecutar **`tests/sql_integrity_checks.sql`** y comprobar `PASS` en todas las suites. |
+| **Verificación Post-Despliegue (`v5.2`)** | Consultas Autoritativas | Ejecutar las **7 consultas SQL verificadas de la Sección `5.5.5`** *(recomendado sobre el script heredado `tests/sql_integrity_checks.sql`, ver nota de alineación en `7.2`)*. |
 
 #### Configuración de Supabase Auth, Credenciales y Ejecución Local
 1. **Authentication → URL Configuration (Supabase Dashboard):**
@@ -1915,3 +2437,114 @@ Disponibles con botones de **Acceso Rápido en 1 Clic** dentro de `#modal-login`
 | **Administrador de Plataforma** | Rodrigo Quispe Monzón *(Cusco Centro)* | `admin@pawpatitacusco.pe` | `PawPatita2026!` | `activo` | Panel Ejecutivo `15%` y Chart.js por los 8 distritos, acreditación con URLs firmadas, alta directa clínica, arbitraje `0%–100%`, liquidaciones bancarias, **Conciliación/Exoneración S.O.S.** y Bitácora humana. |
 
 *(Cuentas adicionales en semilla `06_seed.sql` con clave `PawPatita2026!` para pruebas complementarias: `martin.dupont@france.fr` [Propietario Turista activo, `es_turista = true`, Francia] y `postulacion@sacsayhuamanvet.pe` [Clínica Veterinaria `VET-005` en estado `pendiente` para validar el bloqueo automático de login]).*
+
+
+---
+
+## 8. Cumplimiento Normativo y Marco Legal Peruano
+
+Dado que **Paw Patita Cusco v5.2** procesa datos personales de ciudadanos peruanos y extranjeros, documentos oficiales de identidad y antecedentes penales/policiales, historial clínico de mascotas y transacciones de intermediación en la provincia del Cusco, la plataforma integra controles jurídicos y técnicos trazables directamente al ordenamiento peruano vigente (formalizados en `js/components/legal-modal.js` v5.2, `public.terminos_condiciones`, `public.aceptaciones_tyc` y `supabase/04_rls_policies.sql`).
+
+### 8.1. Ley N.º 29733 (Protección de Datos Personales) y Reglamento D.S. N.º 003-2013-JUS
+
+#### Matriz de Cumplimiento de Principios Rectores vs. Controles Técnicos en `v5.2`
+
+| Principio (Ley N.º 29733) | Obligación Normativa | Control Técnico y Contractual Implementado en `v5.2` |
+| :--- | :--- | :--- |
+| **Legalidad (Art. 4)** | Recopilación lícita y prohibición de medios fraudulentos. | Formularios explícitos con validación previa (`validators.js`) y registro auditable en `public.aceptaciones_tyc` con versión (`v5.2`), contexto y `fecha_aceptacion`. |
+| **Consentimiento (Art. 5)** | Consentimiento previo, informado, expreso e inequívoco del titular. | Checkboxes obligatorios (sin pre-marcado oculto) con enlace directo al Modal Legal bilingüe (`legal-modal.js`, `z-index: 1085`) en Registro Propietario, Postulación Cuidador, Postulación Clínica y Wizard Paso 4; bloqueo estricto si falta aceptación (`CP-14`). |
+| **Finalidad (Art. 6)** | Uso exclusivo para los fines determinados y lícitos comunicados. | Cláusula de Privacidad v5.2 limita el uso a identidad, verificación de cuidadores/clínicas, reservas, pagos en garantía y atención de emergencias S.O.S., sin venta de datos a terceros. |
+| **Proporcionalidad y Minimización (Art. 7)** | Recopilar y exhibir solo los datos estrictamente necesarios. | **Privacidad por Diseño en QR `PAW-ID` (`rpc_obtener_paw_id_publico`):** al escanear el código público **NUNCA** se expone `DNI`, `CE`, `Pasaporte`, correo ni dirección exacta del dueño; únicamente datos clínicos de emergencia, sello CMVP, distrito referencial y canales voluntarios WhatsApp/llamada. |
+| **Geolocalización No Invasiva** | Evitar vigilancia continua desproporcionada. | La plataforma **NO** realiza rastreo GPS en segundo plano; el permiso `navigator.geolocation` se solicita exclusivamente de forma puntual para filtrar el mapa de Cusco y reportar ubicación exacta en alertas S.O.S. |
+| **Calidad (Art. 8)** | Datos veraces, exactos y actualizados. | Validadores estrictos de DNI (8 dígitos), RUC (11 dígitos), teléfono, correo y edad dinámica calculada desde `fecha_nacimiento` sin envejecimiento manual; edición de perfil habilitada en Panel Propietario y Sede Clínica. |
+| **Seguridad (Art. 9)** | Medidas técnicas, organizativas y legales contra pérdida o acceso no autorizado. | Cifrado TLS/HTTPS en tránsito, hash `bcrypt` + JWT en GoTrue, **Row Level Security (RLS) en las 23 tablas**, aislamiento estricto de `public.notificaciones` por `auth.uid()`, buckets privados (`documentos-verificacion`, `comprobantes-pago`) con **URLs firmadas temporales (`3600s`)** y bitácora inmutable `auditoria_estados`. |
+| **Derechos ARCO (Arts. 18–27)** | Acceso, Rectificación, Cancelación y Oposición del titular. | Canal formal publicado en `legal-modal.js`: **`privacidad@pawpatitacusco.pe`** con compromiso de atención en un plazo máximo de **10 días hábiles** conforme al D.S. N.º 003-2013-JUS. |
+
+#### Clasificación de Datos Tratados y Hoja de Ruta ante la ANPD
+- **Datos Identificativos y de Contacto:** Nombres, apellidos, `tipo_documento` (`DNI`/`CE`/`Pasaporte`), `num_documento`, correo, teléfono, distrito de Cusco, hotel/Airbnb (turistas) y contacto de emergencia.
+- **Datos Sensibles y Documentación de Alto Riesgo:** Certificados de Antecedentes Policiales (PNP), Antecedentes Penales (PJ), copia de DNI y comprobante domiciliario de cuidadores (`antecedentes_cuidadores` + bucket privado `documentos-verificacion`), accesibles exclusivamente por el titular y administradores autenticados mediante URL firmada temporal.
+- **Acción Obligatoria Pre-Lanzamiento Comercial (ANPD — MINJUSDH):** Inscribir formalmente los bancos de datos personales (*Clientes Propietarios*, *Cuidadores Independientes* y *Clínicas Aliadas*) ante el **Registro Nacional de Protección de Datos Personales** de la Autoridad Nacional de Protección de Datos Personales y declarar el flujo transfronterizo de datos hacia la infraestructura en la nube de Supabase Cloud (AWS).
+
+---
+
+### 8.2. Ley N.º 30407 (Protección y Bienestar Animal) y Artículo 206-A del Código Penal
+
+La operación de **Paw Patita Cusco** se alinea con la **Ley N.º 30407** (*Ley de Protección y Bienestar Animal*) y el **Artículo 206-A del Código Penal Peruano** (delito de abandono y actos de crueldad contra animales domésticos):
+
+1. **Verificación Preventiva de Idoneidad:** Ningún cuidador puede recibir reservas ni aparecer en `v_catalogo_cuidadores` sin haber presentado declaración jurada explícita de no registrar denuncias ni sentencias por maltrato animal (`antecedentes_cuidadores.declaracion_jurada = true`) y superar la auditoría administrativa.
+2. **Certificación Sanitaria Obligatoria (`PAW-ID` + CMVP):** Previene contagios zoonóticos y brotes en custodia grupal exigiendo vacunación vigente (Séxtuple/Óctuple y Antirrábica) auditada por médicos veterinarios colegiados en el **CMVP Cusco**; una mascota dictaminada como `'observado'` queda bloqueada automáticamente en `rpc_crear_reserva`.
+3. **Control de Hacinamiento y Capacidad Máxima:** El límite físico `capacidad_max_mascotas` (`1..10`) y el control anti-overbooking `FOR UPDATE` garantizan condiciones dignas de espacio y atención por perro.
+4. **Trazabilidad Probatoria del Bienestar:** El protocolo obligatorio de **Check-In / Check-Out** con checklist estructurado (`jsonb`), el **Muro de Fotos en Vivo** restringido a reservas `en_curso` (`trg_validar_reporte_en_curso`) y la **Central S.O.S. 24h** con diagnóstico/tratamiento clínico registrado por un veterinario colegiado conforman un acervo probatorio auditable ante cualquier incidente de bienestar animal.
+
+---
+
+### 8.3. Artículo 411 del Código Penal Peruano (Declaración Jurada Vinculante)
+
+En el módulo de postulaciones (`js/auth/postulaciones.js` y pestaña 3 de `js/components/legal-modal.js`), tanto cuidadores independientes como clínicas veterinarias suscriben una **Declaración Jurada vinculante bajo responsabilidad penal (Art. 411 del Código Penal — Falsa declaración en procedimiento administrativo)**:
+
+- **Cuidadores Independientes:** Declaran veracidad e integridad de los 4 documentos adjuntos (DNI/CE, Antecedentes Policiales PNP, Antecedentes Penales PJ y Recibo de Domicilio), ausencia de antecedentes por maltrato animal (Ley N.º 30407 / Art. 206-A CP) y condiciones higiénicas y de seguridad física del inmueble anfitrión.
+- **Clínicas Veterinarias Aliadas:** Declaran contar con **RUC Activo y Habido ante SUNAT**, colegiatura **CMVP vigente y habilitada** del director médico responsable, cadena de frío operativa para vacunas y equipamiento mínimo para atención de urgencias 24h/extendidas.
+- **Sanciones Contractuales y Legales Estipuladas:** La detección de documentación adulterada o falsa conlleva la **baja inmediata y permanente de la cuenta** (`estado_cuenta = 'suspendido'` / `'rechazado'`), cancelación de servicios sin derecho a indemnización y reserva del derecho de formular la denuncia correspondiente ante el Ministerio Público.
+
+---
+
+### 8.4. Protección al Consumidor (Ley N.º 29571 — INDECOPI) y Marco Tributario/Profesional
+
+- **Transparencia Tarifaria e Información Relevante (Ley N.º 29571):**
+  - El cliente visualiza en el Wizard Paso 3 el desglose exacto antes de pagar: tarifa diaria, días inclusivos, recargo estacional cusqueño aplicable, recargo cachorro `10%`, extras, comisión `15%`, neto cuidador `85%`, total en `PEN` y equivalente en `USD`, sin cupones engañosos ni cargos ocultos (`RN-04`).
+  - Antes de cancelar una reserva, `rpc_preview_cancelacion` muestra el cálculo exacto en soles del tramo escalonado (`>48h: 100%`, `24–48h: 70%`, `<24h: 50%`) para que el consumidor decida con información veraz.
+  - Ante disconformidad, el módulo de **Disputas y Arbitraje Porcentual (`0%–100%`)** provee un canal formal de reclamo con congelamiento preventivo de fondos en garantía y trazabilidad inmutable.
+- **Requisitos Regulatorios Pre-Operación Comercial Plena en Perú:**
+  1. Incorporar el **Libro de Reclamaciones Virtual** conforme al D.S. N.º 011-2011-PCM (INDECOPI) enlazado en el Footer institucional.
+  2. Integrar emisión de comprobantes electrónicos validados vía **OSE / SUNAT** (reemplazando la numeración referencial `B001-...` actual) para facturar formalmente la comisión de intermediación del `15%` afecta a IGV (`18%`), manteniendo a los cuidadores independientes como prestadores de servicios con Recibo por Honorarios (Renta de 4.ª Categoría) o RUC propio.
+  3. Formalizar convenios firmados con las clínicas veterinarias aliadas de Cusco validando periódicamente la habilitación activa en el padrón oficial del **CMVP Consejo Departamental Cusco**.
+
+---
+
+## 9. Gestión de Riesgos, Limitaciones Actuales y Hoja de Ruta Futura
+
+### 9.1. Matriz de Gestión de Riesgos y Plan de Mitigación (`RSK-01` a `RSK-12`)
+
+Evaluación cuantitativa (*Probabilidad × Impacto* en escala **Baja / Media / Alta / Crítica**) integrando las perspectivas técnica, operativa, legal y de negocio en Cusco:
+
+| ID | Categoría | Riesgo Identificado | Prob. | Impacto | Severidad | Controles Existentes en `v5.2` | Plan de Mitigación y Contingencia |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| **RSK-01** | **Seguridad Backend** | Invocación directa de RPCs `SECURITY DEFINER` heredadas de v5.0 (`03_rpc_business.sql`) por un usuario autenticado fuera de su rol mediante cliente API/DevTools. | Media | Crítico | **Alta** | Las RPCs críticas v5.1/v5.2 (`rpc_emitir_sos`, `rpc_vet_actualizar_sos`, `rpc_propietario_regularizar_sos`, `rpc_admin_conciliar_cobro_sos`) ya validan `get_my_role()` y propiedad; UI aplica guardias por rol. | **Prioridad 1 en `v5.3`:** Agregar aserciones explícitas `IF public.get_my_role() <> 'administrador'` y validación de titularidad (`auth.uid()`) al inicio de las 12 RPCs administrativas y operativas de `03_rpc_business.sql` + pruebas negativas automatizadas con JWT de cada rol. |
+| **RSK-02** | **Financiero / Fraude** | Ingreso de códigos de operación falsos o duplicados en pagos manuales (`Yape`/`Plin`/`Transferencia`) o regularización S.O.S. al no existir cobro bancario automático. | Media | Alto | **Alta** | Validación de formato en `validators.js`, retención en garantía (`en_garantia`), revisión administrativa en liquidaciones y conciliación manual S.O.S. por Admin. | Incorporar pasarela PCI-DSS peruana (**Culqi / Niubiz / Izipay**) con *webhooks* firmados en `v5.5`; mientras opere conciliación manual, exigir adjunto obligatorio de comprobante en bucket privado `comprobantes-pago` y restricción `UNIQUE` sobre `(metodo_pago, num_operacion)`. |
+| **RSK-03** | **Clínico / S.O.S.** | Demora de respuesta de una clínica veterinaria 24h ante una emergencia crítica (ej. mal de altura agudo o intoxicación en Cusco a `3,399 m s. n. m.`). | Baja | Crítico | **Alta** | Push sub-segundo vía `Supabase Realtime`, auto-asignación de clínica 24h activa, botón directo de llamada telefónica en tarjeta S.O.S. y reasignación inmediata por Admin (`rpc_admin_reasignar_sos`). | Definir SLA contractual de respuesta `< 5 min` con clínicas aliadas; agregar escalamiento automático por temporizador (Edge Function + SMS/WhatsApp API) si una alerta `critica` permanece en `emitida` más de 5 minutos sin ser tomada. |
+| **RSK-04** | **Concurrencia BD** | Sobrerreserva (*overbooking*) en fechas de pico turístico de Cusco (Inti Raymi, Fiestas Patrias, Año Nuevo) cuando dos dueños reservan el último cupo simultáneamente. | Media | Alto | **Alta** | Bloqueo pesimista `SELECT ... FOR UPDATE` día por día dentro de `rpc_crear_reserva` + restricción `CHECK (cupos_reservados <= cupo_maximo)` + rollback ACID completo. | Mantener pruebas de carga concurrentes sobre `rpc_crear_reserva` y monitorear tiempos de espera de *locks* en Supabase Dashboard durante junio–agosto. |
+| **RSK-05** | **Privacidad (Ley 29733)** | Consulta ampliada sobre `public.perfiles_usuarios` desde cualquier sesión autenticada debido a la política `usuarios_select_authenticated_o_cuidadores` usada por joins de PostgREST. | Media | Alto | **Media-Alta** | `anon` no accede a clientes; `antecedentes_cuidadores`, `notificaciones` y buckets privados están estrictamente aislados; QR público usa RPC segura sin DNI ni dirección. | En `v5.3`, restringir `SELECT` de `perfiles_usuarios` únicamente a `id = auth.uid()` o `administrador`, exponiendo nombre/distrito/avatar para joins mediante una vista de proyección mínima `v_perfiles_publicos` sin `num_documento`, `direccion` ni `email`. |
+| **RSK-06** | **Conectividad Cusco** | Caídas intermitentes de señal móvil 3G/4G en zonas periféricas (Saylla, Poroy, Valle Sagrado) durante Check-In, subida de fotos del Muro o emisión S.O.S. | Alta | Medio | **Media-Alta** | Arquitectura *zero-build* ligera sin bundles pesados, compresión de imágenes en Canvas antes de subir (`compressImageFile`) y fallback telefónico directo visible. | Implementar *Service Worker* PWA con caché de activos estáticos y cola local diferida (*offline queue*) para borradores del Muro y visualización sin conexión del Carné `PAW-ID`. |
+| **RSK-07** | **Infraestructura Cloud** | Agotamiento de cuotas del plan gratuito de Supabase (`500 MB` BD, `1 GB` Storage, `200` conexiones Realtime concurrentes) al crecer la adopción. | Media | Medio | **Media** | Compresión client-side de imágenes, limpieza activa de canales WebSocket al cerrar sesión (`clearAllRealtimeSubscriptions`) y límites de peso por bucket (`5–10 MB`). | Planificar migración presupuestada a **Supabase Pro** (`\$25 USD/mes`, cubierto con apenas `5` reservas de hospedaje/mes según el *Breakeven* de la Sección `1.5.3`) al superar el `70%` de uso. |
+| **RSK-08** | **Calidad / QA** | Falsos fallos o confusión en auditorías por desfase entre `tests/sql_integrity_checks.sql` (borrador v5.0) y el esquema vigente v5.2. | Media | Bajo | **Baja-Media** | Discrepancias auditadas y documentadas en Sección `7.2`; consultas SQL autoritativas v5.2 provistas en Sección `5.5.5`. | Actualizar `tests/sql_integrity_checks.sql` y `tests/e2e_verification_checklist.md` en `v5.3` e integrar un pipeline CI en GitHub Actions (`node --check` + Playwright E2E). |
+| **RSK-09** | **Legal / Civil** | Presentación de documentos PNP/PJ falsificados o accidente físico de una mascota durante el paseo/hospedaje. | Baja | Crítico | **Media-Alta** | Revisión humana de 4 documentos firmados, Declaración Jurada Art. 411 CP, trazabilidad Muro en Vivo, Central S.O.S. 24h y limitación de intermediación tecnológica en TyC v5.2. | En `v5.5`, integrar consulta API automatizada de RENIEC/SUNAT y ofrecer un micro-seguro opcional de responsabilidad civil y cobertura veterinaria incluido en la tarifa. |
+| **RSK-10** | **Dependencias Externas** | Caída temporal de CDNs de terceros (`jsdelivr`, `unpkg`, tiles de OpenStreetMap) impidiendo cargar Bootstrap, Leaflet o Chart.js. | Baja | Medio | **Baja-Media** | Librerías servidas por CDNs globales de alta disponibilidad; manejo defensivo en módulos JS si una librería gráfica demora. | Alojar copias locales versionadas (*self-hosted fallback* en `/vendor/`) con atributos SRI (*Subresource Integrity*) para operación resiliente. |
+| **RSK-11** | **Lógica Temporal** | Definición de una futura temporada tarifaria que cruce fin de año (ej. `12-20` a `01-05`) en un solo registro de `temporadas_tarifas`, lo cual fallaría con `BETWEEN`. | Baja | Bajo | **Baja** | Actualmente las semillas separan limpiamente `12-20..12-31` y `01-05..02-28`, funcionando al 100%. | Generalizar en `rpc_cotizar_reserva` (`v5.3`) la condición para admitir rangos envolventes cuando `mes_dia_inicio > mes_dia_fin` (`v_mes_dia >= inicio OR v_mes_dia <= fin`). |
+| **RSK-12** | **Adopción / IHC** | Dificultad de uso en cuidadores con baja alfabetización digital o confusión de turistas extranjeros con reglas de cancelación/S.O.S. | Media | Medio | **Media** | Certificación **20/20 en Heurísticas de Nielsen**, Centro de Ayuda FAQ contextual bilingüe (`help-modal.js`), interfaz `ES/EN` simétrica (`335` claves) y validadores instructivos (`validators.js`). | Incorporar onboarding interactivo guiado de 3 pasos para nuevos cuidadores aprobados y micro-videos tutoriales en el Centro de Ayuda. |
+
+---
+
+### 9.2. Limitaciones Actuales y Deuda Técnica Auditada con Transparencia
+
+Como resultado de la auditoría integral sobre el código de producción (`v5.2`), se registran explícitamente **seis limitaciones y partidas de deuda técnica** que no bloquean la operación académica ni el piloto controlado, pero constituyen requisitos prioritarios antes del escalamiento comercial masivo:
+
+1. **Endurecimiento de Guardias de Rol dentro de RPCs `SECURITY DEFINER` de v5.0:** Mientras las RPCs añadidas/parchadas en v5.1–v5.2 (`rpc_emitir_sos`, `rpc_vet_actualizar_sos`, `rpc_propietario_regularizar_sos`, `rpc_admin_conciliar_cobro_sos`) validan explícitamente `public.get_my_role()` y propiedad dentro del cuerpo PL/pgSQL, doce procedimientos creados en `supabase/03_rpc_business.sql` (`rpc_admin_aprobar_cuidador`, `rpc_admin_aprobar_clinica`, `rpc_admin_crear_clinica_directa`, `rpc_admin_resolver_caso`, `rpc_admin_procesar_liquidacion`, `rpc_admin_reasignar_sos`, `rpc_cuidador_responder_reserva`, `rpc_cuidador_checkin`, `rpc_cuidador_checkout`, `rpc_cancelar_reserva`, `rpc_abrir_disputa`, `rpc_publicar_resena`) dependen de `GRANT EXECUTE TO authenticated` + guardias de UI. Deben incorporar validación server-side explícita en `v5.3` (`RSK-01`).
+2. **Minimización por Columnas en `public.perfiles_usuarios`:** La política `usuarios_select_authenticated_o_cuidadores` permite `SELECT` autenticado sobre la tabla para resolver joins de PostgREST en los 4 paneles; en `v5.3` conviene migrar los joins de terceros a una vista de columnas públicas no sensibles (`RSK-05`).
+3. **Ausencia de Pasarela de Pagos PCI-DSS y Facturación OSE/SUNAT en Vivo:** Los cobros (`Yape`, `Plin`, `Tarjeta` últimos 4 dígitos, `Transferencia`) y la regularización de cargos clínicos S.O.S. operan con registro de número de operación y conciliación administrativa manual; los comprobantes `B001-...` son referenciales imprimibles sin conexión API hacia SUNAT.
+4. **Desfase de Artefactos de Prueba Heredados de v5.0:** Como se detalló en la Sección `7.2`, `tests/sql_integrity_checks.sql` conserva nombres de columnas y escala de cancelación del borrador v5.0, y `tests/e2e_verification_checklist.md` conserva correos demo preliminares; ambos deben sincronizarse con las consultas autoritativas de la Sección `5.5.5` y cuentas de la Sección `7.4`.
+5. **Inconsistencias Menores de Versión y Estacionalidad:** `rpc_crear_reserva` registra `'v5.1-RESERVA'` en `aceptaciones_tyc.codigo_version` mientras `js/config.js` declara `TYC_VERSION: '5.2'`; asimismo, `rpc_cotizar_reserva` requiere definir temporadas de cambio de año en dos filas separadas (`RSK-11`).
+6. **Alcance Mono-Especie (Caninos) y Sin Notificaciones Push Nativas:** El esquema sanitario (`mascotas`), vacunas verificadas y tarifas se orientan exclusivamente a perros en los 8 distritos de Cusco, y las alertas en tiempo real operan dentro del navegador abierto (sin Web Push ni SMS/WhatsApp automatizado cuando la pestaña está cerrada).
+
+---
+
+### 9.3. Trabajo Futuro y Hoja de Ruta Evolutiva (`v5.3` → `v5.5` → `v6.0`)
+
+| Fase / Versión | Horizonte Estimado | Eje Estratégico | Entregables Técnicos y de Negocio |
+| :---: | :---: | :--- | :--- |
+| **`v5.3`** | Corto Plazo *(1 mes)* | **Endurecimiento de Seguridad, Privacidad y QA Automatizado** | • Aserciones server-side de rol y propiedad en el 100% de las 23 RPCs (`RSK-01`).<br>• Vista de columnas mínimas para `perfiles_usuarios` (`RSK-05`) y actualización de `codigo_version = 'v5.2-RESERVA'`.<br>• Sincronización de `tests/sql_integrity_checks.sql`, `tests/e2e_verification_checklist.md` y CI/CD con Playwright en GitHub Actions.<br>• Soporte de rangos estacionales envolventes de fin de año en `rpc_cotizar_reserva`. |
+| **`v5.5`** | Mediano Plazo *(2–4 meses)* | **Monetización Real, Automatización Regulatoria y Omnicanalidad** | • Integración de pasarela peruana (**Culqi / Niubiz / Yape API**) con *webhooks* verificados vía Supabase Edge Functions y liquidación bancaria automatizada.<br>• Emisión de boletas/facturas electrónicas vía proveedor **OSE / SUNAT** e incorporación del **Libro de Reclamaciones Virtual (INDECOPI)**.<br>• Notificaciones externas multicanal (**WhatsApp Business API + Web Push PWA + Email transaccional**) para alertas S.O.S. críticas y Check-In/Check-Out.<br>• Validación automatizada de RUC (SUNAT) y DNI (RENIEC) al postular. |
+| **`v6.0`** | Largo Plazo *(5–12 meses)* | **Escalamiento Multi-Especie, App Nativa y Expansión Regional** | • Soporte multi-especie (**felinos y mascotas exóticas**) con protocolos sanitarios diferenciados en `PAW-ID`.<br>• Aplicación móvil instalable (**PWA avanzada / React Native o Capacitor**) con modo offline para carnés QR y alertas S.O.S. con escalamiento por SLA.<br>• Expansión territorial al corredor completo del **Valle Sagrado (Urubamba, Pisac, Ollantaytambo)** y lanzamiento en **Arequipa y Lima** bajo arquitectura multi-ciudad parametrizable. |
+
+---
+
+> **Cierre de Auditoría Multidisciplinaria (`v5.2`):** Este documento consolida de forma autocontenida la totalidad de los artefactos exigidos por las cuatro unidades curriculares de Ingeniería de Software e Interacción Humano-Computadora (Modelado de Procesos BPMN/UML, Especificación de Requisitos IEEE 830 con Matriz de Trazabilidad Bidireccional, Arquitectura Híbrida SPA+BaaS, Diccionario de 23 Tablas 3FN + 26 Índices + 23 RPCs + RLS, Diseño Visual WCAG AAA + Certificación Nielsen `20/20`, Aseguramiento de Calidad, Modelo de Negocio/Viabilidad en Cusco, Marco Legal Peruano Ley N.º 29733/30407 y Gestión de Riesgos), verificado al 100% contra el código fuente de producción en la rama `main`.
