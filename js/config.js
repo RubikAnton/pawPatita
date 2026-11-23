@@ -22,11 +22,11 @@
 export const ENV = {
   // URL del Proyecto Supabase (Project URL)
   // Reemplazar 'https://xyzcompany.supabase.co' con tu URL real de Supabase
-  SUPABASE_URL: window.__ENV__?.SUPABASE_URL || 'https://xyzcompany.supabase.co',
+  SUPABASE_URL: window.__ENV__?.SUPABASE_URL || 'https://evephdzpoonavggwoejs.supabase.co',
 
   // Clave Anónima Pública de Supabase (anon public API key)
   // Reemplazar con el token JWT público de tu proyecto
-  SUPABASE_ANON_KEY: window.__ENV__?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_development',
+  SUPABASE_ANON_KEY: window.__ENV__?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2ZXBoZHpwb29uYXZnZ3dvZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0MjMyMTgsImV4cCI6MjExMDk5OTIxOH0.7vOFGE4Pwpjj7lt5i9_zOPf71oywZ0iwWFhq0p4aFd0',
 
   // URL canónica de producción en GitHub Pages
   SITE_URL: window.__ENV__?.SITE_URL || (window.location.origin + window.location.pathname),
